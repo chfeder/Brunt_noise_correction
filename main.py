@@ -3,13 +3,11 @@
 main.py: currently pseudo code
 '''
 import yt
-# now more files...
-#from sigma_rho.py import *
-#from sigma_v.py import *
+from extract_s1.py import *
 
 
 # TO OBTAIN SIGMA_RHO 
-Section = extract_section_1( argument )
+Section = extract_section_1(args)
 
 Section1 = MotionBlur( Section )
 
