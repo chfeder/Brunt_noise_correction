@@ -3,8 +3,9 @@
 main.py: currently pseudo code
 '''
 import yt
-from sigma_rho.py import *
-from sigma_v.py import *
+# now more files...
+#from sigma_rho.py import *
+#from sigma_v.py import *
 
 
 # TO OBTAIN SIGMA_RHO 
@@ -17,8 +18,6 @@ Projection = Project( Section1 )
 PDF = MakePDF( Projection )
 
 SigmaRho = MakeSigmaRho( PDF )
-    Fit to a function
-    Measure
 
 
 # TO OBTAIN SIGMA_V 
