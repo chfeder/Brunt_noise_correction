@@ -7,7 +7,7 @@ from main import *
 
 #class extract_section_1():
 
-def extract_section_1(ds,level,edge):
-    Cg = ds.covering_grid(level, edge, ds.domain_dimensions)
+def extract_section_1(ds,level,edge,size):
+    Cg = ds.covering_grid(level, edge, size)
     
     return Cg

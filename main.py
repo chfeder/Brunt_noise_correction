@@ -39,8 +39,11 @@ the_ledge = the_ds.arr([-0.06,0.3,-0.06],'code_length')
 the_redge = the_ds.arr([0.06,0.334,0.06],'code_length')
 the_center =0.5*the_ledge + 0.5*the_redge
 proj_axis = 1
+mindx = the_ds.index.get_smallest_dx()
+size = ((the_redge - the_ledge)/mindx).astype('int') 
 
-section = extract_s1.extract_section_1(the_ds,the_level,the_ledge)
+
+section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
 section1 = motion_blur.Motion_Blur()  #tbe; simply returns
 projection = project.Project(section,proj_axis,the_center,the_redge,the_ledge)  #revise
 pdf = make_pdf.Make_PDF(projection)  #revise  
