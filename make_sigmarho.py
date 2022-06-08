@@ -1,5 +1,6 @@
 
 '''
+notes:
 Fit to a function
 Measure
 '''
