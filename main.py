@@ -19,8 +19,12 @@ import motion_blur
 reload(motion_blur)
 import project
 reload(project)
+import make_images
+reload(make_images)
 import make_pdf
 reload(make_pdf)
+import make_sigmaRho
+reload(make_sigmaRho)
 
 '''
 THE DATA: the simulations are in /scratch/ek9/ccf100/nif
@@ -42,12 +46,12 @@ proj_axis = 1
 mindx = the_ds.index.get_smallest_dx()
 size = ((the_redge - the_ledge)/mindx).astype('int') 
 
-
 section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
 section1 = motion_blur.Motion_Blur()  #tbe; simply returns
-projection = project.Project(section,proj_axis,the_center,the_redge,the_ledge)  #revise
-pdf = make_pdf.Make_PDF(projection)  #revise  
-#SigmaRho = MakeSigmaRho(pdf)
+projection = project.Project(section,proj_axis,the_center,the_redge,the_ledge)
+images = make_images.Make_Images(projection)
+bins, cbins, pdf = make_pdf.Make_PDF(projection) 
+SigmaRho = Make_SigmaRho(bins,cbins,pdf)
 
 
 '''
