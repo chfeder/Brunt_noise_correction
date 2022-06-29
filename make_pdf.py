@@ -7,7 +7,11 @@ from main import *
 
 def Make_PDF(array):
 
-    the_PDF, xbins = np.histogram(array, weights = None, density=True)
+    the_min = array.min().v
+    the_max = array.max().v
+
+    the_bins = np.linspace(the_min, the_max)
+    the_PDF, xbins = np.histogram(array, bins=the_bins, weights = None, density=True)
     bin_centers = 0.5*(xbins[1:]+xbins[:-1])
     plot_x = bin_centers
     plot_y = the_PDF

@@ -23,8 +23,8 @@ import make_images
 reload(make_images)
 import make_pdf
 reload(make_pdf)
-import make_sigmaRho
-reload(make_sigmaRho)
+import make_sigmarho
+reload(make_sigmarho)
 
 '''
 THE DATA: the simulations are in /scratch/ek9/ccf100/nif
@@ -49,9 +49,9 @@ size = ((the_redge - the_ledge)/mindx).astype('int')
 section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
 section1 = motion_blur.Motion_Blur()  #tbe; simply returns
 projection = project.Project(section,proj_axis,the_center,the_redge,the_ledge)
-images = make_images.Make_Images(projection)
+if 0: images = make_images.Make_Images(projection)
 bins, cbins, pdf = make_pdf.Make_PDF(projection) 
-SigmaRho = Make_SigmaRho(bins,cbins,pdf)
+SigmaRho = make_sigmarho.Make_SigmaRho(bins,cbins,pdf)
 
 
 '''
