@@ -4,13 +4,9 @@ notes:
 Fit to a function
 Measure
 '''
-from main import *
 
-def Make_SigmaRho(bins,cbins,pdf):
-    # fit to a function: Fit a gaussian or a gaussian+powerlaw
-    # measure: Sigma_log_rho = ( PDF* (log(rho)-mu)^2) .sum()
-   
-
+def Make_SigmaRho(the_field,bins,cbins,pdf):
+    
     dx = bins[1:]-bins[:-1]
     norm = (pdf * dx).sum()
     meanX = (cbins * pdf * dx).sum()
@@ -18,9 +14,7 @@ def Make_SigmaRho(bins,cbins,pdf):
 
     if 1:
         alphaFile = open("sflaser_records.txt",'a')
-        alphaFile.write("Norm %f, \nMeanX %f, \nSigma^2 %f"%(norm,meanX,sigmasquared))
+        alphaFile.write("\nField %s, \nNorm %f, \nMeanX %f, \nSigma^2 %f"%(the_field,norm,meanX,sigmasquared))
         alphaFile.close()
 
-
-
-    return
+    return sigmasquared

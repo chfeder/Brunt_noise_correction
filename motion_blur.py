@@ -5,7 +5,6 @@
     partial rho partial t = -rho div V
 
 '''
-from main import *
 
 def Motion_Blur():
     return
