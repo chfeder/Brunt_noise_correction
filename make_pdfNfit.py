@@ -10,7 +10,7 @@ from scipy.optimize import curve_fit
     PDF = histogram(3DField)
 '''
 
-def Make_PDFnFIT(the_field,array_main,array_two=None,array_three=None):
+def Make_PDFnFIT(the_field,project,array_main,array_two=None,array_three=None):
 
     the_array = array_main.flatten() 
     the_meanarray = np.mean(the_array)  
@@ -36,7 +36,7 @@ def Make_PDFnFIT(the_field,array_main,array_two=None,array_three=None):
     the_max = the_plotarray.max()
 
     the_prebins = math.sqrt(len(the_plotarray))  #for isqrt python 3.8 required
-    the_bins = np.linspace(the_min, the_max,num=288)  #number of bins approximated to match paper
+    the_bins = np.linspace(the_min, the_max,num=320)  #number of bins approximated to match paper
 
     the_PDF, xbins, patches = plt.hist(the_plotarray, bins=the_bins, histtype='step', weights = None, density=True,color='b')
     bin_centers = 0.5*(xbins[1:]+xbins[:-1])
@@ -57,10 +57,12 @@ def Make_PDFnFIT(the_field,array_main,array_two=None,array_three=None):
             y[mask] = ( N/np.sqrt(2*np.pi*sigma**2) ) * np.exp(-( ((s[mask]-mu)**2)/(2*sigma**2) ) )
             y[~mask] = N*p_o*np.exp(-a*s[~mask])
             return y  #the combined fit to plot
-        popt, pcov = curve_fit(func_GaussPL, xdata=plot_x, ydata=plot_y, p0 = [-0.16,1,1,1,1,3.5])
+        popt, pcov = curve_fit(func_GaussPL, xdata=plot_x, ydata=plot_y, p0 = [-0.2,1,1,1,1,5])
         print('popt',popt)
         plt.plot(plot_x, func_GaussPL(plot_x, *popt), 'r--')  #how to mark portions in diff colors
         plt.xlabel(r'$s = ln(\rho/ \left\langle \rho \right\rangle)$')
+        if project == True: 
+            plt.xlabel(r'$s = ln(N/ \left\langle N \right\rangle)$')
         plt.ylabel('PDF')
         #plt.plot(plot_x, func_GaussPL(plot_x, 0.1,1,1,1,1,3), 'r--')
 
@@ -92,7 +94,7 @@ def Make_PDFnFIT(the_field,array_main,array_two=None,array_three=None):
     plt.yscale('log')
     plt.ylim(1e-3,1e1)
     if the_field == 'density':
-        plt.xlim(-1.0,2.0)
+        plt.xlim(-1.0,1.5)
     if the_field in velocities[1:]: 
         plt.xlim(-1.5,1.5)
     if the_field == 'sound_speed':

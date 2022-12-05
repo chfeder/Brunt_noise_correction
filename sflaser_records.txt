@@ -64,5 +64,24 @@ Norm 1.000000,
 MeanX 0.000491, 
 Sigma^2 0.024683
 
-b = 0.7469
-polytropic index =1 
+
+WITH EQUATION 1 & VALUES OF FITS
+polytropic index =1: 
+drive param = 0.7469
+
+WITH EQUATION 10 & VALUES OF FITS
+p_index = 1:
+drive param: 0.864247
+p_index = 0.01:
+drive param = 1.4099381482378197 
+p_index = 0.1:
+drive param: 1.335526
+p_index = 0.2:
+drive param: 1.260461
+
+
+
+Field density projection:
+Norm 1.000000, 
+MeanX -0.027131, 
+Sigma^2 0.050088

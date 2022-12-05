@@ -80,7 +80,6 @@ if 0:
     rho_avg = np.mean(rho)
     c_s = np.sqrt((gamma * p_th)/rho)
     cs_avg = np.mean(c_s)
-    #cs_avg = [2e6] * cm/s  #could have also done ds.array([#],'units')
   
     vx = the_region['velocity_x']
     vx_avg = np.mean(vx)  # np.mean() is ok as long as region remains constant

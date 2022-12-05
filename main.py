@@ -27,8 +27,8 @@ import make_sigmarho
 reload(make_sigmarho)
 import make_sigmavel
 reload(make_sigmavel)
-import produce_b
-reload(produce_b)
+import obtain_b
+reload(obtain_b)
 
 '''
 THE DATA: the simulations are in /scratch/ek9/ccf100/nif
@@ -42,10 +42,12 @@ the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_50mu_bubbl
 '''
 to obtain SIGMA_RHO:
 '''
-field_main = 'velocity_z'
-field_two ='density' 
-field_three ='pressure' 
-proj_axis = 0  #doesnt make a difference if NOT making projection; assign it a None 
+field_main = 'density'
+field_two = None 
+field_three = None 
+projection = True
+proj_axis = 1  
+polytropic_index = 1 # +/-0.1, for 50um voids
 
 the_level = 0
 the_ledge = the_ds.arr([-0.06,0.3,-0.06],'code_length')
@@ -57,12 +59,12 @@ size = ((the_redge - the_ledge)/mindx).astype('int')
 
 section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
 section_blur = motion_blur.Motion_Blur()  #tbd; simply returns
-cg_first,cg_second,cg_third = project.Project(section,proj_axis,field_main,field_two,field_three)
+cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
 if 0:   
-    images = make_images.Make_Images(cg_second)  #buggie 
-if 0: # this could be split into two definitions/files PDF and FIT
-bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main,cg_first,cg_second,cg_third) 
-if 0:
+    images = make_images.Make_Images(cg_first,proj_axis)  #Buggie: YTUnitOperationError
+if 1: # this could be split into two definitions/files PDF and FIT
+    bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main,projection,cg_first,cg_second,cg_third) 
+if 1:
     sigma_rho = make_sigmarho.Make_SigmaRho(field_main,bins,cbins,pdf)
 
 
@@ -76,9 +78,13 @@ proj_axis_vel = 2
 project_vel = project.Project(section,field,proj_axis_vel,the_center,the_redge,the_ledge)
 #ProbablyOtherPhysicsTBD
 bins_v, cbins_v, pdf_v = make_pdf.Make_PDF(project_vel,field) 
-SigmaV = make_sigmavel.Make_SigmaVel(field_main,bins_v,cbins_v,pdf_v) 
+sigma_v = make_sigmavel.Make_SigmaVel(field_main,bins_v,cbins_v,pdf_v) 
 '''
+
+
 '''
 TO OBTAIN b: 
 '''
-#dp_b = produce_b.Produce_B(SigmaRho,SigmaV)
+if 0: 
+    obtain_b.Obtain_b()  #sigma_rho,sigma_v,polytropic_index)
+
