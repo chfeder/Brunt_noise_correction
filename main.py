@@ -23,10 +23,12 @@ import make_images
 reload(make_images)
 import make_pdfNfit
 reload(make_pdfNfit)
-import make_sigmarho
-reload(make_sigmarho)
+import make_sigmasquared
+reload(make_sigmasquared)
 import make_sigmavel
 reload(make_sigmavel)
+import parsevals
+reload(parsevals)
 import obtain_b
 reload(obtain_b)
 
@@ -41,17 +43,18 @@ the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_50mu_bubbl
 
 '''
 to obtain SIGMA_RHO:
+if field_main = any velocity, then field_two = 'density', field_three = pressure
 '''
 field_main = 'density'
 field_two = None 
 field_three = None 
 projection = True
-proj_axis = 1  
+proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 
 the_level = 0
-the_ledge = the_ds.arr([-0.06,0.3,-0.06],'code_length')
-the_redge = the_ds.arr([0.06,0.334,0.06],'code_length')
+the_ledge = the_ds.arr([-0.06,0.33,-0.06],'code_length')
+the_redge = the_ds.arr([0.06,.365,0.06],'code_length')
 the_center =0.5*the_ledge + 0.5*the_redge
 mindx = the_ds.index.get_smallest_dx()
 size = ((the_redge - the_ledge)/mindx).astype('int') 
@@ -63,9 +66,11 @@ cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field
 if 0:   
     images = make_images.Make_Images(cg_first,proj_axis)  #Buggie: YTUnitOperationError
 if 1: # this could be split into two definitions/files PDF and FIT
-    bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main,projection,cg_first,cg_second,cg_third) 
+    bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main,projection,proj_axis,cg_first,cg_second,cg_third) 
 if 1:
-    sigma_rho = make_sigmarho.Make_SigmaRho(field_main,bins,cbins,pdf)
+    sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main,bins,cbins,pdf)
+if 1:
+    sigma_3D = parsevals.parsevals_th(cg_first,sigma_sq)
 
 
 '''

@@ -45,29 +45,30 @@ drive 0.000000
 
 
 
-# REVAMP! SigmaSquares
-Rho
-Norm 1.000000, 
-MeanX -0.049643, 
-Sigma^2 0.084967
+SIGMA SQUARES
 
+Field density, 
+Norm 1.000000, 
+MeanX -0.029097, 
+Sigma^2 0.053404
 Mx
 Norm 1.000000, 
-MeanX 0.000512, 
-Sigma^2 0.025556
+MeanX -0.000611, 
+Sigma^2 0.048430
 My
 Norm 1.000000, 
-MeanX 0.019334, 
-Sigma^2 0.063517
+MeanX -0.007689, 
+Sigma^2 0.085634
 Mz
 Norm 1.000000, 
-MeanX 0.000491, 
-Sigma^2 0.024683
+MeanX -0.000817, 
+Sigma^2 0.047294
+
 
 
 WITH EQUATION 1 & VALUES OF FITS
 polytropic index =1: 
-drive param = 0.7469
+drive param = 0.864233
 
 WITH EQUATION 10 & VALUES OF FITS
 p_index = 1:
@@ -80,8 +81,16 @@ p_index = 0.2:
 drive param: 1.260461
 
 
+# CORRECTED REGION
+p_index = 1
+drive param eq 1: 0.5426484098640837
+drive param eq 10: 0.542648
+p_index = 0.01:
+drive param eq 10: 0.947735
+p_index = 0.1
+drive param eq 10: 0.888845
+p_index = 0.2:
+drive param eq 10: 0.830495
 
-Field density projection:
-Norm 1.000000, 
-MeanX -0.027131, 
-Sigma^2 0.050088
+
+
