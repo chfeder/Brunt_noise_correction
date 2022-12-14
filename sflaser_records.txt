@@ -94,3 +94,13 @@ drive param eq 10: 0.830495
 
 
 
+
+
+sigma calculated: 541.994435
+
+Field density, 
+Norm 1.000000, 
+MeanX -0.029097, 
+Sigma^2 1.112445
+
+

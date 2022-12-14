@@ -31,6 +31,8 @@ import parsevals
 reload(parsevals)
 import obtain_b
 reload(obtain_b)
+import calculate
+reload(calculate)
 
 '''
 THE DATA: the simulations are in /scratch/ek9/ccf100/nif
@@ -48,7 +50,7 @@ if field_main = any velocity, then field_two = 'density', field_three = pressure
 field_main = 'density'
 field_two = None 
 field_three = None 
-projection = True
+projection = False
 proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 
@@ -65,11 +67,13 @@ section_blur = motion_blur.Motion_Blur()  #tbd; simply returns
 cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
 if 0:   
     images = make_images.Make_Images(cg_first,proj_axis)  #Buggie: YTUnitOperationError
+if 0: 
+    calculation = calculate.Calculate(cg_first) 
 if 1: # this could be split into two definitions/files PDF and FIT
-    bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main,projection,proj_axis,cg_first,cg_second,cg_third) 
+    bins, cbins, pdf, rhorhoavg = make_pdfNfit.Make_PDFnFIT(field_main,projection,proj_axis,cg_first,cg_second,cg_third) 
 if 1:
-    sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main,bins,cbins,pdf)
-if 1:
+    sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main,bins,cbins,pdf,rhorhoavg)
+if 0:
     sigma_3D = parsevals.parsevals_th(cg_first,sigma_sq)
 
 

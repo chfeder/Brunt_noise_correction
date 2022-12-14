@@ -21,6 +21,7 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
         p_th = the_tarray
 
     if the_field == 'density':
+        the_rhorhoavg = the_array/the_meanarray
         the_plotarray = np.log(the_array/the_meanarray)
 
     velocities = ['sound_speed','velocity_x', 'velocity_y', 'velocity_z']
@@ -105,7 +106,7 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
 
     plt.savefig('sort_plots/pdf%s_375_corrected.png'%(the_field))
     plt.close('all')
-    return xbins,plot_x,plot_y 
+    return xbins,plot_x,plot_y,the_rhorhoavg 
           
 
 if 0:  #DEBUG
