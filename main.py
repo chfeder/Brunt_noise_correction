@@ -33,6 +33,8 @@ import obtain_b
 reload(obtain_b)
 import calculate
 reload(calculate)
+import powerspec
+reload(powerspec)
 
 '''
 THE DATA: the simulations are in /scratch/ek9/ccf100/nif
@@ -50,31 +52,42 @@ if field_main = any velocity, then field_two = 'density', field_three = pressure
 field_main = 'density'
 field_two = None 
 field_three = None 
-projection = False
+projection = True 
+dimension = 1
 proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 
 the_level = 0
-the_ledge = the_ds.arr([-0.06,0.33,-0.06],'code_length')
-the_redge = the_ds.arr([0.06,.365,0.06],'code_length')
+delta = 0.0175 
+if 0:
+    # trimmed analysis region, a box
+    the_ledge = the_ds.arr([-delta,0.33,-delta],'code_length')
+    the_redge = the_ds.arr([delta,0.365,delta],'code_length')
+if 1:
+    # original analysis region
+    the_ledge = the_ds.arr([-0.06,0.33,-0.06],'code_length')
+    the_redge = the_ds.arr([0.06,0.365,0.06],'code_length')
+
 the_center =0.5*the_ledge + 0.5*the_redge
 mindx = the_ds.index.get_smallest_dx()
 size = ((the_redge - the_ledge)/mindx).astype('int') 
-
+the_region = the_ds.region(the_center, the_ledge, the_redge)
 
 section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
 section_blur = motion_blur.Motion_Blur()  #tbd; simply returns
 cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
 if 0:   
-    images = make_images.Make_Images(cg_first,proj_axis)  #Buggie: YTUnitOperationError
+    images = make_images.Make_Images(cg_first,proj_axis) 
 if 0: 
-    calculation = calculate.Calculate(cg_first) 
+    calculation = calculate.Calculate(field_main,the_region,cg_first,cg_second) 
 if 1: # this could be split into two definitions/files PDF and FIT
     bins, cbins, pdf, rhorhoavg = make_pdfNfit.Make_PDFnFIT(field_main,projection,proj_axis,cg_first,cg_second,cg_third) 
 if 1:
     sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main,bins,cbins,pdf,rhorhoavg)
-if 0:
-    sigma_3D = parsevals.parsevals_th(cg_first,sigma_sq)
+if 1:
+    powerspec2D, powerspec3D, infxyz = powerspec.PowerSpec(cg_first,dimension)
+if 1:
+    sigma_3D = parsevals.parsevals_th(dimension,sigma_sq, powerspec2D, powerspec3D, infxyz)
 
 
 '''

@@ -9,8 +9,8 @@ def Obtain_b():#sigmasqrho,sigmasqvel,p_index):
     # the arguments passed in squared values
 
     # TEMPORARY FROM SFLASER RECORDS:
-    p_index = 0.2
-    sigmasqrho = 0.053404
+    p_index = 0.1
+    sigmasqrho = 0.073324
     sigmasqvel = 0.048430 + 0.085634 + 0.047294
 
     sigma_rho = np.sqrt(sigmasqrho)
@@ -26,7 +26,7 @@ def Obtain_b():#sigmasqrho,sigmasqvel,p_index):
 
     if 1:
         alphaFile = open("sflaser_records.txt",'a')
-        #alphaFile.write("\ndrive param eq 1: %f"%driving_param_one)
+        alphaFile.write("\ndrive param eq 1: %f"%driving_param_one)
         alphaFile.write("\ndrive param eq 10: %f"%driving_param_ten)
         alphaFile.close()
 

@@ -45,12 +45,13 @@ drive 0.000000
 
 
 
-SIGMA SQUARES
-
+SIGMA SQUARES - - - - -
 Field density, 
 Norm 1.000000, 
 MeanX -0.029097, 
 Sigma^2 0.053404
+Eq. 5: Sigma^2 0.073324
+w/P3_2D and parsevals: Sigma^2 3D 0.074444
 Mx
 Norm 1.000000, 
 MeanX -0.000611, 
@@ -93,14 +94,75 @@ p_index = 0.2:
 drive param eq 10: 0.830495
 
 
+# CORRECTED CODED EQUATION
+p_index = 1
+drive param eq 1: 0.635850
+drive param eq 10: 0.635850
+p_index = 0.1
+drive param eq 10: 1.001608
 
 
 
-sigma calculated: 541.994435
+with Parseval's:
+Eq. 5 Sigma^2 of N/N_o =  0.018487, Sigma N/N_o = 0.134966 
+Sigma^2 of rho/rho_o = 0.248274, Sigma rho/rho_o = 0.498
+# sum 2D first
+Sigma^2 3D 435.586963
+# sum ks...too, no difference
+Sigma^2 3D 435.586963
 
-Field density, 
-Norm 1.000000, 
-MeanX -0.029097, 
-Sigma^2 1.112445
+# with square region
+P2D: 0.000000, P3D_2D: 1169619615.735765, P3D: 1169619615.735765
+P2D: 150954560.317318, P3D_2D: 1494137173.653614, P3D: 1494137173.653614
+P3D_2D/P3D = 1.2774556390401395
+
+# with original rectangular prism region and padding the P3D
+P2D: 0.000000, P3D_2D: 3334170603862.304199, P3D: 3334170603862.304199
+P2D: 25266632623.424549, P3D_2D: 339325517454.924133, P3D: 339325517454.924133
+P3D_2D/P3D = 0.10177209200448512
+
+# with square region again but doing the actual integral
+P2D: 64130704.256488, P3D_2D: 301909120.634636, P3D: 301909120.634636
+P2D: 0.000000, P3D_2D: 349046722.796490, P3D: 349046722.796490
+P3D_2D/P3D = 0.8649533168963819
+P3D/P3D_2D = 1.1561317593279958
 
 
+# trimmed region, P3D
+Sigma^2 3D 0.463017
+# trimmed region, P3D_2D
+Sigma^2 3D 0.050691
+
+
+
+trimmed, equation 4
+sigma_rho calculated data: 0.292194
+sigma_rho calculated cg: 0.291656
+
+original, equation 4
+sigma_rho calculated data: 0.270664
+sigma_rho calculated cg: 0.270771
+
+trimmed
+Eq. 5 Sigma rho/rho_o 0.291669
+original
+Eq. 5 Sigma rho/rho_o 0.270784
+
+trimmed, P3d^1/2
+sigma rho = 
+original, P3d^1/2
+sigma rho = 
+
+
+
+
+
+from erratum, using P3D, trimmed
+Sigma 3D 0.680454
+from erratum, using P3D, original
+NA
+
+from erratum, using P3D_2D, trimmed
+Sigma 3D 0.225147
+from erratum, using P3D_2D, original
+Sigma 3D 0.272844

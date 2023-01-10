@@ -29,7 +29,10 @@ def Project(covergrid,pj_axis,project,field_one,field_two=None,field_three=None)
         if project == False:
             if field_one == 'density':
                 cg_main = covergrid[field_one]
-                cg_two = None
+                if field_two == 'cell_volume':
+                    cg_two = covergrid[field_two]
+                else:
+                    cg_two = None
                 cg_three = None
             if field_one in velocities[0]:  #think of a better way
                 cg_main = covergrid['density'] 
@@ -41,5 +44,3 @@ def Project(covergrid,pj_axis,project,field_one,field_two=None,field_three=None)
                 cg_three = covergrid[field_three]
 
         return cg_main, cg_two, cg_three
-
-#let;s see if the passing of field_one/two works...

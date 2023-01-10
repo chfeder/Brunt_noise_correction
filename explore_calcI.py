@@ -21,8 +21,8 @@ print(ds.domain_left_edge)
 print(ds.domain_right_edge)
 print(ds.domain_right_edge - ds.domain_left_edge)
 '''
-left_edge = ds.arr([-0.06,0.3,-0.06],'code_length') 
-right_edge = ds.arr([0.06,0.334,0.06],'code_length')
+left_edge = ds.arr([-0.06,0.33,-0.06],'code_length')
+right_edge = ds.arr([0.06,.365,0.06],'code_length')
 center =0.5*left_edge + 0.5*right_edge
 the_region = ds.region(center, left_edge, right_edge)#, fields=None, ds=None, field_parameters=None, data_source=None)
 
@@ -34,7 +34,7 @@ if 1:
     #pw.save()
     
     #slice_rho = ds.slice(proj_axis, 0.5, 'density', data_source=the_region)
-    slice_rho = yt.SlicePlot(ds, proj_axis, ('gas', 'density'))#, data_source=the_region)
+    slice_rho = yt.SlicePlot(ds, proj_axis, ('gas', 'density'), data_source=the_region)
     #pw = slice_rho.to_pw()
     slice_rho.save()
     
