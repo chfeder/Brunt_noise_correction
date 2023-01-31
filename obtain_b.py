@@ -1,5 +1,5 @@
 
-import numpy as np
+from startlaser import *
 '''
 notes:
 '''

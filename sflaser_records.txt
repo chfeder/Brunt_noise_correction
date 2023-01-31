@@ -148,17 +148,12 @@ Eq. 5 Sigma rho/rho_o 0.291669
 original
 Eq. 5 Sigma rho/rho_o 0.270784
 
-trimmed, P3d^1/2
-sigma rho = 
-original, P3d^1/2
-sigma rho = 
-
-
-
 
 
 from erratum, using P3D, trimmed
 Sigma 3D 0.680454
+need: Eq. 5 Sigma^2 of N/N_o 0.010768
+Sigma 3D 0.242090  corrected
 from erratum, using P3D, original
 NA
 
@@ -166,3 +161,50 @@ from erratum, using P3D_2D, trimmed
 Sigma 3D 0.225147
 from erratum, using P3D_2D, original
 Sigma 3D 0.272844
+
+
+P2D/P3D:
+BOX: 0.212417
+ORGINAL: 0.248333
+
+
+
+
+
+Sigma 3D 18682.792157, subtracting rho sq ave is insignificant
+
+Sigma 3D from P3D 18682.792157
+
+
+Sigma 3D from P3D 109072.746173
+Sigma 3D from P3D 20480.410854
+
+Sigma 3D from P3D 106048.306624
+Sigma 3D from P3D 106048.306624
+
+
+
+
+# STILL CAN'T GET SIGMA RHO FROM P3D
+Sigma 3D_2D 106048.306624
+
+# SOMEWHERE IS OFF BY AN OOM; CHECK MAKE SIGMA SQUARED
+box: Sigma 3D_2D 22.272033
+original region: Sigma 3D_2D 27.490211
+
+# np.log(the_array)
+The R value 0.193778
+Sigma 3D_2D nan
+
+# np.log(abs(the_array))
+The R value 0.193778
+Sigma 3D_2D 4.823724
+
+
+
+# if choose the field to be 'density'
+# with 'fixed' power spectrum
+The R value 0.985367
+Sigma 3D_2D 0.136972
+
+

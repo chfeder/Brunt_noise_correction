@@ -1,10 +1,5 @@
 
-import matplotlib.pyplot as plt
-import numpy as np
-import math
-import pdb
-from scipy.optimize import curve_fit
-
+from startlaser import *
 '''
     notes: 
     PDF = histogram(3DField)
@@ -17,12 +12,17 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
     if array_two != None:
         the_sarray = array_two.flatten()
         rho = the_sarray 
+    if array_three != None:
         the_tarray = array_three.flatten()
         p_th = the_tarray
 
     if the_field == 'density':
         the_rhorhoavg = the_array/the_meanarray
-        the_plotarray = np.log(the_array/the_meanarray)
+        the_plotarray = np.log(the_rhorhoavg)
+    if the_field == 'overdensity':
+        #pdb.set_trace()
+        the_plotarray = np.log(abs(the_array))  #edited 
+
 
     velocities = ['sound_speed','velocity_x', 'velocity_y', 'velocity_z']
     if the_field in velocities: 
@@ -41,14 +41,13 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
 
     the_PDF, xbins, patches = plt.hist(the_plotarray, bins=the_bins, histtype='step', weights = None, density=True,color='b')
     bin_centers = 0.5*(xbins[1:]+xbins[:-1])
-    
+
+
     plot_x = bin_centers
     plot_y = the_PDF
     # THE CURVE
     if 0:
         plt.plot(plot_x,plot_y, c='k')
-
-
 
     # THE CURVE-FITS
     if the_field == 'density':
@@ -79,7 +78,6 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
         plt.xlabel(r'$\mathcal{M}_%s$'%xyz[axis])  #automate the axis labels...
         plt.ylabel('PDF')
 
-
     if the_field in velocities[0]:
         def func_PLGauss(s,st,A,B,sigma,mu,a):
             y = np.zeros_like(plot_x)
@@ -106,7 +104,7 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
 
     plt.savefig('sort_plots/pdf%s_375_corrected.png'%(the_field))
     plt.close('all')
-    return xbins,plot_x,plot_y,the_rhorhoavg 
+    return xbins, plot_x, plot_y 
           
 
 if 0:  #DEBUG

@@ -1,4 +1,5 @@
 # sflaser
+# outdated
 
 SIGMA_RHO: 
 extract_s1.py

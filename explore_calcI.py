@@ -1,10 +1,5 @@
-import yt
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-#import unyt
-#from unyt import cm, s
 
+from startlaser import * 
 
 # 9 different simulations with a few snapshots:
 # NIF_hdf5_plt_cnt_0*

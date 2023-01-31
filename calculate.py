@@ -1,14 +1,10 @@
 
-
+from startlaser import * 
 '''
 calculate sigma rho from data as opposed to from PDFs
 not equation (4), even more standard
 
 '''
-import matplotlib.pyplot as plt
-import numpy as np
-import pdb
-
 
 def Calculate(first_field,region,cg_field,cg_fieldtwo):
 
@@ -22,7 +18,8 @@ def Calculate(first_field,region,cg_field,cg_fieldtwo):
         field_ii= cg_field.flatten()
         cv = cg_fieldtwo.flatten()
         field_mean_ii = np.mean(field_ii)
-        field_ave_ii = ( (field_ii*cv).sum()/cv.sum() )
+        field_ave_pii = ( (field_ii*cv).sum()/cv.sum() )
+        field_ave_ii = field_ave_pii.v 
 
     sfield_i = field_i/field_mean_i 
     sigma_sq_i = (((sfield_i - 1) ** 2)*cell_volume).sum() / cell_volume.sum()
@@ -37,8 +34,8 @@ def Calculate(first_field,region,cg_field,cg_fieldtwo):
     
     if 0:
         alphaFile = open("sflaser_records.txt",'a')
-        alphaFile.write("\nsigma_rho calculated data: %f"%sigma_i)
+        #alphaFile.write("\nsigma_rho calculated data: %f"%sigma_i)
         alphaFile.write("\nsigma_rho calculated cg: %f"%sigma_ii)
         alphaFile.close()
 
-    return
+    return 

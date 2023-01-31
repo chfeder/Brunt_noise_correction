@@ -1,11 +1,9 @@
 
+from startlaser import *
 '''
     notes: 
     how does it look
 '''
-import matplotlib
-import matplotlib.pyplot as plt
-import pdb
 
 
 def Make_Images(cg_projection,pj_axis):
