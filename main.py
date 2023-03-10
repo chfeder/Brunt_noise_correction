@@ -20,16 +20,19 @@ derived field: to take the mean out, aka k=0 mode
 def add_field(thing):
     def overdensity(field,data):
         rho_0 = data.get_field_parameter('rho_0')
-        return ((data['density']-rho_0)/rho_0)
-    thing.add_field(YT_overdensity,function=overdensity,units='dimensionless')
+        #rho_ratio = (data['density']/rho_0).v
+        #return (rho_ratio-1)
+        # OR SAME THING:
+        return(((data['density'] - rho_0)/rho_0))
+    thing.add_field(YT_overdensity,function=overdensity)#,units='dimensionless')
 add_field(the_ds)
 
 
-field_main = 'overdensity'
-field_two = None
+field_main = 'density'
+field_two = 'cell_volume'
 field_three = None 
-projection = False 
-dimension = 2
+projection = True 
+dimension = 1
 proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 
@@ -60,10 +63,12 @@ if projection == True:  # this could be split into two definitions/files PDF and
     bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main,projection,proj_axis,cg_first,cg_second,cg_third) 
 if projection == True:
     sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main,bins,cbins,pdf)
+else: 
+    sigma_sq = None
 if 1:
-    powerspec2D, powerspec3D, infxyz, k3D = powerspec.PowerSpec(cg_first,dimension)
+    powerspec2D, powerspec3D, infxyz, ks, psmap, kmap = powerspec.PowerSpec(cg_first,cg_second,dimension)
 if 1:
-    sigma_3D = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz)
+    sigma_3D = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, psmap, kmap, sigma_sq) 
 
 
 '''

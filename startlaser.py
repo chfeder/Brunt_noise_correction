@@ -46,6 +46,10 @@ reload(calculate)
 import powerspec
 reload(powerspec)
 
+# in parsevals.py only...
+#import turbulence_driving_analysis
+#reload(turbulence_driving_analysis)
+
 
 ''' 
 # to import things from sub directories

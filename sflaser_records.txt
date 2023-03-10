@@ -200,11 +200,65 @@ Sigma 3D_2D nan
 The R value 0.193778
 Sigma 3D_2D 4.823724
 
-
-
 # if choose the field to be 'density'
 # with 'fixed' power spectrum
 The R value 0.985367
 Sigma 3D_2D 0.136972
+
+# did not multiply it by dk = 1/kvals
+Sigma 3D from P3D 7108245.291650
+# made dk[0] =0
+Sigma 3D from P3D 375931.458914
+
+
+I think my error is in what I'm making dk to be
+
+original region.....with fixes from dccs meet.
+multiplied by np.pi ouside sum
+The R value 0.193778
+Sigma 3D_2D 27.492427
+and by 4 for P3D and 2 for P2D
+The R value 0.096889
+Sigma 3D_2D 38.880163
+
+'density'
+........made dk be 1/fourier_image.size.....ahhhhh
+Sigma 3D from P3D 297.467164; with dccs inspection
+Sigma 3D from P3D 40.732148; with original settings
+# see notes
+Sigma 3D_2D 0.498271
+Sigma 3D_2D 0.150314
+
+
+
+'overdensity'
+Sigma 3D from P3D 237.799960
+Sigma 3D from P3D 244.881711
+
+Sigma 3D from P3D 29.332859
+
+Sigma 3D from P3D 42.753502
+
+Sigma 3D from P3D 42.710137
+
+Sigma 3D from P3D 28.587477
+
+
+dk outside of .sum
+
+Sigma 3D_2D 28.587477
+
+
+no dk: Sigma 3D from P3D 249755.825833
+dk outside P.sum: Sigma 3D from P3D 297.461400
+dk outside Pdk.sum: Sigma 3D from P3D 297.461400
+
+
+# BOX
+The R value 0.212417
+The R^(1/2) value 0.460887
+# ORIGINAL
+The R value 0.248333
+The R^(1/2) value 0.498331
 
 

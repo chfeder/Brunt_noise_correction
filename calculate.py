@@ -17,8 +17,10 @@ def Calculate(first_field,region,cg_field,cg_fieldtwo):
     if 1:  #from the covergrid
         field_ii= cg_field.flatten()
         cv = cg_fieldtwo.flatten()
+
         field_mean_ii = np.mean(field_ii)
         field_ave_pii = ( (field_ii*cv).sum()/cv.sum() )
+        # drop units
         field_ave_ii = field_ave_pii.v 
 
     sfield_i = field_i/field_mean_i 
@@ -27,7 +29,10 @@ def Calculate(first_field,region,cg_field,cg_fieldtwo):
 
     sfield_ii = field_ii/field_mean_ii 
     sigma_sq_ii = (((sfield_ii - 1) ** 2)*cv).sum() / cv.sum()
+    # this could have also been coded as: 
+    #sigma_sq_ii = (((field_ii - field_mean_ii) ** 2)*cv).sum() / cv.sum()
     sigma_ii = np.sqrt(sigma_sq_ii)
+    print('sigma_ii',sigma_ii)
 
     if 0:
         pdb.set_trace()
