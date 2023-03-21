@@ -1,10 +1,10 @@
 
-from startlaser import * 
 '''
 notes:
-Fit to a function
-Measure
+this calculates sigma rho from the PDF
 '''
+from startlaser import * 
+
 
 def Make_SigmaSquared(the_field,bins,cbins,pdf):
     
@@ -20,11 +20,9 @@ def Make_SigmaSquared(the_field,bins,cbins,pdf):
         sigmasquared = (np.exp(cbins)**2 * pdf * ds).sum()  #since I logged the plotarray
         sigma = np.sqrt(sigmasquared)
 
-    if 0:
+    if 0:  # write out anything you wish
         alphaFile = open("sflaser_records.txt",'a')
-        #alphaFile.write("\nField %s, \nNorm %f, \nMeanX %f, \nSigma^2 %f"%(the_field,norm,meanX,sigmasquared))
         alphaFile.write("\nEq. 5 Sigma^2 of N/N_o %f"%(sigmasquared))
-        #alphaFile.write("\nEq. 5 Sigma rho/rho_o %f"%(sigma))
         alphaFile.close()
 
     return sigmasquared

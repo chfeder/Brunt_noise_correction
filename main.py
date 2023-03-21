@@ -14,7 +14,7 @@ the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_50mu_bubbl
 '''
 to obtain SIGMA_RHO:
 if field_main = any velocity, then field_two = 'density', field_three = pressure
-derived field: to take the mean out, aka k=0 mode
+derived field (an option): to take the mean out, aka k=0 mode
 '''
 
 def add_field(thing):
@@ -31,8 +31,8 @@ add_field(the_ds)
 field_main = 'density'
 field_two = 'cell_volume'
 field_three = None 
-projection = True 
-dimension = 1
+projection = False 
+dimension =2
 proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 
@@ -50,7 +50,7 @@ if 0:
 the_center =0.5*the_ledge + 0.5*the_redge
 mindx = the_ds.index.get_smallest_dx()
 size = ((the_redge - the_ledge)/mindx).astype('int') 
-the_region = the_ds.region(the_center, the_ledge, the_redge)
+the_region = the_ds.region(the_center,the_ledge, the_redge)
 
 section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
 section_blur = motion_blur.Motion_Blur()  #tbd; simply returns
@@ -66,9 +66,9 @@ if projection == True:
 else: 
     sigma_sq = None
 if 1:
-    powerspec2D, powerspec3D, infxyz, ks, psmap, kmap = powerspec.PowerSpec(cg_first,cg_second,dimension)
+    powerspec2D, powerspec3D, infxyz = powerspec.PowerSpec(cg_first,cg_second,dimension)
 if 1:
-    sigma_3D = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, psmap, kmap, sigma_sq) 
+    sigma_3D = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, sigma_sq) 
 
 
 '''

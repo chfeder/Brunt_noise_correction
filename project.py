@@ -1,5 +1,4 @@
 
-from startlaser import *
 '''
 NOTES:
 1. Many layers of complexity.
@@ -19,6 +18,7 @@ Add CCD response
 For later:
 Proj = Convolve with Gaussian (need the PSF framing camera)
 '''
+from startlaser import *
 
 def Project(covergrid,pj_axis,project,field_one,field_two=None,field_three=None):
 

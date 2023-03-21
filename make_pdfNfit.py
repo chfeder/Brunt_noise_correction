@@ -1,9 +1,13 @@
 
-from startlaser import *
 '''
     notes: 
     PDF = histogram(3DField)
+    and fit to a function
+
+    this helps calculate sigma rho from the PDF
 '''
+from startlaser import *
+
 
 def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=None):
 
@@ -36,7 +40,7 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
     the_min = the_plotarray.min()
     the_max = the_plotarray.max()
 
-    the_prebins = math.sqrt(len(the_plotarray))  #for isqrt python 3.8 required
+    the_prebins = math.sqrt(len(the_plotarray))  #for isqrt python 3.8 is required
     the_bins = np.linspace(the_min, the_max,num=320)  #number of bins approximated to match paper
 
     the_PDF, xbins, patches = plt.hist(the_plotarray, bins=the_bins, histtype='step', weights = None, density=True,color='b')
