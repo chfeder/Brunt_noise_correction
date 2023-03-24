@@ -82,28 +82,6 @@ def PowerSpec(cg_main,cg_two,dim):
 
 
 
-    # some tests on the spot from what we've gathered
-    if 1:
-        cg_sq = (cg_main **2).sum() 
-        fft_sq = (fourier_amplitudes * dxyz).sum()  
-        powerspec = (powerspec3D * dxyz).sum() 
-
-        ratio = fft_sq/cg_sq  #yep, it is 1
-        ratio_2 = powerspec/cg_sq  #yep, it is 1 
-
-        # play
-        cg_mean = cg_main.mean().v
-        cg_mean_cv = ( (cg_main * cg_two).sum()/cg_two.sum() ).v
-
-        powerspec_sqrt = np.sqrt(powerspec3D)
-        sigma_rho_i = (powerspec_sqrt * dxyz).sum()  #0.421512 
-        sigma_rho_ii = np.sqrt(((powerspec_sqrt * dxyz).sum()**2) - cg_mean**2)  #0.3851401 
-        sigma_rho_iii = (powerspec_sqrt * dxyz).sum() - cg_mean  #mathematically doesn't make sense, 0.250225   
-
-        sigma_rho_iv = np.sqrt(powerspec - cg_mean**2)  #149, cg_mean**2 here is insignificant 
-        print(sigma_rho_i)
-        
-
     # let's plot
     if 0: 
         fig,ax = plt.subplots(1,1)
@@ -117,5 +95,36 @@ def PowerSpec(cg_main,cg_two,dim):
         plt.ylabel('$P(k)$')
         plt.tight_layout()
         plt.savefig('sort_plots/boxregion_powerspec3D.png')
+
+    # some tests on the spot from what we've gathered
+    if 0:
+        cg_sq = (cg_main **2).sum() 
+        fft_sq = (fourier_amplitudes * dxyz).sum()  
+        powerspec = (powerspec3D * dxyz).sum() 
+        print('cg_sq',cg_sq*dxyz)
+        print('fft_sq',fft_sq)
+        print('fft_sq shape',fft_sq)
+        print('powerspec',powerspec)
+        print('powerspec shape',powerspec3D.shape)
+        print('fourier amps',fourier_amplitudes.shape)
+
+        ratio = fft_sq/cg_sq  #yep, it is 1
+        ratio_2 = powerspec/cg_sq  #yep, it is 1 
+
+        cv = cg_two
+        #cg_mean = ( (cg_main*cv).sum()/cv.sum() )
+        cg_mean = np.mean(cg_main)
+        print('cg_mean',cg_mean)
+        #sfield_ii = cg_main/cg_mean
+        #sigma_sq_ii = (((sfield_ii - 1) ** 2)*cv).sum() / cv.sum()
+        sfield_ii = cg_main
+        sigma_sq_ii = (((sfield_ii - cg_mean) ** 2)*cv).sum() / cv.sum()
+        print('sigma_sq_ii',sigma_sq_ii)
+        print('cg_main.var',cg_main.var())
+          
+        #print('p3D',powerspec3D)
+        P3D = ((powerspec3D[1:] * dxyz).sum()) * dxyz 
+        print('P3D', P3D)
+
  
     return powerspec2D, powerspec3D, dxyz 

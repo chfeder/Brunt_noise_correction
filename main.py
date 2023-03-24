@@ -31,18 +31,18 @@ add_field(the_ds)
 field_main = 'density'
 field_two = 'cell_volume'
 field_three = None 
-projection = False 
-dimension =2
+projection = True 
+dimension =1
 proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 
 the_level = 0
 delta = 0.0175 
-if 1:
+if 0:
     # trimmed analysis region, a box
     the_ledge = the_ds.arr([-delta,0.33,-delta],'code_length')
     the_redge = the_ds.arr([delta,0.365,delta],'code_length')
-if 0:
+if 1:
     # original analysis region
     the_ledge = the_ds.arr([-0.06,0.33,-0.06],'code_length')
     the_redge = the_ds.arr([0.06,0.365,0.06],'code_length')

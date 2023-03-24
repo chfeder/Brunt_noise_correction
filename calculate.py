@@ -30,10 +30,12 @@ def Calculate(first_field,region,cg_field,cg_fieldtwo):
 
     sfield_ii = field_ii/field_mean_ii 
     sigma_sq_ii = (((sfield_ii - 1) ** 2)*cv).sum() / cv.sum()
+    print('sigma_2_calc', sigma_sq_ii)
     # this could have also been coded as: 
     #sigma_sq_ii = (((field_ii - field_mean_ii) ** 2)*cv).sum() / cv.sum()
 
     sigma_ii = np.sqrt(sigma_sq_ii)
+    print('sigma_calc', sigma_ii)
 
     if 0:
         pdb.set_trace()

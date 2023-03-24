@@ -8,17 +8,20 @@ def parsevals_th(dim, p2d, p3d, dk, sigmaN_sq=None):
 
     if dim == 1:
         if 1:
-            P2D = (p2d*dk).sum()
-            P3D = (p3d*dk).sum()
+            P2D = ((p2d[1:]*dk).sum()) *dk
+            P3D = ((p3d[1:]*dk).sum()) *dk
             sigmaRho_sq = sigmaN_sq * (P3D/P2D)
             sigmaRho = np.sqrt(sigmaRho_sq)
-            
+
+            the_R = P2D/P3D  
             the_R_sqrt = np.sqrt(P2D/P3D)
 
-            print('sigmaRho', sigmaRho)  #orig region: 0.15031, box region: 0.108819
+            print('sigma 2 from Brunts', sigmaRho_sq)
+            print('sigma from Brunts', sigmaRho)  #orig region: 0.15031, box region: 0.108819
                                          #with cg/cgmean -1, orig: 0.33404, box: 0.495
-            print('the_R_sqrt', the_R_sqrt)  #orig region: 0.90455, box region: 0.95357421
-                                         #with cg/cgmean -1, orig: 0.3106, box: 0.274
+            print('the_R', the_R) 
+                                   
+            print('the_R^sqrt', the_R_sqrt) 
 
 
         # testing the turbulence_driving_analysis script, 
@@ -31,10 +34,10 @@ def parsevals_th(dim, p2d, p3d, dk, sigmaN_sq=None):
             print('sigmaRho',sigmaRho)  #original: 0.0651347
 
     if dim == 2: 
-        P3D = (p3d * dk).sum() 
+        P3D = ((p3d[1:] * dk).sum()) *dk   #the same if [1:] is taken out
         sigmaRho = np.sqrt(P3D)
-
         print('P3D', P3D)
+        print('sigma from P3D', sigmaRho)
 
         
     if 0:  # write out what you wish
