@@ -19,6 +19,9 @@ import scipy
 from scipy.optimize import curve_fit
 from scipy import fft
 import scipy.stats as stats
+from numpy import inf 
+import turbulence_driving_analysis
+reload(turbulence_driving_analysis)
 
 
 # the not so typical imports, e.g. starter2.py
@@ -31,6 +34,8 @@ import project
 reload(project)
 import make_images
 reload(make_images)
+import signaltonoise
+reload(signaltonoise)
 import make_pdfNfit
 reload(make_pdfNfit)
 import make_sigmasquared

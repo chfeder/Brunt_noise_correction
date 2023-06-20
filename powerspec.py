@@ -57,7 +57,7 @@ def PowerSpec(cg_main,cg_two,dim):
     #kbins = np.arange(0, npix//2+1, 1.)  #bins edit one 
     #kbins = np.arange(0.5, npix//2+1, 1.) #bins as in the article
 
-    # corresponding k values are the midpoints of the bins
+    #corresponding k values are the midpoints of the bins
     kvals = 0.5 * (kbins[1:] + kbins[:-1])
     
     # for 3D
@@ -127,4 +127,4 @@ def PowerSpec(cg_main,cg_two,dim):
         print('P3D', P3D)
 
  
-    return powerspec2D, powerspec3D, dxyz 
+    return fourier_amplitudes, powerspec2D, powerspec3D, dxyz, kvals 

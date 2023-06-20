@@ -1,10 +1,12 @@
 
 from startlaser import *
-import turbulence_driving_analysis
-reload(turbulence_driving_analysis)
 
+def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=0, psn3d=0):
 
-def parsevals_th(dim, p2d, p3d, dk, sigmaN_sq=None):
+    if noisy == True and dim == 1: 
+        p2d = psn2d
+    if noisy == True and dim == 2: 
+        p3d = psn3d
 
     if dim == 1:
         if 1:
@@ -15,28 +17,29 @@ def parsevals_th(dim, p2d, p3d, dk, sigmaN_sq=None):
 
             the_R = P2D/P3D  
             the_R_sqrt = np.sqrt(P2D/P3D)
-
-            print('sigma 2 from Brunts', sigmaRho_sq)
-            print('sigma from Brunts', sigmaRho)  #orig region: 0.15031, box region: 0.108819
-                                         #with cg/cgmean -1, orig: 0.33404, box: 0.495
-            print('the_R', the_R) 
-                                   
+       
+            #print('sigma ^2 from Brunts', sigmaRho_sq)
+            print('sigma from Brunts', sigmaRho) 
+            #print('the_R', the_R)                        
             print('the_R^sqrt', the_R_sqrt) 
 
+        # testing the turbulence_driving_analysis script,def get_Brunt_sqrt_R(power_spectrum_map, k, exclude_k0=True) 
+        if 1:
+            kvalues.resize((217,217),refcheck=False)
+            kvalues[1]=kvalues[0]
+            p2dd = p2d.copy()  #otherwise it throws: ValueError: cannot resize this array: it does not own its data
+            p2dd.resize((217,217),refcheck=False)
+            p2d[1]=p2d[0]
+            CF_sqrt_R = turbulence_driving_analysis.get_Brunt_sqrt_R(p2dd,kvalues)  
+            sigmaRho_cf = np.sqrt(sigmaN_sq)/CF_sqrt_R   
 
-        # testing the turbulence_driving_analysis script, 
-        if 0:
-            CF_sqrt_R = turbulence_driving_analysis.get_Brunt_sqrt_R(psm,km)  
-            sigmaRho = np.sqrt(sigmaN_sq)/CF_sqrt_R   
-
-        if 0:
-            print('the_sqrt_R',CF_sqrt_R)  #original: 2.08746
-            print('sigmaRho',sigmaRho)  #original: 0.0651347
+            print('sigma cf',sigmaRho_cf) 
+            print('the_R^sqrt cf',CF_sqrt_R)  
+         
 
     if dim == 2: 
         P3D = ((p3d[1:] * dk).sum()) *dk   #the same if [1:] is taken out
         sigmaRho = np.sqrt(P3D)
-        print('P3D', P3D)
         print('sigma from P3D', sigmaRho)
 
         
@@ -47,19 +50,3 @@ def parsevals_th(dim, p2d, p3d, dk, sigmaN_sq=None):
 
     return 
 
-
-# a totally kidding attempt:
-'''
-here it looks as if the_R is P2D/P3D and the_R^(1/2) is np.sqrt(P2D/P3D)
-and Christoph "typo" comment does not make sense
-
-# new idea
-if 0:  #BUT THIS DOES NOT COMMUTE, NVM
-    P2D = (np.sqrt(p2d)*dk).sum()
-    P3D = (np.sqrt(p3d)*dk).sum()
-    sigmaRho = np.sqrt(sigmaN_sq) * (P3D/P2D)  # box: 0.211, original: 0.435
-    
-    # calculated this way the_R is P2D/P3D, each Ps already square rooted, the 1/2 denoting how it was computed.
-    # and Christoph's "typo" comment makes sense 
-    the_R = P2D/P3D  # box:0.49076728902 , original: 0.31230609
-'''

@@ -30,6 +30,7 @@ def Project(covergrid,pj_axis,project,field_one,field_two=None,field_three=None)
 
         if project == True:
             cg_main = covergrid[field_one].sum(axis=pj_axis)
+            #pdb.set_trace()  #check shape
             cg_two = covergrid[field_two].sum(axis=pj_axis)
             cg_three = None
 

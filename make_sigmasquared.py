@@ -16,8 +16,10 @@ def Make_SigmaSquared(the_field,bins,cbins,pdf):
     if the_field == 'density':
         sigmasquared = ((np.exp(cbins) - 1)**2 * pdf * ds).sum()
         sigma = np.sqrt(sigmasquared)
-        #print('sigma 2 from pdf',sigmasquared)
-        #print('sigma from pdf',sigma)
+        if 0:
+            print('sigma 2 from pdf',sigmasquared)
+            print('sigma from pdf',sigma)
+
     if the_field == 'overdensity':
         sigmasquared = (np.exp(cbins)**2 * pdf * ds).sum()  #since I logged the plotarray
         sigma = np.sqrt(sigmasquared)

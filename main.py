@@ -35,14 +35,38 @@ projection = True
 dimension =1
 proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
-
 the_level = 0
+
+# which box? right, left, center, not a box
+box = 'c_box'
+# target signal to noise suggested ratios: inf,100(20db),10(10db), 5(6.9897db), 3(4.7712db), 1(0db)
+target_snr_db = [100, 20, 10, 6.9897, 4.7712, 0, -10, -20, -30, -40, -50, -60, -70, -80, -90, -100]
+noise = True
+noisy_powerspec2D = 0
+noisy_powerspec3D = 0
+target_snr = 0  #since np.sqrt() accepts value 'only' up to 19 ooms!
+
+''' 
+quick next: triple check code
+NEXT! pseudo-
+for left, center, right box positions:
+    for i in target_snr:
+        get sigma rho 3D from 2D
+        plot sigma3D_2D vs snr_db
+'''
+
 delta = 0.0175 
-if 0:
+if box == 'c_box':
     # trimmed analysis region, a box
     the_ledge = the_ds.arr([-delta,0.33,-delta],'code_length')
     the_redge = the_ds.arr([delta,0.365,delta],'code_length')
-if 1:
+if box == 'r_box':
+    the_ledge = the_ds.arr([delta,0.33,delta],'code_length')
+    the_redge = the_ds.arr([delta+2*delta,0.365,delta+2*delta],'code_length')
+if box == 'l_box':
+    the_ledge = the_ds.arr([-delta-2*delta,0.33,-delta-2*delta],'code_length')
+    the_redge = the_ds.arr([-delta,0.365,-delta],'code_length')
+if box == 'notabox':
     # original analysis region
     the_ledge = the_ds.arr([-0.06,0.33,-0.06],'code_length')
     the_redge = the_ds.arr([0.06,0.365,0.06],'code_length')
@@ -55,20 +79,24 @@ the_region = the_ds.region(the_center,the_ledge, the_redge)
 section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
 section_blur = motion_blur.Motion_Blur()  #tbd; simply returns
 cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
+
 if 0:   
     images = make_images.Make_Images(cg_first,proj_axis) 
 if 0: 
     calculate.Calculate(field_main,the_region,cg_first,cg_second) 
-if projection == True:  # this could be split into two definitions/files PDF and FIT
+
+if 1:
+    # the following could be split into two definitions/files PDF and FIT
     bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main,projection,proj_axis,cg_first,cg_second,cg_third) 
-if projection == True:
     sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main,bins,cbins,pdf)
-else: 
-    sigma_sq = None
+    if projection == False: 
+        sigma_sq = None
 if 1:
-    powerspec2D, powerspec3D, infxyz = powerspec.PowerSpec(cg_first,cg_second,dimension)
+    four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.PowerSpec(cg_first,cg_second,dimension)
 if 1:
-    sigma_3D = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, sigma_sq) 
+    noisy_powerspec2D, noisy_powerspec3D = signaltonoise.signaltonoise(cg_first, dimension,target_snr,four_amps,powerspec2D,powerspec3D) 
+if 1:
+    sigma_3D = parsevals.parsevals_th(dimension,powerspec2D,powerspec3D,infxyz,ks,sigma_sq,noise,noisy_powerspec2D,noisy_powerspec3D) 
 
 
 '''
