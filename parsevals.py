@@ -17,14 +17,15 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=
 
             the_R = P2D/P3D  
             the_R_sqrt = np.sqrt(P2D/P3D)
-       
-            #print('sigma ^2 from Brunts', sigmaRho_sq)
-            print('sigma from Brunts', sigmaRho) 
-            #print('the_R', the_R)                        
-            print('the_R^sqrt', the_R_sqrt) 
+
+            if 0:  #print it out 
+                #print('sigma ^2 from Brunts', sigmaRho_sq)
+                print('sigma from Brunts', sigmaRho) 
+                #print('the_R', the_R)                        
+                print('the_R^sqrt', the_R_sqrt) 
 
         # testing the turbulence_driving_analysis script,def get_Brunt_sqrt_R(power_spectrum_map, k, exclude_k0=True) 
-        if 1:
+        if 0:
             kvalues.resize((217,217),refcheck=False)
             kvalues[1]=kvalues[0]
             p2dd = p2d.copy()  #otherwise it throws: ValueError: cannot resize this array: it does not own its data
@@ -48,5 +49,5 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=
         alphaFile.write("\nSigma 3D from P3D %f"%(sigmaRho))
         alphaFile.close()
 
-    return 
+    return sigmaRho 
 

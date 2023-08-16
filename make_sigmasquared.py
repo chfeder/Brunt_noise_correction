@@ -17,7 +17,7 @@ def Make_SigmaSquared(the_field,bins,cbins,pdf):
         sigmasquared = ((np.exp(cbins) - 1)**2 * pdf * ds).sum()
         sigma = np.sqrt(sigmasquared)
         if 0:
-            print('sigma 2 from pdf',sigmasquared)
+            #print('sigma 2 from pdf',sigmasquared)
             print('sigma from pdf',sigma)
 
     if the_field == 'overdensity':

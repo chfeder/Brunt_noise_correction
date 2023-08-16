@@ -43,7 +43,8 @@ def Make_PDFnFIT(the_field,project,axis,array_main,array_two=None,array_three=No
     the_prebins = math.sqrt(len(the_plotarray))  #for isqrt python 3.8 is required
     the_bins = np.linspace(the_min, the_max,num=320)  #number of bins approximated to match paper
 
-    the_PDF, xbins, patches = plt.hist(the_plotarray, bins=the_bins, histtype='step', weights = None, density=True,color='b')
+    #the_PDF, xbins, patches = plt.hist(the_plotarray, bins=the_bins, histtype='step', weights = None, density=True,color='b')
+    the_PDF, xbins = np.histogram(the_plotarray, bins=the_bins, weights = None, density=True)
     bin_centers = 0.5*(xbins[1:]+xbins[:-1])
 
     plot_x = bin_centers

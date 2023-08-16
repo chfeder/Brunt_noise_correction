@@ -51,7 +51,8 @@ def PowerSpec(cg_main,cg_two,dim):
         knrm3D = np.sqrt(kfreq3D[0]**2 + kfreq3D[1]**2 + kfreq3D[2]**2)
         knrm3D = knrm3D.flatten()
         kbins = np.arange(0,knrm3D.max()+1,1) 
-    
+
+    #pdb.set_trace()
     fourier_amplitudes = fourier_amps.flatten()
     # considering the max possible k values poses a sampling problem
     #kbins = np.arange(0, npix//2+1, 1.)  #bins edit one 
@@ -62,7 +63,7 @@ def PowerSpec(cg_main,cg_two,dim):
     
     # for 3D
     if dim == 1:
-        # average (now the sum) fourier amplitude squared (power) in each bin
+        # average (now the sum) fourier amplitude squared (power) in each bin; "mean" for snr
         Abins2D, _, _ = stats.binned_statistic(knrm2D, fourier_amplitudes, \
                                             statistic = "sum", bins = kbins)  #this used to be "mean", now "sum"
         # total variance, aka total power

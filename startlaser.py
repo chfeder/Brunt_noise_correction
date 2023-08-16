@@ -50,6 +50,8 @@ import calculate
 reload(calculate)
 import powerspec
 reload(powerspec)
+import momentmap
+reload(momentmap)
 
 # in parsevals.py only...
 #import turbulence_driving_analysis
