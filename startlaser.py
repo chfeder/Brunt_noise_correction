@@ -52,6 +52,8 @@ import powerspec
 reload(powerspec)
 import momentmap
 reload(momentmap)
+import noiseimage
+reload(noiseimage)
 
 # in parsevals.py only...
 #import turbulence_driving_analysis

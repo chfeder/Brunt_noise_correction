@@ -1,25 +1,14 @@
 
 '''
-insights from the cloud tutorial
-
+insights from the cloud tutorial: https://bertvandenbroucke.netlify.app/2019/05/24/computing-a-power-spectrum-in-python/
 take the fourier transform of the 2D field to get:
 P2D --> P3D --> 3D variance
-
 Note: use rfft and rfftfreq to calculate positive side only
 '''
 from startlaser import *
 
 
 def PowerSpec(cg_main,cg_two,dim):
-    if 0:  # this was a test for the cloud tutorial
-        the_region = mpimg.imread("NIF_hdf5_plt_cnt_0375_Slice_z_density_region.png")  
-        #shape for image: (1186, 1085, 4)
-        #shape for cg_main: (307, 89, 307), shape for 'square' analysis region: (179, 89, 179), 
-        #actual square: (89,89,89) 
-        the_region2D = mpimg.imread("imgRho_proj0375_1.png") 
-        #shape for image: (480, 640, 4)
-        #shape for cg_main: (307, 307), shape for square region: ()
-
 
     # pixel resolution of the covergrid data array
     npix = cg_main.shape[0] 
@@ -36,7 +25,7 @@ def PowerSpec(cg_main,cg_two,dim):
     # to get the size of the amplitudes only
     fourier_amps = np.abs(fourier_image)**2
 
-    # returns one dim array containing thee wave vectors of the ft call, in the correct order
+    # returns one dim array containing the wave vectors of the ft call, in the correct order
     # * npix converts it to pixel frequency 
     kfreq = np.fft.fftfreq(npix) * npix
     # for 2D
@@ -44,7 +33,7 @@ def PowerSpec(cg_main,cg_two,dim):
         kfreq2D = np.meshgrid(kfreq, kfreq)  # to convert into two dim array
         knrm2Ds = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)  # to get the norm
         knrm2D = knrm2Ds.flatten()
-        kbins = np.arange(0,knrm2D.max()+1,1)   # a fixed attempt at binning 
+        kbins = np.arange(0,knrm2D.max()+1,1)  
     # for 3D
     if dim == 2:  
         kfreq3D = np.meshgrid(kfreq, kfreq, kfreq)
@@ -52,18 +41,14 @@ def PowerSpec(cg_main,cg_two,dim):
         knrm3D = knrm3D.flatten()
         kbins = np.arange(0,knrm3D.max()+1,1) 
 
-    #pdb.set_trace()
     fourier_amplitudes = fourier_amps.flatten()
-    # considering the max possible k values poses a sampling problem
-    #kbins = np.arange(0, npix//2+1, 1.)  #bins edit one 
-    #kbins = np.arange(0.5, npix//2+1, 1.) #bins as in the article
 
     #corresponding k values are the midpoints of the bins
     kvals = 0.5 * (kbins[1:] + kbins[:-1])
     
     # for 3D
     if dim == 1:
-        # average (now the sum) fourier amplitude squared (power) in each bin; "mean" for snr
+        # the summed fourier amplitude squared (power) in each bin; 
         Abins2D, _, _ = stats.binned_statistic(knrm2D, fourier_amplitudes, \
                                             statistic = "sum", bins = kbins)  #this used to be "mean", now "sum"
         # total variance, aka total power
@@ -82,7 +67,6 @@ def PowerSpec(cg_main,cg_two,dim):
     dxyz = 1/fourier_image.size 
 
 
-
     # let's plot
     if 0: 
         fig,ax = plt.subplots(1,1)
@@ -97,17 +81,11 @@ def PowerSpec(cg_main,cg_two,dim):
         plt.tight_layout()
         plt.savefig('sort_plots/boxregion_powerspec3D.png')
 
-    # some tests on the spot from what we've gathered
+    # checkpoints from what we've gathered
     if 0:
         cg_sq = (cg_main **2).sum() 
         fft_sq = (fourier_amplitudes * dxyz).sum()  
         powerspec = (powerspec3D * dxyz).sum() 
-        print('cg_sq',cg_sq*dxyz)
-        print('fft_sq',fft_sq)
-        print('fft_sq shape',fft_sq)
-        print('powerspec',powerspec)
-        print('powerspec shape',powerspec3D.shape)
-        print('fourier amps',fourier_amplitudes.shape)
 
         ratio = fft_sq/cg_sq  #yep, it is 1
         ratio_2 = powerspec/cg_sq  #yep, it is 1 
@@ -115,15 +93,11 @@ def PowerSpec(cg_main,cg_two,dim):
         cv = cg_two
         #cg_mean = ( (cg_main*cv).sum()/cv.sum() )
         cg_mean = np.mean(cg_main)
-        print('cg_mean',cg_mean)
         #sfield_ii = cg_main/cg_mean
         #sigma_sq_ii = (((sfield_ii - 1) ** 2)*cv).sum() / cv.sum()
         sfield_ii = cg_main
         sigma_sq_ii = (((sfield_ii - cg_mean) ** 2)*cv).sum() / cv.sum()
-        print('sigma_sq_ii',sigma_sq_ii)
-        print('cg_main.var',cg_main.var())
           
-        #print('p3D',powerspec3D)
         P3D = ((powerspec3D[1:] * dxyz).sum()) * dxyz 
         print('P3D', P3D)
 

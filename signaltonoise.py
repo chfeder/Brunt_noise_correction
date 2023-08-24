@@ -62,7 +62,7 @@ def signaltonoise(cg_main, dim, the_snr, signal, power2D=0, power3D=0):
         plt.ylabel('$P(k)$')
         plt.tight_layout()
         plt.savefig('p3D_snrp3D_%d.png'%the_snr) 
-    if 1:  #image the noise!
+    if 0:  #image the noise!
         fourier_image = np.fft.fftn(cg_main)
         fourier_ampss = np.abs(fourier_image)**2
         fourier_ampss_flat = fourier_ampss.flatten()

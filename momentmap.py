@@ -11,7 +11,7 @@ from startlaser import *
 #import cfpack as cfp  #pip install cfpack
 # OR
 # https://spectral-cube.readthedocs.io/en/latest/
-from spectral_cube import SpectralCube
+#from spectral_cube import SpectralCube
 
 # from script learning
 def moment_map(cg_main):

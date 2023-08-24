@@ -5,15 +5,20 @@ calculates sigma rho straight from the data
 from startlaser import * 
 
 
-def Calculate(first_field,region,cg_field,cg_fieldtwo):
+def Calculate(first_field, region, cg_field, cg_fieldtwo):
     
     # if we were not using a covergrid
-    if first_field == 'density': 
-        field_i = region['density']
-        cell_volume = region['cell_volume']
+    if 0:
+        if first_field == 'density': 
+            field_i = region['density']
+            cell_volume = region['cell_volume']
 
-        field_mean_i = np.mean(field_i)
-        field_ave_i = ( (field_i*cell_volume).sum()/cell_volume.sum() )
+            field_mean_i = np.mean(field_i)
+            field_ave_i = ( (field_i*cell_volume).sum()/cell_volume.sum() )
+
+            sfield_i = field_i/field_mean_i 
+            sigma_sq_i = (((sfield_i - 1) ** 2)*cell_volume).sum() / cell_volume.sum()
+            sigma_i = np.sqrt(sigma_sq_i)
 
     if 1:  # from the covergrid
         field_ii= cg_field.flatten()
@@ -24,18 +29,16 @@ def Calculate(first_field,region,cg_field,cg_fieldtwo):
         # drop the units to be safe
         field_ave_ii = field_ave_pii.v 
 
-    sfield_i = field_i/field_mean_i 
-    sigma_sq_i = (((sfield_i - 1) ** 2)*cell_volume).sum() / cell_volume.sum()
-    sigma_i = np.sqrt(sigma_sq_i)
-
     sfield_ii = field_ii/field_mean_ii 
     sigma_sq_ii = (((sfield_ii - 1) ** 2)*cv).sum() / cv.sum()
-    #print('sigma_2_calc', sigma_sq_ii)
+    if 0:
+        print('sigma_2_calc', sigma_sq_ii)
     # this could have also been coded as: 
     #sigma_sq_ii = (((field_ii - field_mean_ii) ** 2)*cv).sum() / cv.sum()
-
     sigma_ii = np.sqrt(sigma_sq_ii)
-    print('sigma_calc', sigma_ii)
+    if 0: 
+        print('sigma calculated', sigma_ii)
+
 
     if 0:
         pdb.set_trace()
@@ -45,4 +48,4 @@ def Calculate(first_field,region,cg_field,cg_fieldtwo):
         alphaFile.write("\nsigma_rho calculated cg: %f"%sigma_ii)
         alphaFile.close()
 
-    return 
+    return sigma_sq_ii 

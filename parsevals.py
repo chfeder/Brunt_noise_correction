@@ -3,16 +3,20 @@ from startlaser import *
 
 def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=0, psn3d=0):
 
+    '''
     if noisy == True and dim == 1: 
         p2d = psn2d
     if noisy == True and dim == 2: 
         p3d = psn3d
+    '''
 
     if dim == 1:
         if 1:
             P2D = ((p2d[1:]*dk).sum()) *dk
             P3D = ((p3d[1:]*dk).sum()) *dk
             sigmaRho_sq = sigmaN_sq * (P3D/P2D)
+            if sigmaRho_sq < 0:
+                print('negative value encountered?!')
             sigmaRho = np.sqrt(sigmaRho_sq)
 
             the_R = P2D/P3D  
@@ -24,7 +28,7 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=
                 #print('the_R', the_R)                        
                 print('the_R^sqrt', the_R_sqrt) 
 
-        # testing the turbulence_driving_analysis script,def get_Brunt_sqrt_R(power_spectrum_map, k, exclude_k0=True) 
+        # testing the turbulence_driving_analysis script; def get_Brunt_sqrt_R(power_spectrum_map, k, exclude_k0=True) 
         if 0:
             kvalues.resize((217,217),refcheck=False)
             kvalues[1]=kvalues[0]
@@ -44,7 +48,7 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=
         print('sigma from P3D', sigmaRho)
 
         
-    if 0:  # write out what you wish
+    if 0:  # write it out
         alphaFile = open("sflaser_records.txt",'a')
         alphaFile.write("\nSigma 3D from P3D %f"%(sigmaRho))
         alphaFile.close()

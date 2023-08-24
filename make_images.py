@@ -6,7 +6,7 @@
 from startlaser import *
 
 
-def Make_Images(ds,cg_projection,pj_axis,box,center,width):
+def Make_Images(ds, cg_projection, pj_axis, box, center, width):
 
     cg_proj = cg_projection.v
     
@@ -15,9 +15,9 @@ def Make_Images(ds,cg_projection,pj_axis,box,center,width):
         plt.savefig('imgRho_proj0375_%d_%s.png'%(pj_axis,box))
         plt.close()
 
-    if 0:
-        projz = yt.SlicePlot(ds,'z',('gas','density'),center=center,width=width)
-        outname = 'density_slice0375_%d_%s.png'%(pj_axis,box)
+    if 1:
+        projz = yt.SlicePlot(ds, pj_axis, ('gas','density'), center=center, width=width)
+        outname = 'density_slice0375_i_%d_%s.png'%(pj_axis,box)
         projz.save(outname)
 
     return
