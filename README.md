@@ -1,4 +1,8 @@
 # LJV
+The following numbered notes come from developing the main.py file.
+All modules to be imported ar in startlaser.py 
+Start with main.py  
+
 
 # FROM main.py
 0.

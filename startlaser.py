@@ -1,6 +1,5 @@
 
 
-# the typical imports, e.g. starter1.py
 import platform
 ver=platform.python_version()
 python_version=int(ver[0])
