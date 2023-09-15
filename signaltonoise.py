@@ -15,12 +15,11 @@ def signaltonoise(cg_main, dim, the_snr, signal, power2D=0, power3D=0):
     if 1: 
         #np.random.seed(4545118)  #to keep it fixed; must be between 0 and 2**32-1
         mean_noise = 0
-        scale = signal/the_snr
-        noise = np.random.normal(mean_noise, scale=scale, size=len(signal))  # will be different every time, so we can run it multiple times to get a PDF(N)
+        scale = np.std(signal)/the_snr  #was scale = signal/the_snr
+        noise = np.random.normal(mean_noise, scale=scale, size=signal.shape)  # will be different every time, so we can run it multiple times to get a PDF(N)
                                                                              # with sigma=S/SNR ... 
         sn_signal = signal + noise  # on tutorial, they add it to the amplitude signal...but then the shape must be of the signal; Dr. Collins agreed
                                     # ...so then we will also have a PDF(SN), msg says PDF(S)...shifted but with mean value sitting on original S
-        #pdb.set_trace()
 
 
     # FROM powerspec.py  

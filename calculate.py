@@ -25,9 +25,10 @@ def Calculate(first_field, region, cg_field, cg_fieldtwo):
         cv = cg_fieldtwo.flatten()
 
         field_mean_ii = np.mean(field_ii)
-        field_ave_pii = ( (field_ii*cv).sum()/cv.sum() )
+        #field_ave_pii = ( (field_ii*cv).sum()/cv.sum() )
+        field_ave_ii = ( (field_ii*cv).sum()/cv.sum() )
         # drop the units to be safe
-        field_ave_ii = field_ave_pii.v 
+        #field_ave_ii = field_ave_pii.v 
 
     sfield_ii = field_ii/field_mean_ii 
     sigma_sq_ii = (((sfield_ii - 1) ** 2)*cv).sum() / cv.sum()

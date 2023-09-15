@@ -52,13 +52,13 @@ def Make_PDFnFIT(the_field, project, axis, array_main, array_two=None, array_thr
 
 
     # FOR CURVE FITTINGS
-    if 0: 
+    if 1: 
         # THE CURVE
         if 1:
             plt.plot(plot_x,plot_y, c='k')
 
         # THE CURVE-FITS
-        if 0:
+        if 1:
             if the_field == 'density':
                 def func_GaussPL(s,st,N,sigma,mu,p_o,a):
                     y = np.zeros_like(plot_x)

@@ -8,7 +8,21 @@ Note: use rfft and rfftfreq to calculate positive side only
 from startlaser import *
 
 
-def PowerSpec(cg_main,cg_two,dim):
+def PowerSpec(cg_main, cg_two, cg_noise, noisep2d, dim, box_loc, snr, rep):
+
+    powerspectrum2D = 0
+    noise_powerspec2D = 0
+    kvalues = 0
+    nkvalues = 0
+
+    if noisep2d == True:
+        cg_main = cg_noise 
+
+    #for i,which in enumerate(signals):
+        #print('this is which', which)
+        #cg_main = which
+        #print('this is cg_main assigned from which', which)
+        #stop()
 
     # pixel resolution of the covergrid data array
     npix = cg_main.shape[0] 
@@ -54,7 +68,7 @@ def PowerSpec(cg_main,cg_two,dim):
         # total variance, aka total power
         #Abins2D *= np.pi * (kbins[1:]**2 - kbins[:-1]**2)  #turned off
         powerspec2D = Abins2D 
-        powerspec3D = 2 * kvals * powerspec2D 
+        powerspec3D = 2 * kvals * Abins2D 
     # for 2D
     if dim == 2:
         Abins3D, _, _ = stats.binned_statistic(knrm3D, fourier_amplitudes, \
@@ -66,20 +80,38 @@ def PowerSpec(cg_main,cg_two,dim):
     # define dk
     dxyz = 1/fourier_image.size 
 
+    # to plot both power spectrums of noise and noise+signal
+    if noisep2d == True:
+        noise_powerspec2D = powerspec2D
+        nkvalues = kvals
+
+
 
     # let's plot
-    if 0: 
+    #ax[0].imshow(cg_unitless)
+    if 0:
+        # NEXT pass this to main to bundle iterations as a single color with all SNRs in one plot!
+        if rep == 0:
+            print('inside rep 0')
+            plt.clf() 
         fig,ax = plt.subplots(1,1)
         fig.subplots_adjust(wspace=0, hspace=0)
-                
-        cg_unitless = cg_main.v
-        #ax[0].imshow(cg_unitless)
-        #ax.loglog(kvals,powerspec2D)
-        ax.loglog(kvals,powerspec3D,c='green')
+        '''
+        limit = np.zeros(4) 
+        limit[0] = min([limit[0],min(kvals)])
+        limit[1] = max([limit[1],max(kvals)])
+        limit[2] = min([limit[2],min(powerspec2D)])
+        limit[3] = max([limit[3],max(powerspec2D)])
+        ax.set(xlim=[limit[0],limit[1]],ylim=[limit[2],limit[3]])
+        '''
+        ax.set_yscale('log')
+        ax.loglog(kvals,powerspec2D,c='blue')
+        #plt.plot(kvals,powerspec2D,c='blue') 
         plt.xlabel('$k$')
         plt.ylabel('$P(k)$')
+        plt.ylim(1e0,1e11)
         plt.tight_layout()
-        plt.savefig('sort_plots/boxregion_powerspec3D.png')
+        plt.savefig('brunts_P2D_%s_%.3f_%d_loglog.png'%(box_loc,snr,rep))
 
     # checkpoints from what we've gathered
     if 0:
@@ -102,4 +134,4 @@ def PowerSpec(cg_main,cg_two,dim):
         print('P3D', P3D)
 
  
-    return fourier_amplitudes, powerspec2D, powerspec3D, dxyz, kvals 
+    return fourier_amplitudes, powerspec2D, noise_powerspec2D, powerspec3D, dxyz, kvalues, nkvalues 

@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
-import pdb
+import ipdb
 import math
 import scipy
 from scipy.optimize import curve_fit
@@ -22,6 +22,8 @@ import scipy.stats as stats
 from numpy import inf 
 import turbulence_driving_analysis
 reload(turbulence_driving_analysis)
+import cfpack as cfp
+from cfpack import stop,print 
 
 
 # the not so typical imports, e.g. starter2.py

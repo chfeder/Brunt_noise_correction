@@ -1,14 +1,13 @@
 
 from startlaser import *
 
-def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=0, psn3d=0):
+def parsevals_th(dim, p2d, p3d, dk, kvalues, wnoise, sigmaN_sq=None, noisy=False, psn2d=0, psn3d=0):
 
-    '''
-    if noisy == True and dim == 1: 
-        p2d = psn2d
-    if noisy == True and dim == 2: 
-        p3d = psn3d
-    '''
+    if wnoise == 'dft':
+        if noisy == True and dim == 1: 
+            p2d = psn2d
+        if noisy == True and dim == 2: 
+            p3d = psn3d
 
     if dim == 1:
         if 1:
@@ -53,5 +52,5 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, noisy=False, psn2d=
         alphaFile.write("\nSigma 3D from P3D %f"%(sigmaRho))
         alphaFile.close()
 
-    return sigmaRho 
+    return sigmaRho, the_R_sqrt 
 
