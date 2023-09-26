@@ -1,18 +1,13 @@
 
 from startlaser import *
 
-def parsevals_th(dim, p2d, p3d, dk, kvalues, wnoise, sigmaN_sq=None, noisy=False, psn2d=0, psn3d=0):
-
-    if wnoise == 'dft':
-        if noisy == True and dim == 1: 
-            p2d = psn2d
-        if noisy == True and dim == 2: 
-            p3d = psn3d
+def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
 
     if dim == 1:
         if 1:
-            P2D = ((p2d[1:]*dk).sum()) *dk
-            P3D = ((p3d[1:]*dk).sum()) *dk
+            # [1:] or not seems irrelevant 
+            P2D = ((p2d[1:] * dk).sum()) *dk
+            P3D = ((p3d[1:] * dk).sum()) *dk
             sigmaRho_sq = sigmaN_sq * (P3D/P2D)
             if sigmaRho_sq < 0:
                 print('negative value encountered?!')

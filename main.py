@@ -18,8 +18,6 @@ projection = True
 dimension = 1
 noise = True
 noiseplot_only = True
-noisy_powerspec2D = 0
-noisy_powerspec3D = 0
 
 proj_axis = 1  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
@@ -27,8 +25,8 @@ the_level = 0
 
 
 # CONSTRUCTING THE VOLUMES, pick:
-boxes = ['l_box', 'c_box', 'r_box']
-#boxes = ['sz_box']
+boxes = ['c_box']  #'l_box','c_box','r_box' ; 'b_box','c_box','f_box'
+#boxes = ['sz_box'] #and x 
 
 # "SMALL" boxes considered.
 delta_a = 0.0175 
@@ -47,15 +45,17 @@ delta = 0.01
 
 
 # README: 2 (in decibels)
-# SIGNAL TO NOISE RATIOs: 
-#target_snr = [inf]
-target_snr = [5, 10, 100]
+# SIGNAL TO NOISE RATIOs & COLORS: 
+#target_snr = [5, 10, 100]
 #target_snr = [1, 3, 5, 10, 100, inf]
-#target_snr = [0.001, 0.01, 0.1, 1, 3, 5, 10, 100, inf]
-#target_colors = ['red','orange','y','cyan','magenta','blue','green','grey','black']
-target_colors = ['blue','green','orange']
-iterations = 5
+target_snr = [0.001, 0.01, 0.1, 1, 3, 5, 10, 100]
+ksnr = [8, 9, 19, 30, 36, 44, 53]
+#target_colors = ['orange','y','magenta','blue','green','grey'] #'black']
+target_colors = ['blue','magenta','green']
+
+iterations = 1
 noiseat = 'image'  # when to add noise, at 'image' or at 'dft'
+lowpassfilter = 'yes'  # yes:low k values, no:all k values
 
 method = 0  # method to obtain sigma N - 0: via PDF, 1: via np.std(), 2: rms 
 imaging = 'no'  # make images?
@@ -90,7 +90,7 @@ for num, box in enumerate(boxes):
     '''
 
 
-    if 0:  #THERE'S DEFINITELY A BETTER WAY TO DO THIS: SX & SZ BOXING***.
+    if 1:  #THERE'S DEFINITELY A BETTER WAY TO DO THIS: SX & SZ BOXING***.
         collect = defaultdict(list)
         for pull in range(6): 
             pull = pull + 1
@@ -100,6 +100,7 @@ for num, box in enumerate(boxes):
             if box == 'sz_box':
                 the_ledge = the_ds.arr([-delta_m, edge_mbot, -delta*pull],'code_length')
                 the_redge = the_ds.arr([delta_m, edge_mtop, delta*pull],'code_length')
+
 
     # THE PIPELINE FOR ALL CHOICES OF VOLUME
     # ***do proper indentation for the sx and sz boxes...
@@ -112,56 +113,172 @@ for num, box in enumerate(boxes):
     section_blur = motion_blur.Motion_Blur()  #tbd; simply returns
     cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
 
-    if 0:   
+    if 0:  # EARLY IMAGES: EDIT 
         images = make_images.Make_Images(the_ds,cg_first,proj_axis,box,the_center,width) 
     if 0:
         mom_map = momentmap.moment_map(cg_first)  #a brief exploration, maybe discard
     
-    if 1:
-        #collect = defaultdict(list)  #CAREFUL
-        # p2Ds
-        fig,ax = plt.subplots(1,1)
-        fig.subplots_adjust(wspace=0, hspace=0)
+    if 0:
+        collect = defaultdict(list)  #CAREFUL?
+
+        # FOR PLOTS 
+        if 0:
+            fig,ax = plt.subplots(1,1)
+            fig.subplots_adjust(wspace=0, hspace=0)
+
         for val,target in enumerate(target_snr):
             for many in range(iterations):  
 
                 # ADD NOISE TO THE IMAGE
                 if 1:  
                     if noiseat == 'image':
-                        cg_wnoise, cg_wnoisetwo, noiseonly = noiseimage.noiseimage(cg_first, cg_second, target, box, imaging)
-                    if noiseat == 'dft':  #also works for nonoise
+                        cg_wnoise, noiseonly = noiseimage.add_noise(cg_first, target)
+                    if noiseat == 'dft':  
                         cg_wnoise = cg_first
-                        cg_wnoisetwo = cg_second
                         noiseonly = 0
-        
+                
+                # PLOT POWERSPECTRUMS
+                if 0:  
+                    k1, spec1, _, _ = powerspec.powerspec_lowpass(cg_wnoise)
+                    #k2, spec2, _, _ = powerspec.powerspectrum_ii(cg_first)
+                    k3, spec3, _, _ = powerspec.powerspec_lowpass(noiseonly, justnoise=noise)
+
+                    ax.plot(k1, spec1, c=target_colors[val], alpha=0.5)
+                    #ax.plot(k2, spec2, c='b')
+                    ax.plot(k3, spec3, c='k', alpha=0.5)
+                    ax.set(yscale='log')#, xscale='log')
+
+                # IMAGE THE SIGNAL, NOISE, SIGNAL PLUS NOISE
+                if 0:  
+                    cfp.plot_map(cg_first.v,save='signal')
+                    cfp.plot_map(cg_wnoise,save='signal_noise.png')
+                    cfp.plot_map(noiseonly,save='noise.png')
+                    stop()
+
                 # OBTAIN SIGMA N^2
-                if 0:  #calculated
-                    sigma_sq = calculate.Calculate(field_main, the_region, cg_wnoise, cg_wnoisetwo) 
+                if 1:  #calculated
+                    sigma_sq = calculate.Calculate(field_main, the_region, cg_wnoise, cg_second) 
                 if 0:  #from PDF
-                    # the following could be split into two definitions/files PDF and FIT
-                    bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main, projection, proj_axis, cg_wnoise, cg_wnoisetwo,cg_third) 
-                    sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main, bins, cbins, pdf, cg_wnoisetwo, method)
+                    bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main, projection, proj_axis, cg_wnoise ,cg_third)  #EDIT; split into definitions 
+                    sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main, bins, cbins, pdf, cg_wnoise, method)
                 if projection == False: 
                     sigma_sq = None
 
                 # OBTAIN P2D AND P3D           
                 if 1:   
-                    four_amps, powerspec2D, noisepowerspec2D, powerspec3D, infxyz, ks, ksnoise = powerspec.PowerSpec(cg_wnoise, cg_wnoisetwo, noiseonly, noiseplot_only, dimension, box, target, many)
-                    if 1:  # power spectrum plots
-                        #plt.plot(ks, powerspec2D, c=target_colors[val], alpha=0.6)
-                        if noiseplot_only == True:
-                            plt.plot(ksnoise, noisepowerspec2D, c=target_colors[val], alpha=0.6)
+                    if lowpassfilter == 'no':
+                        four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, dimension, box, target, many)    
+                    if lowpassfilter == 'yes':
+                        ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise, the_k=ksnr[val], lowpass_filter=lowpassfilter)
                 if 0:  # if adding noise to DFT 
                     noisy_powerspec2D, noisy_powerspec3D, noise_sign, noise_signs = signaltonoise.signaltonoise(cg_first, dimension, target, four_amps, powerspec2D, powerspec3D) 
                     # README 3. (thoughts on making pdfs)
                 
                 # OBTAIN SIGMA RHO
-                if 0:
-                    sigma_rho, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, noiseat, sigma_sq, noise, noisy_powerspec2D, noisy_powerspec3D)  
-                    #collect[target].append(brunts_rsq)   #plotting brunts_rsq  
-                    collect[target].append(sigma_rho)    #plotting sigma_rho 
+                if 1:
+                    sigma_rho, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
+                    collect[target].append(brunts_rsq)   #plotting brunts_rsq  
+                    #collect[target].append(sigma_rho)    #plotting sigma_rho 
 
-    # PIPELINE FOR PLOTTING SORTS OF THINGS FOR BOXES
+
+            # LOW PASS FILTERING 
+            if 0:
+                the_rs = [l for l in collect.values()]
+                emptylist = []
+                the_rsall = np.append(emptylist,the_rs[val])
+                the_rsallmean = np.mean(the_rsall)
+                print('the rsq resp mean ',the_rsallmean,target)
+                #stop()
+
+        # SAVE 
+        if 0:  #...the powerspectrum plots
+            plt.ylim(1e0,1e7)
+            plt.xlim(40,75)
+            fig.savefig('pd2_snr_noise_logy_cbox_510100_zoom_.png')#%target)
+        print('okay')
+        
+        if 0:
+            kcollect = defaultdict(list)  #CAREFUL?
+            kmatch = np.linspace(5,20,16)  #target 0.1
+            #kmatch = np.linspace(15,30,16)  #target 1
+            #kmatch = np.linspace(25,40,16)  #target 3
+            #kmatch = np.linspace(34,54,11)  #target 5,10
+            #kmatch = np.linspace(50,60,11)
+            target = 0.001 
+            iterations = 1000
+            for val,ksnr in enumerate(kmatch):
+                for many in range(iterations):  
+                    cg_wnoise, noiseonly = noiseimage.add_noise(cg_first, target)
+                    sigma_sq = calculate.Calculate(field_main, the_region, cg_wnoise, cg_second) 
+                    ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise, the_k=ksnr, lowpass_filter='yes')
+                    sigma_rho, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
+                    kcollect[ksnr].append(brunts_rsq)   
+
+        
+    def cfunct(x, a, b):
+        y = a * x**(1/b)
+        return y
+    # crossing k values vs SNR -raw
+    if 0:
+        ydata = [8, 8, 9, 19, 29, 36, 44, 53]
+        ydatalog = np.log10(ydata)
+        xdata = target_snr
+        #xdatalog = np.log10(xdata)
+        if 1:
+            param, param_cov = curve_fit(cfunct, xdata, ydata)
+            plt.plot(xdata, cfunct(xdata, *param), 'b--')
+        plt.scatter(xdata, ydata)
+        plt.ylabel('Crossing k values')
+        plt.xlabel('SNR')
+        plt.savefig('crossing_kvalues_fit_%s'%(box))
+        stop()
+        plt.clf() 
+    # r^{1/2}true / r^{1/2}full vs SNR - raw
+    if 1:
+        ydata = [0.3731, 0.3734, 0.3747, 0.4950, 0.7874, 0.9009, 0.9718, 1]
+        ydatalog = np.log10(ydata)
+        xdata = target_snr
+        #xdatalog = np.log10(xdata)
+        if 1:
+            param, param_cov = curve_fit(cfunct, xdata, ydata)
+            plt.plot(xdata, cfunct(xdata, *param), 'b--')
+        plt.scatter(xdata, ydata)
+        plt.ylabel(r'$R^{1/2}_{true} / R^{1/2}_{full}$')
+        plt.xlabel('SNR')
+        plt.savefig('rhalf_truevsfull_ratios_fit_%s'%(box))
+        stop()
+        plt.clf()
+
+
+
+    # CALLING BOXPLOTS; README 4 (an example). README 5 (plotting, dealing with BIG numbers in axis).
+    # TRUE values - l_c_r: 0.269, 0.308, 0.265; b_c_f: 0.288, 0.308(yay), 0.243 
+    if 0:  
+        labels, data = kcollect.keys(), kcollect.values()  #PICK THE RIGHT DICTIONARY
+        plt.boxplot(data, showfliers=True, showmeans=True)
+
+        the_mean = 0.303531
+        plt.plot([1,len(kmatch)],[the_mean,the_mean],'--',c='k',alpha=0.7)
+        plt.plot([1,len(kmatch)],[the_rsallmean,the_rsallmean],'--',c=[0.5]*4)
+        '''
+        if box == 'l_box':
+            plt.plot([1,6],[0.269,0.269],'--',c=[0.5]*4)
+        if box == 'c_box':
+            plt.plot([1,6],[0.308,0.308],'--',c=[0.5]*4)
+        if box == 'r_box':
+            plt.plot([1,6],[0.265,0.265],'--',c=[0.5]*4)
+        '''
+        plt.xlabel('k')
+        #plt.ylabel(r'$\sigma_{\rho/\rho_o} $')
+        #plt.ylabel(r'$R^{1/2}$')
+        plt.xticks(range(1, len(labels) + 1), labels)
+        #plt.yscale('log')
+        #plt.ylim(0.10,0.39)
+        #plt.savefig('boxplot_1000n_snr_%s_xpos_image_bruntsrsqVSsnr_001_fixed'%box)
+        plt.savefig('best_kvalue_%s_00%d_winf_wresp'%(box,target))
+        print(box)
+        plt.clf()
+
     # PLOTS & FITS
     if 0:
         the_x = np.linspace(0.02, 0.12, pull, endpoint=True)
@@ -171,7 +288,7 @@ for num, box in enumerate(boxes):
         the_y = np.append(emptylist,the_prey[0])
         the_ylog = np.log10(the_y) 
         the_ylogsem = stats.sem(the_ylog)
-        the_ylogstd = stats.sem(the_ylog)
+        the_ylogstd = np.std(the_ylog)
 
         # FITTING A CURVE
         def afunct(x, a, b):
@@ -209,40 +326,7 @@ for num, box in enumerate(boxes):
         plt.savefig('sigma_rho_%s_wtrue_wfitlogoversqrts_err_.png'%(box))
         #stop()
 
-    # PLOT POWER SPECTRUMS  
-    if 1:
-        ax.set_yscale('log')
-        plt.xlabel('$k$')
-        plt.ylabel('$P(k)$')
-        plt.ylim(1e-2,1e13)
-        #plt.xlim(0.8,1e2)
-        plt.tight_layout()
-        #plt.savefig('brunts_P2D_%s_%.3f_%d_loglog.png'%(box_loc,snr,rep))
-        #plt.savefig('brunts_P2D_%s_logy.png'%(box))
-        plt.savefig('brunts_P2D_%s_logy_noiseonly.png'%(box))
 
-    # CALLING BOXPLOTS; README 4 (an example). README 5 (plotting, dealing with BIG numbers in axis).
-    # TRUE values - l_c_r: 0.269, 0.308, 0.265; b_c_f: 0.288, 0.308(yay), 0.243 
-    if 0:  
-        labels, data = collect.keys(), collect.values()
-        plt.boxplot(data, showfliers=False, showmeans=True)
-        '''
-        if box == 'l_box':
-            plt.plot([1,6],[0.269,0.269],'--',c=[0.5]*4)
-        if box == 'c_box':
-            plt.plot([1,6],[0.308,0.308],'--',c=[0.5]*4)
-        if box == 'r_box':
-            plt.plot([1,6],[0.265,0.265],'--',c=[0.5]*4)
-        '''
-        plt.xlabel('SNR')
-        #plt.ylabel(r'$\sigma_{\rho/\rho_o} $')
-        plt.ylabel(r'$R^{1/2}$')
-        plt.xticks(range(1, len(labels) + 1), labels)
-        #plt.yscale('log')
-        plt.ylim(0.10,0.39)
-        plt.savefig('boxplot_1000n_snr_%s_xpos_image_bruntsrsqVSsnr_001_fixed'%box)
-        print(box)
-        plt.clf()
         
 
 

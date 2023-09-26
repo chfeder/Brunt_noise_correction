@@ -8,21 +8,121 @@ Note: use rfft and rfftfreq to calculate positive side only
 from startlaser import *
 
 
-def PowerSpec(cg_main, cg_two, cg_noise, noisep2d, dim, box_loc, snr, rep):
+def lowpassfilter(cg_main):
+    # EXAMPLE METHOD ONLY 
 
-    powerspectrum2D = 0
-    noise_powerspec2D = 0
-    kvalues = 0
-    nkvalues = 0
+    F = np.fft.fftn(cg_main)
+    F_shift = np.fft.fftshift(F)  #so that k=0 is a the center
+    F_mag = np.abs(F)  #amplitude
+    F_phase = np.angle(F_shift)  #phase
 
-    if noisep2d == True:
-        cg_main = cg_noise 
+    # filtering out high frequencies
+    ix, iy = np.mgrid[0:F_shift.shape[0], 0:F_shift.shape[1]]
+    ix -= F_shift.shape[0]//2
+    iy -= F_shift.shape[1]//2
 
-    #for i,which in enumerate(signals):
-        #print('this is which', which)
-        #cg_main = which
-        #print('this is cg_main assigned from which', which)
-        #stop()
+    F_filtered = F_shift.copy()
+    F_filtered[np.hypot(ix, iy) > 25] = 0.0
+    # ...imshow(np.log(np.abs(F_filtered)))
+
+    # transform this back and see the result
+    f_filtered = np.fft.ifft2(np.fft.ifftshift(F_filtered))
+    # ...imshow(f_filtered.real, cmap=:w"gray")
+
+    return
+
+
+def powerspec_lowpass_test(cg_main, justnoise=False, the_k=0, lowpass_filter='no'):
+
+    if justnoise == False:
+        cg_main = cg_main/cg_main.mean() - 1   
+
+    npix = cg_main.shape[0] 
+
+    fourier_image = np.fft.fftn(cg_main)
+    F_shift = np.fft.fftshift(fourier_image)  #so that k=0 is a the center
+    #fourier_amps = np.abs(fourier_image)**2
+    fourier_amps = np.abs(F_shift)**2
+    fourier_amplitudes = fourier_amps.flatten()
+
+    ix, iy = np.mgrid[0:F_shift.shape[0], 0:F_shift.shape[1]]
+    ix -= F_shift.shape[0]//2
+    iy -= F_shift.shape[1]//2
+
+    F_two = np.hypot(ix, iy)
+ 
+    '''
+    kfreq = np.fft.fftfreq(npix) * npix
+    kfreq2D = np.meshgrid(kfreq, kfreq)  # to convert into two dim array
+    knrm2Ds = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)  # equiv to np.hypot(ix,iy) 
+    '''
+
+    #knrm2D = knrm2Ds.flatten()
+    knrm2D = F_two.flatten()
+    kbins = np.arange(0,knrm2D.max()+1,1)  
+    kvals = 0.5 * (kbins[1:] + kbins[:-1])
+
+
+    # THE ACTUAL LOW PASS FILTER
+    lowpass = F_shift.copy()
+    lowpass[F_two > the_k] = 0.0
+    lowpass_mag = np.abs(lowpass)**2
+    fourier_lowpassamps = lowpass_mag.flatten()
+
+    # PASSING THE BATON!!
+    if lowpass_filter == 'yes':
+        fourier_amplitudes = fourier_lowpassamps
+ 
+    print('went through it')
+    Abins2D, _, _ = stats.binned_statistic(knrm2D, fourier_amplitudes, \
+                                        statistic = "sum", bins = kbins)  
+    powerspec2D = Abins2D 
+    powerspec3D = 2 * kvals * Abins2D     
+    dxyz = 1/fourier_image.size 
+
+    return kvals, powerspec2D, powerspec3D, dxyz
+
+def powerspec_lowpass(cg_main, justnoise=False, the_k=0, lowpass_filter='no'):
+
+    #if justnoise == False:
+    #    cg_main = cg_main/cg_main.mean() - 1   
+
+    npix = cg_main.shape[0] 
+
+    fourier_image = np.fft.fftn(cg_main)
+    fourier_amps = np.abs(fourier_image)**2
+    fourier_amplitudes = fourier_amps.flatten()
+ 
+    kfreq = np.fft.fftfreq(npix) * npix
+    kfreq2D = np.meshgrid(kfreq, kfreq)  # to convert into two dim array
+    knrm2Ds = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)  # equiv to np.hypot(ix,iy) 
+
+    knrm2D = knrm2Ds.flatten()
+    kbins = np.arange(0,knrm2D.max()+1,1)  
+    kvals = 0.5 * (kbins[1:] + kbins[:-1])
+
+
+    # THE ACTUAL LOW PASS FILTER
+    lowpass = fourier_image.copy()
+    lowpass[knrm2Ds > the_k] = 0.0
+    lowpass_mag = np.abs(lowpass)**2
+    fourier_lowpassamps = lowpass_mag.flatten()
+
+    # PASSING THE BATON!!
+    if lowpass_filter == 'yes':
+        fourier_amplitudes = fourier_lowpassamps
+ 
+    Abins2D, _, _ = stats.binned_statistic(knrm2D, fourier_amplitudes, \
+                                        statistic = "sum", bins = kbins)  
+    powerspec2D = Abins2D 
+    powerspec3D = 2 * kvals * Abins2D     
+    dxyz = 1/fourier_image.size 
+
+    return kvals, powerspec2D, powerspec3D, dxyz
+
+
+
+def powerspec(cg_main, dim, box_loc, snr, rep):
 
     # pixel resolution of the covergrid data array
     npix = cg_main.shape[0] 
@@ -31,6 +131,7 @@ def PowerSpec(cg_main, cg_two, cg_noise, noisep2d, dim, box_loc, snr, rep):
     # the fourier transform of the covergrid data array
     if dim == 1: 
         fourier_image = np.fft.fftn(cg_main)
+        F_shift = np.fft.fftshift(fourier_image)  #so that k=0 is a the center
     if dim == 2:
         fourier_image = np.fft.fftn(cg_main) 
         #fourier_image = np.fft.fftn(cg_main,(307,307,307))  #attempt: pads the y direction with zeros
@@ -38,6 +139,8 @@ def PowerSpec(cg_main, cg_two, cg_noise, noisep2d, dim, box_loc, snr, rep):
     # assuming the average amplitude is zero, which is not required, zero-th term does not show up anyway...
     # to get the size of the amplitudes only
     fourier_amps = np.abs(fourier_image)**2
+    #print('using f-shift')
+    #fourier_amps = np.abs(F_shift)**2
 
     # returns one dim array containing the wave vectors of the ft call, in the correct order
     # * npix converts it to pixel frequency 
@@ -56,6 +159,12 @@ def PowerSpec(cg_main, cg_two, cg_noise, noisep2d, dim, box_loc, snr, rep):
         kbins = np.arange(0,knrm3D.max()+1,1) 
 
     fourier_amplitudes = fourier_amps.flatten()
+    ix, iy = np.mgrid[0:F_shift.shape[0], 0:F_shift.shape[1]]
+    ix -= F_shift.shape[0]//2
+    iy -= F_shift.shape[1]//2
+
+    F_filtered = F_shift.copy()
+    F_filtered[np.hypot(ix, iy) > 25] = 0.0
 
     #corresponding k values are the midpoints of the bins
     kvals = 0.5 * (kbins[1:] + kbins[:-1])
@@ -79,11 +188,6 @@ def PowerSpec(cg_main, cg_two, cg_noise, noisep2d, dim, box_loc, snr, rep):
     
     # define dk
     dxyz = 1/fourier_image.size 
-
-    # to plot both power spectrums of noise and noise+signal
-    if noisep2d == True:
-        noise_powerspec2D = powerspec2D
-        nkvalues = kvals
 
 
 
@@ -134,4 +238,4 @@ def PowerSpec(cg_main, cg_two, cg_noise, noisep2d, dim, box_loc, snr, rep):
         print('P3D', P3D)
 
  
-    return fourier_amplitudes, powerspec2D, noise_powerspec2D, powerspec3D, dxyz, kvalues, nkvalues 
+    return fourier_amplitudes, powerspec2D, powerspec3D, dxyz, kvals 

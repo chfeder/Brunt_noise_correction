@@ -6,7 +6,7 @@ explore signal to noise ratios
 from startlaser import *
 
 
-def signaltonoise(cg_main, dim, the_snr, signal, power2D=0, power3D=0): 
+def signaltonoise(cg_main, dim, the_snr, signal=0, power2D=0, power3D=0): 
 
     if dim == 1:  #to be edited for 3D
         powerspec = power2D
