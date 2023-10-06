@@ -21,6 +21,7 @@ import scipy.stats as stats
 from numpy import inf 
 import turbulence_driving_analysis
 reload(turbulence_driving_analysis)
+
 import cfpack as cfp
 from cfpack import stop,print 
 
@@ -55,10 +56,6 @@ import momentmap
 reload(momentmap)
 import noiseimage
 reload(noiseimage)
-
-# in parsevals.py only...
-#import turbulence_driving_analysis
-#reload(turbulence_driving_analysis)
 
 
 ''' 
