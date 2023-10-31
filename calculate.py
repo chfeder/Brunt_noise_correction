@@ -38,7 +38,7 @@ def Calculate(first_field, region, cg_field, cg_fieldtwo):
     #sigma_sq_ii = (((field_ii - field_mean_ii) ** 2)*cv).sum() / cv.sum()
     sigma_ii = np.sqrt(sigma_sq_ii)
     if 0: 
-        print('sigma calculated', sigma_ii)
+        print('sigma calculated', sigma_sq_ii)
 
 
     if 0:

@@ -14,7 +14,7 @@ field_main = 'density'
 field_two = 'cell_volume'
 field_three = None 
 
-projection = True
+projection = True 
 dimension = 1
 noise = True
 noiseplot_only = False
@@ -24,7 +24,7 @@ polytropic_index = 1 # +/-0.1, for 50um voids
 the_level = 0
 
 # CONSTRUCTING THE VOLUMES, pick:
-boxes = ['c_box'] #['b_box','c_box','f_box'] #['l_box','c_box','r_box'] ; 
+boxes = ['b_box','c_box','f_box'] #['l_box','c_box','r_box'] 
 
 # "SMALL" boxes considered.
 delta_a = 0.0175 
@@ -34,8 +34,9 @@ edge_abot = 0.33
 delta_b = 0.02667  #(1.6/3)/2 
 edge_btop = 0.37417 
 edge_bbot = 0.32083
-# "MEDIUM" boxes.
-delta_m = 0.02  #(1.2/3)/2 
+# "MEDIUM" boxes & aspect test.
+delta_a = 0.02  #(1.2/3)/2
+delta_m = 0.03 #for aspects  
 edge_mtop = 0.3675 
 edge_mbot = 0.3275
 # VARIABLE volumes
@@ -43,42 +44,56 @@ delta = 0.01
 
 
 # README: 2 (in decibels)
-# SIGNAL TO NOISE RATIOs & COLORS: 
-#target_snr = [inf]
-target_snr = [0.001, 0.01, 0.1, 1, 3, 5, 10, 100]
-ksnr = [8, 8, 9, 19, 30, 36, 44, 53]
-#target_colors = ['orange','y','magenta','blue','green','grey'] #'black']
-target_colors = ['blue','magenta','green']
+# SIGNAL TO NOISE RATIOs & COLORS: :w
 
-iterations = 1000
+target_snr = [inf]
+#target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
+ksnr = [6, 8, 18, 29, 35, 44, 52]  #right: current, lef:[5, 7, 16, 25, 30, 38, 52], center: ksnr = [8, 8, 9, 19, 30, 36, 44, 52]
+target_colors = ['orange','y','magenta','blue','green','cyan','red'] #'black']
+#target_colors = ['blue','magenta','green']
+
+iterations = 1 #1000
 noiseat = 'image'  # when to add noise, at 'image' or at 'dft - no noise really...'
-lowpassfilter = 'yes'  # yes:low k values, no:all k values
+lowpassfilter = 'no'  # yes:low k values, no:all k values
 
 method = 0  # method to obtain sigma N - 0: via PDF, 1: via np.std(), 2: rms 
 imaging = 'no'  # make images?
 width = 2*delta_m  # for images
 
 
+# OVERLAYING 3 IND BOXES RESULTS
+if 0:
+    fig,ax = plt.subplots(1,1)
+    fig.subplots_adjust(wspace=0, hspace=0)
+    collect = defaultdict(list)
 # THREE BOXES
 limit = np.zeros(4) #for README 5
 for num, box in enumerate(boxes): 
     if box == 'c_box':
-        the_ledge = the_ds.arr([-delta_m, edge_mbot, -delta_m],'code_length')
-        the_redge = the_ds.arr([delta_m, edge_mtop, delta_m],'code_length')
+        the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_m],'code_length')
+        the_redge = the_ds.arr([delta_a, edge_mtop, delta_m],'code_length')
 
     if box == 'r_box':
         the_ledge = the_ds.arr([delta_m, edge_mbot, -delta_m],'code_length')
+        #the_ledge = the_ds.arr([0, edge_mbot, -delta_a],'code_length')
         the_redge = the_ds.arr([delta_m+2*delta_m, edge_mtop, delta_m],'code_length')
+        #the_redge = the_ds.arr([delta_m+2*delta_m, edge_mtop, delta_a],'code_length')
     if box == 'f_box':
         the_ledge = the_ds.arr([-delta_m, edge_mbot, delta_m],'code_length')
+        #the_ledge = the_ds.arr([-delta_a, edge_mbot, 0],'code_length')
         the_redge = the_ds.arr([delta_m, edge_mtop, delta_m+2*delta_m],'code_length')
+        #the_redge = the_ds.arr([delta_a, edge_mtop, delta_m+2*delta_m],'code_length')
 
     if box == 'l_box':
         the_ledge = the_ds.arr([-delta_m-2*delta_m, edge_mbot, -delta_m],'code_length')
+        #the_ledge = the_ds.arr([-delta_m-2*delta_m, edge_mbot, -delta_a],'code_length')
         the_redge = the_ds.arr([-delta_m, edge_mtop, delta_m],'code_length')
+        #the_redge = the_ds.arr([0, edge_mtop, delta_a],'code_length')
     if box == 'b_box':
         the_ledge = the_ds.arr([-delta_m, edge_mbot, -delta_m-2*delta_m],'code_length')
+        #the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_m-2*delta_m],'code_length')
         the_redge = the_ds.arr([delta_m, edge_mtop, -delta_m],'code_length')
+        #the_redge = the_ds.arr([delta_a, edge_mtop, 0],'code_length')
     '''
     if box == 'notabox':
         # original analysis region:  #1.2 mm × 0.34 mm × 1.2 mm.
@@ -87,7 +102,8 @@ for num, box in enumerate(boxes):
     '''
 
     if 1:  
-        collect = defaultdict(list)
+        if 1:
+            collect = defaultdict(list)
         # FOR PLOTS 
         if 1:
             fig,ax = plt.subplots(1,1)
@@ -109,7 +125,7 @@ for num, box in enumerate(boxes):
         if 0:
             mom_map = momentmap.moment_map(cg_first)  #a brief exploration, maybe discard
 
-
+        
         rhalf = []
         for val,target in enumerate(target_snr):
             for many in range(iterations):  
@@ -134,11 +150,11 @@ for num, box in enumerate(boxes):
                     ax.set(yscale='log')#, xscale='log')
 
                 # IMAGE THE SIGNAL, NOISE, SIGNAL PLUS NOISE
-                if 0:  
-                    cfp.plot_map(cg_first.v,save='signal')
-                    cfp.plot_map(cg_wnoise,save='signal_noise.png')
-                    cfp.plot_map(noiseonly,save='noise.png')
-                    stop()
+                if 1:  
+                    cfp.plot_map(cg_first.v,save='signal_%s'%box)#, vmin=20, vmax=49)
+                    #cfp.plot_map(cg_wnoise,save='signal_noise.png')
+                    #cfp.plot_map(noiseonly,save='noise.png')
+                    #stop()
 
                 # OBTAIN SIGMA N^2
                 if 1:  #calculated
@@ -162,13 +178,17 @@ for num, box in enumerate(boxes):
                 # OBTAIN SIGMA RHO
                 if 1:
                     sigma_rho, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
-                    collect[target].append(brunts_rsq)   #plotting brunts_rsq  
+                    if target == inf:
+                        print('at the original signal')
+                        #print('brunts_rsq pure signal',brunts_rsq)
+                    collect[box].append(sigma_rho)   #plotting brunts_rsq  
+                    #collect[target].append(brunts_rsq)   #plotting brunts_rsq  
                     #collect[target].append(sigma_rho)    #plotting sigma_rho 
 
 
                 
             # LOW PASS FILTERING & OTHERS.. 
-            if 1:
+            if 0:
                 the_rs = [l for l in collect.values()]
                 emptylist = []
                 the_rsall = np.append(emptylist,the_rs[val])
@@ -186,19 +206,19 @@ for num, box in enumerate(boxes):
 
     # SAVE THE POWERSPECTRUM PLOTS 
     if 0:  
-        plt.ylim(1e0,1e7)
-        plt.xlim(40,75)
-        fig.savefig('pd2_snr_noise_logy_cbox_510100_zoom_.png')#%target)
+        plt.ylim(1e1,1e11)
+        #plt.xlim(40,75)
+        fig.savefig('pd2_snr_sn_wn_logy_rbox_.png')
     print('okay')
     
     if 0:
         kcollect = defaultdict(list)  #CAREFUL?
-        kmatch = np.linspace(5,20,16)  #target 0.1
-        #kmatch = np.linspace(15,30,16)  #target 1
-        #kmatch = np.linspace(25,40,16)  #target 3
-        #kmatch = np.linspace(34,54,11)  #target 5,10
-        #kmatch = np.linspace(50,60,11)
-        target = 0.001 
+        kmatch = np.linspace(1,16,16)  #target 0.1
+        #kmatch = np.linspace(10,25,16)  #target 1
+        #kmatch = np.linspace(20,35,16)  #target:5,3
+        #kmatch = np.linspace(34,54,11)  #target 10
+        #kmatch = np.linspace(50,60,11)   #target 100
+        target = 0.01
         iterations = 1000
         for val,ksnr in enumerate(kmatch):
             for many in range(iterations):  
@@ -208,10 +228,6 @@ for num, box in enumerate(boxes):
                 sigma_rho, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
                 kcollect[ksnr].append(brunts_rsq)   
 
-
-    def cfunct(x, a, b):
-        y = a * x**(1/b)
-        return y
     # crossing k values vs SNR -raw
     if 0:
         ydata = [8, 8, 9, 19, 29, 36, 44, 53]
@@ -221,34 +237,70 @@ for num, box in enumerate(boxes):
         if 0:
             param, param_cov = curve_fit(cfunct, xdata, ydata)
             plt.plot(xdata, cfunct(xdata, *param), 'b--')
-        plt.scatter(xdata[1:], ydata[1:])
+        plt.scatter(xdata, ydata)
         ax.set(xscale='log', yscale='log')
         plt.ylabel('Crossing k values')
         plt.xlabel('SNR')
         plt.savefig('crossing_kvalues_vs_SNR_%s'%(box))
         #stop()
         plt.clf() 
+
+    def cfunct(x, a, b, c, d):
+        y = a * np.tanh((c*x)+d) + b
+        return y
+
+    def dfunct(x, a, b):
+        y = 1/(1 + a*np.exp(-x+b)) 
+        return y
     # r^{1/2}true / r^{1/2}full vs SNR - raw
-    if 1:
-        ydata = rhalf  
-        #ydata = [0.3731, 0.3734, 0.3747, 0.4950, 0.7874, 0.9009, 0.9718, 1]
+    if 0:
+        rhalf_ctrue = 0.3035  #0.3035309747962126
+        rhalf_ltrue = 0.3697  #0.3697364679188141
+        rhalf_rtrue = 0.3385  #0.33851156031827845
+        rhalf_btrue = 0.3274  #0.3273638724473809
+        rhalf_ftrue = 0.3281  #0.3280843502158977
+
+        ytrue_cbox = [0.30200493, 0.3006561,  0.30287845, 0.30259622, 0.30320516, 0.30334879, 0.30352811]
+        ytrue_lbox = [0.36824365, 0.3592389,  0.36746576, 0.36903979, 0.37024448, 0.37046739, 0.3696961] 
+        ytrue_rbox = [0.34350638, 0.3291993,  0.33969969, 0.33873154, 0.33918174, 0.33809821, 0.3384887]
+
+        ydata = rhalf/ytrue_cbox
         ydatalog = np.log10(ydata)
         xdata = target_snr
         xdatalog = np.log10(xdata)
-        #stop()
-        if 0:  # WILL BE EDITED
-            param, param_cov = curve_fit(cfunct, xdata, ydata)
-            plt.plot(xdata, cfunct(xdata, *param), 'b--')
+        if 1:  #tanh
+            parametros = defaultdict(list)
+            #parametros['d'].append(0)
+            #parametros['d'].append(2)
+            #parametros['d'].append(4)
+            rets = cfp.fit(cfunct, xdatalog, ydatalog)
+            #stop()
+            the_xrecipe = np.linspace(xdatalog.min(),xdatalog.max(),num=500)  # more numbers for the x fitting! ,was len(xdatalog)
+            the_xten = 10**the_xrecipe
+            the_yrecipe = cfunct(the_xrecipe, *rets.popt)
+            the_yten = 10**the_yrecipe
 
-        plt.scatter(xdata[1:], ydata[1:])  #first value throws an error
-        ax.set(xscale='log', yscale='log')
-        plt.ylabel(r'$R^{1/2}_{true}$') #plt.ylabel(r'$R^{1/2}_{true} / R^{1/2}_{full}$') #plt.ylabel(r'$R^{1/2}_{full}$')
+            plt.plot(the_xten, the_yten, 'g--')
+            print('param cf vals ',rets.popt) 
+        if 0:  #sigmoid
+            rets = cfp.fit(dfunct, xdatalog, ydatalog)
+            the_xrecipe = np.linspace(xdatalog.min(),xdatalog.max(),num=len(xdatalog))
+            the_xten = 10**the_xrecipe
+            the_yrecipe = (1 / (1+ rets.popt[0] * np.exp(-1*the_xrecipe)))
+            the_yten = 10**the_yrecipe
+            plt.plot(the_xten, the_yten, 'g--')
+            print('param cf vals ',rets.popt) 
+
+        rhalf_true = rhalf_rtrue 
+        plt.scatter(xdata, ydata)  
+        #plt.plot([1e-2,100],[rhalf_true,rhalf_true],'--',c='grey')
+        ax.set(xscale='log',yscale='log')
+        plt.ylabel(r'$R^{1/2}_{true}/R^{1/2}_{full}$') #plt.ylabel(r'$R^{1/2}_{full}$')
         plt.xlabel('SNR')
-        ax.set(xscale='log', yscale='log')
-        #ax.set(xlim=[1e-3,2e2], ylim=[1e-1,4e-1])
-        plt.savefig('rhalf_true_vs_SNR_%s'%(box))  #rhalf_full, rhalf_true, rhalf_ratio
-        #stop()
+        #ax.set(ylim=[2e-1,1.1e0])  #ax.set(xlim=[1e-3,2e2], ylim=[1e-1,4e-1])
+        plt.savefig('rsqrt_ratio_vs_SNR_tanhx_multplus_%s'%(box))  #rhalf_full, rhalf_true, rhalf_ratio
         plt.clf()
+
 
 
     # CALLING BOXPLOTS; README 4 (an example). README 5 (plotting, dealing with BIG numbers in axis).
@@ -257,9 +309,9 @@ for num, box in enumerate(boxes):
         labels, data = kcollect.keys(), kcollect.values()  #PICK THE RIGHT DICTIONARY
         plt.boxplot(data, showfliers=True, showmeans=True)
 
-        the_mean = 0.303531
+        the_mean =0.338512 
         plt.plot([1,len(kmatch)],[the_mean,the_mean],'--',c='k',alpha=0.7)
-        plt.plot([1,len(kmatch)],[the_rsallmean,the_rsallmean],'--',c=[0.5]*4)
+        #plt.plot([1,len(kmatch)],[the_rsallmean,the_rsallmean],'--',c=[0.5]*4)
         '''
         if box == 'l_box':
             plt.plot([1,6],[0.269,0.269],'--',c=[0.5]*4)
@@ -270,20 +322,43 @@ for num, box in enumerate(boxes):
         '''
         plt.xlabel('k')
         #plt.ylabel(r'$\sigma_{\rho/\rho_o} $')
-        #plt.ylabel(r'$R^{1/2}$')
+        plt.ylabel(r'$R^{1/2}$')
         plt.xticks(range(1, len(labels) + 1), labels)
         #plt.yscale('log')
         #plt.ylim(0.10,0.39)
         #plt.savefig('boxplot_1000n_snr_%s_xpos_image_bruntsrsqVSsnr_001_fixed'%box)
-        plt.savefig('best_kvalue_%s_00%d_winf_wresp'%(box,target))
+        plt.savefig('best_kvalue_%s_00%d_winf'%(box,target))
         print(box)
         plt.clf()
+
+# PLOT BOXES independently
+if 0:
+    the_rs = [l for l in collect.values()]
+    emptylist = []
+    the_sigmas = np.append(emptylist,the_rs)
+    the_3DzSigmas_cube = [0.2880937570662445,0.30782976873988827, 0.24301533336823522]
+    the_3DxSigmas_cube = [0.269150311726313, 0.30782976873988827, 0.2654539963372979]
+    the_3DzSigmas_aspect = [0.30397296809676416, 0.318353770910557, 0.2807981869925865]  #[0.246715430918834, 0.318353770910557, 0.23660419455366774]
+    the_3DxSigmas_aspect = [0.2895337967904341, 0.30420254190841384, 0.326483876406291]
+    the_d_cube = np.linspace(-0.04, 0.04, 3, endpoint=True)  
+    the_d = np.linspace(-0.03, 0.03, 3, endpoint=True)  
+    y_err_up = 0.1*the_sigmas
+    y_err_low = 0.1*the_sigmas 
+    y_err_arr = [y_err_low,y_err_up]
+    if 1:
+        ax.scatter(the_d, the_sigmas, alpha=0.5)
+        #ax.errorbar(the_d, the_sigmas, yerr=y_err_arr, fmt='o')
+        ax.scatter(the_d, the_3DzSigmas_aspect, c='orange', alpha=0.5)
+        plt.ylim(0.2207,0.4855) #Z
+        #plt.ylim(0.2250,0.4780) #X 0.2295,0.4780
+        #plt.yscale('log')
+        plt.ylabel(r'$\sigma_{\rho/\rho_o}$')
+        plt.xlabel('the volume centers')
+        fig.savefig('Z_aspect_retry.png')
 
 
 
         
-
-
 
 '''
 to obtain SIGMA_V:

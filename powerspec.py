@@ -159,13 +159,14 @@ def powerspec(cg_main, dim, box_loc, snr, rep):
         kbins = np.arange(0,knrm3D.max()+1,1) 
 
     fourier_amplitudes = fourier_amps.flatten()
+    '''
     ix, iy = np.mgrid[0:F_shift.shape[0], 0:F_shift.shape[1]]
     ix -= F_shift.shape[0]//2
     iy -= F_shift.shape[1]//2
 
     F_filtered = F_shift.copy()
     F_filtered[np.hypot(ix, iy) > 25] = 0.0
-
+    '''
     #corresponding k values are the midpoints of the bins
     kvals = 0.5 * (kbins[1:] + kbins[:-1])
     

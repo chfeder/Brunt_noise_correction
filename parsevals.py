@@ -40,6 +40,7 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
         P3D = ((p3d[1:] * dk).sum()) *dk   #the same if [1:] is taken out
         sigmaRho = np.sqrt(P3D)
         print('sigma from P3D', sigmaRho)
+        the_R_sqrt =0
 
         
     if 0:  # write it out
