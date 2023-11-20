@@ -2,7 +2,14 @@
 from startlaser import * 
 from collections import defaultdict
 # README: 0 (info on data sets)
-the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_50mu_bubbles/NIF_hdf5_plt_cnt_0375')
+
+void_size = '50um'
+if void_size=='12p5um': 
+    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_12p5mu_bubbles/NIF_hdf5_plt_cnt_0375')
+if void_size=='50um': 
+    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_50mu_bubbles/NIF_hdf5_plt_cnt_0375')
+if void_size=='100um':
+    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_100mu_bubbles/NIF_hdf5_plt_cnt_0375')
 
 '''
 to obtain SIGMA_RHO:
@@ -19,12 +26,12 @@ dimension = 1
 noise = True
 noiseplot_only = False
 
-proj_axis = 1  #or simply axis 
+proj_axis = 0  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 the_level = 0
 
 # CONSTRUCTING THE VOLUMES, pick:
-boxes = ['b_box','c_box','f_box'] #['l_box','c_box','r_box'] 
+boxes = ['l_box','c_box','r_box'] #['b_box','c_box','f_box'] 
 
 # "SMALL" boxes considered.
 delta_a = 0.0175 
@@ -34,25 +41,24 @@ edge_abot = 0.33
 delta_b = 0.02667  #(1.6/3)/2 
 edge_btop = 0.37417 
 edge_bbot = 0.32083
+
 # "MEDIUM" boxes & aspect test.
 delta_a = 0.02  #(1.2/3)/2
-delta_m = 0.03 #for aspects  
+delta_m = 0.02  #0.03 for aspects  
 edge_mtop = 0.3675 
 edge_mbot = 0.3275
-# VARIABLE volumes
-delta = 0.01
 
 
 # README: 2 (in decibels)
 # SIGNAL TO NOISE RATIOs & COLORS: :w
 
-target_snr = [inf]
-#target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
+#target_snr = [inf]
+target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
 ksnr = [6, 8, 18, 29, 35, 44, 52]  #right: current, lef:[5, 7, 16, 25, 30, 38, 52], center: ksnr = [8, 8, 9, 19, 30, 36, 44, 52]
 target_colors = ['orange','y','magenta','blue','green','cyan','red'] #'black']
 #target_colors = ['blue','magenta','green']
 
-iterations = 1 #1000
+iterations = 100
 noiseat = 'image'  # when to add noise, at 'image' or at 'dft - no noise really...'
 lowpassfilter = 'no'  # yes:low k values, no:all k values
 
@@ -66,33 +72,34 @@ if 0:
     fig,ax = plt.subplots(1,1)
     fig.subplots_adjust(wspace=0, hspace=0)
     collect = defaultdict(list)
+
 # THREE BOXES
 limit = np.zeros(4) #for README 5
 for num, box in enumerate(boxes): 
     if box == 'c_box':
-        the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_m],'code_length')
-        the_redge = the_ds.arr([delta_a, edge_mtop, delta_m],'code_length')
+        the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_a],'code_length')
+        the_redge = the_ds.arr([delta_a, edge_mtop, delta_a],'code_length')
 
     if box == 'r_box':
         the_ledge = the_ds.arr([delta_m, edge_mbot, -delta_m],'code_length')
-        #the_ledge = the_ds.arr([0, edge_mbot, -delta_a],'code_length')
         the_redge = the_ds.arr([delta_m+2*delta_m, edge_mtop, delta_m],'code_length')
+        #the_ledge = the_ds.arr([0, edge_mbot, -delta_a],'code_length')
         #the_redge = the_ds.arr([delta_m+2*delta_m, edge_mtop, delta_a],'code_length')
     if box == 'f_box':
         the_ledge = the_ds.arr([-delta_m, edge_mbot, delta_m],'code_length')
-        #the_ledge = the_ds.arr([-delta_a, edge_mbot, 0],'code_length')
         the_redge = the_ds.arr([delta_m, edge_mtop, delta_m+2*delta_m],'code_length')
+        #the_ledge = the_ds.arr([-delta_a, edge_mbot, 0],'code_length')
         #the_redge = the_ds.arr([delta_a, edge_mtop, delta_m+2*delta_m],'code_length')
 
     if box == 'l_box':
         the_ledge = the_ds.arr([-delta_m-2*delta_m, edge_mbot, -delta_m],'code_length')
-        #the_ledge = the_ds.arr([-delta_m-2*delta_m, edge_mbot, -delta_a],'code_length')
         the_redge = the_ds.arr([-delta_m, edge_mtop, delta_m],'code_length')
+        #the_ledge = the_ds.arr([-delta_m-2*delta_m, edge_mbot, -delta_a],'code_length')
         #the_redge = the_ds.arr([0, edge_mtop, delta_a],'code_length')
     if box == 'b_box':
         the_ledge = the_ds.arr([-delta_m, edge_mbot, -delta_m-2*delta_m],'code_length')
-        #the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_m-2*delta_m],'code_length')
         the_redge = the_ds.arr([delta_m, edge_mtop, -delta_m],'code_length')
+        #the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_m-2*delta_m],'code_length')
         #the_redge = the_ds.arr([delta_a, edge_mtop, 0],'code_length')
     '''
     if box == 'notabox':
@@ -126,7 +133,7 @@ for num, box in enumerate(boxes):
             mom_map = momentmap.moment_map(cg_first)  #a brief exploration, maybe discard
 
         
-        rhalf = []
+        rsqrt = []
         for val,target in enumerate(target_snr):
             for many in range(iterations):  
 
@@ -139,7 +146,7 @@ for num, box in enumerate(boxes):
                         noiseonly = 0
                 
                 # PLOT POWERSPECTRUMS
-                if 0:  
+                if 1:  
                     k1, spec1, _, _ = powerspec.powerspec_lowpass(cg_wnoise)
                     #k2, spec2, _, _ = powerspec.powerspectrum_ii(cg_first)
                     k3, spec3, _, _ = powerspec.powerspec_lowpass(noiseonly, justnoise=noise)
@@ -150,14 +157,14 @@ for num, box in enumerate(boxes):
                     ax.set(yscale='log')#, xscale='log')
 
                 # IMAGE THE SIGNAL, NOISE, SIGNAL PLUS NOISE
-                if 1:  
+                if 0:  
                     cfp.plot_map(cg_first.v,save='signal_%s'%box)#, vmin=20, vmax=49)
                     #cfp.plot_map(cg_wnoise,save='signal_noise.png')
                     #cfp.plot_map(noiseonly,save='noise.png')
                     #stop()
 
                 # OBTAIN SIGMA N^2
-                if 1:  #calculated
+                if 0:  #calculated
                     sigma_sq = calculate.Calculate(field_main, the_region, cg_wnoise, cg_second) 
                 if 0:  #from PDF
                     bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main, projection, proj_axis, cg_wnoise ,cg_third)  #EDIT; split into definitions 
@@ -166,7 +173,7 @@ for num, box in enumerate(boxes):
                     sigma_sq = None
 
                 # OBTAIN P2D AND P3D           
-                if 1:   
+                if 0:   
                     if lowpassfilter == 'no':
                         four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, dimension, box, target, many)    
                     if lowpassfilter == 'yes':
@@ -176,13 +183,12 @@ for num, box in enumerate(boxes):
                     # README 3. (thoughts on making pdfs)
                 
                 # OBTAIN SIGMA RHO
-                if 1:
-                    sigma_rho, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
+                if 0:
+                    sigma_rho, sigma_rho2d, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
                     if target == inf:
                         print('at the original signal')
-                        #print('brunts_rsq pure signal',brunts_rsq)
-                    collect[box].append(sigma_rho)   #plotting brunts_rsq  
-                    #collect[target].append(brunts_rsq)   #plotting brunts_rsq  
+                    #collect[box].append(sigma_rho)   #plotting brunts_rsq  
+                    collect[target].append(brunts_rsq)   #plotting brunts_rsq  
                     #collect[target].append(sigma_rho)    #plotting sigma_rho 
 
 
@@ -201,16 +207,17 @@ for num, box in enumerate(boxes):
                 the_rsallmedlog = np.median(the_rsalllog) 
                 the_rsalllogerr = np.std(the_rsalllog)
 
-                rhalf = np.append(rhalf, the_rsallmed)
+                rsqrt = np.append(rsqrt, the_rsallmed)
                 #stop() #logmed ~ medlog, check [ ]
 
     # SAVE THE POWERSPECTRUM PLOTS 
-    if 0:  
+    if 1:  
         plt.ylim(1e1,1e11)
         #plt.xlim(40,75)
-        fig.savefig('pd2_snr_sn_wn_logy_rbox_.png')
+        fig.savefig('pd2_snr_sn_wn_logy_%s_%d.png'%(box,proj_axis))
     print('okay')
-    
+
+    # to learn which are the crossing k values - then these get plotted at ''CALLING BOXPLOTS'' 
     if 0:
         kcollect = defaultdict(list)  #CAREFUL?
         kmatch = np.linspace(1,16,16)  #target 0.1
@@ -245,6 +252,7 @@ for num, box in enumerate(boxes):
         #stop()
         plt.clf() 
 
+    # POSSIBLE FIT FUNCTIONS
     def cfunct(x, a, b, c, d):
         y = a * np.tanh((c*x)+d) + b
         return y
@@ -252,19 +260,20 @@ for num, box in enumerate(boxes):
     def dfunct(x, a, b):
         y = 1/(1 + a*np.exp(-x+b)) 
         return y
+
     # r^{1/2}true / r^{1/2}full vs SNR - raw
+    rhalf_ctrue = 0.3035  #0.3035309747962126
+    rhalf_ltrue = 0.3697  #0.3697364679188141
+    rhalf_rtrue = 0.3385  #0.33851156031827845
+    rhalf_btrue = 0.3274  #0.3273638724473809
+    rhalf_ftrue = 0.3281  #0.3280843502158977
     if 0:
-        rhalf_ctrue = 0.3035  #0.3035309747962126
-        rhalf_ltrue = 0.3697  #0.3697364679188141
-        rhalf_rtrue = 0.3385  #0.33851156031827845
-        rhalf_btrue = 0.3274  #0.3273638724473809
-        rhalf_ftrue = 0.3281  #0.3280843502158977
 
         ytrue_cbox = [0.30200493, 0.3006561,  0.30287845, 0.30259622, 0.30320516, 0.30334879, 0.30352811]
         ytrue_lbox = [0.36824365, 0.3592389,  0.36746576, 0.36903979, 0.37024448, 0.37046739, 0.3696961] 
         ytrue_rbox = [0.34350638, 0.3291993,  0.33969969, 0.33873154, 0.33918174, 0.33809821, 0.3384887]
 
-        ydata = rhalf/ytrue_cbox
+        ydata = rsqrt/ytrue_cbox
         ydatalog = np.log10(ydata)
         xdata = target_snr
         xdatalog = np.log10(xdata)
@@ -291,7 +300,7 @@ for num, box in enumerate(boxes):
             plt.plot(the_xten, the_yten, 'g--')
             print('param cf vals ',rets.popt) 
 
-        rhalf_true = rhalf_rtrue 
+        rhalf_true = rhalf_ltrue 
         plt.scatter(xdata, ydata)  
         #plt.plot([1e-2,100],[rhalf_true,rhalf_true],'--',c='grey')
         ax.set(xscale='log',yscale='log')
@@ -306,11 +315,11 @@ for num, box in enumerate(boxes):
     # CALLING BOXPLOTS; README 4 (an example). README 5 (plotting, dealing with BIG numbers in axis).
     # TRUE values - l_c_r: 0.269, 0.308, 0.265; b_c_f: 0.288, 0.308(yay), 0.243 
     if 0:  
-        labels, data = kcollect.keys(), kcollect.values()  #PICK THE RIGHT DICTIONARY
-        plt.boxplot(data, showfliers=True, showmeans=True)
+        labels, data = collect.keys(), collect.values()  #PICK THE RIGHT DICTIONARY
+        plt.boxplot(data, showfliers=True, showmeans=False)
 
-        the_mean =0.338512 
-        plt.plot([1,len(kmatch)],[the_mean,the_mean],'--',c='k',alpha=0.7)
+        the_mean = rhalf_ctrue  #rsqrt at inf = pure signal 
+        plt.plot([1,len(labels)],[the_mean,the_mean],'--',c='k',alpha=0.7)
         #plt.plot([1,len(kmatch)],[the_rsallmean,the_rsallmean],'--',c=[0.5]*4)
         '''
         if box == 'l_box':
@@ -320,18 +329,23 @@ for num, box in enumerate(boxes):
         if box == 'r_box':
             plt.plot([1,6],[0.265,0.265],'--',c=[0.5]*4)
         '''
-        plt.xlabel('k')
+        plt.xlabel('SNR')
         #plt.ylabel(r'$\sigma_{\rho/\rho_o} $')
         plt.ylabel(r'$R^{1/2}$')
         plt.xticks(range(1, len(labels) + 1), labels)
         #plt.yscale('log')
         #plt.ylim(0.10,0.39)
         #plt.savefig('boxplot_1000n_snr_%s_xpos_image_bruntsrsqVSsnr_001_fixed'%box)
-        plt.savefig('best_kvalue_%s_00%d_winf'%(box,target))
+        #plt.savefig('best_kvalue_%s_00%d_winf'%(box,target))
+        plt.savefig('rsqrt_iterations_%s_winf'%(box))
         print(box)
         plt.clf()
 
-# PLOT BOXES independently
+
+
+
+
+# INDEPENDENT BOXES FOR ASPECT RATIOS
 if 0:
     the_rs = [l for l in collect.values()]
     emptylist = []
@@ -355,10 +369,6 @@ if 0:
         plt.ylabel(r'$\sigma_{\rho/\rho_o}$')
         plt.xlabel('the volume centers')
         fig.savefig('Z_aspect_retry.png')
-
-
-
-        
 
 '''
 to obtain SIGMA_V:

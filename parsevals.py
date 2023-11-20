@@ -12,6 +12,7 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
             if sigmaRho_sq < 0:
                 print('negative value encountered?!')
             sigmaRho = np.sqrt(sigmaRho_sq)
+            sigmaRho2d = np.sqrt(P3D)
 
             the_R = P2D/P3D  
             the_R_sqrt = np.sqrt(P2D/P3D)
@@ -39,6 +40,8 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
     if dim == 2: 
         P3D = ((p3d[1:] * dk).sum()) *dk   #the same if [1:] is taken out
         sigmaRho = np.sqrt(P3D)
+        sigmaRho2d = 0
+        print('P3D', P3D)
         print('sigma from P3D', sigmaRho)
         the_R_sqrt =0
 
@@ -48,5 +51,5 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
         alphaFile.write("\nSigma 3D from P3D %f"%(sigmaRho))
         alphaFile.close()
 
-    return sigmaRho, the_R_sqrt 
+    return sigmaRho, sigmaRho2d, the_R_sqrt 
 
