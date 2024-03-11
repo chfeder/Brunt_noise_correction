@@ -2,11 +2,11 @@
 from startlaser import *
 
 def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
-
+    # dk = 1/fourier_image.size 
     if dim == 1:
         if 1:
             # [1:] or not seems irrelevant 
-            P2D = ((p2d[1:] * dk).sum()) *dk
+            P2D = ((p2d[1:] * dk).sum()) *dk  #avoiding dk inside the does not alter oom of sigmas
             P3D = ((p3d[1:] * dk).sum()) *dk
             sigmaRho_sq = sigmaN_sq * (P3D/P2D)
             if sigmaRho_sq < 0:
@@ -51,5 +51,5 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
         alphaFile.write("\nSigma 3D from P3D %f"%(sigmaRho))
         alphaFile.close()
 
-    return sigmaRho, sigmaRho2d, the_R_sqrt 
+    return sigmaRho, sigmaRho2d, the_R_sqrt, sigmaN_sq 
 

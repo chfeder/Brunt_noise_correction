@@ -5,7 +5,7 @@ calculates sigma rho straight from the data
 from startlaser import * 
 
 
-def Calculate(first_field, region, cg_field, cg_fieldtwo):
+def Calculate(first_field, cg_field=None, cg_fieldtwo=None):
     
     # if we were not using a covergrid
     if 0:
@@ -37,16 +37,12 @@ def Calculate(first_field, region, cg_field, cg_fieldtwo):
     # this could have also been coded as: 
     #sigma_sq_ii = (((field_ii - field_mean_ii) ** 2)*cv).sum() / cv.sum()
     sigma_ii = np.sqrt(sigma_sq_ii)
+
     if 0: 
-        print('sigma 2D calculated', sigma_ii)
-
-
-    if 0:
-        pdb.set_trace()
-    
+        print('sigma 2D calculated', sigma_ii) 
     if 0:  # write to a file if you wish
         alphaFile = open("sflaser_records.txt",'a')
         alphaFile.write("\nsigma_rho calculated cg: %f"%sigma_ii)
         alphaFile.close()
 
-    return sigma_sq_ii 
+    return sigma_sq_ii, sigma_ii 

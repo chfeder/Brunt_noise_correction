@@ -10,7 +10,7 @@ from startlaser import *
 
 def powerspec_lowpass(cg_main, justnoise=False, the_k=0, lowpass_filter='no'):
 
-    npix = cg_main.shape[0] 
+    npix = cg_main.shape[0] #102 
 
     fourier_image = np.fft.fftn(cg_main)
     fourier_amps = np.abs(fourier_image)**2
@@ -43,11 +43,18 @@ def powerspec_lowpass(cg_main, justnoise=False, the_k=0, lowpass_filter='no'):
     return kvals, powerspec2D, powerspec3D, dxyz
 
 
-def powerspec(cg_main, dim, snr, rep):
+def powerspec(cg_main, dim, snr=0, iters=1, justnoise=False):
 
     # pixel resolution of the covergrid data array
     npix = cg_main.shape[0] 
-    cg_main = cg_main/cg_main.mean() - 1   
+    if justnoise == False:
+        cg_main = cg_main/cg_main.mean() - 1   
+    
+    ''' DEBUG
+    plt.clf()
+    plt.imshow(cg_main)
+    plt.savefig('density_s1')
+    '''
 
     # the fourier transform of the covergrid data array
     if dim == 1: 
@@ -76,7 +83,11 @@ def powerspec(cg_main, dim, snr, rep):
         knrm3D = np.sqrt(kfreq3D[0]**2 + kfreq3D[1]**2 + kfreq3D[2]**2)
         knrm3D = knrm3D.flatten()
         kbins = np.arange(0,knrm3D.max()+1,1) 
-
+    ''' DEBUG
+    plt.clf()
+    plt.imshow(fourier_amps.real)
+    plt.savefig('density_fourier_s1')
+    ''' 
     fourier_amplitudes = fourier_amps.flatten()
     #corresponding k values are the midpoints of the bins
     kvals = 0.5 * (kbins[1:] + kbins[:-1])

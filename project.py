@@ -20,7 +20,7 @@ Proj = Convolve with Gaussian (need the PSF framing camera)
 '''
 from startlaser import *
 
-def Project(covergrid,pj_axis,project,field_one,field_two=None,field_three=None):
+def Project(covergrid, pj_axis, project, field_one, field_two=None, field_three=None):
 
         if field_one == 'overdensity': 
             rho_0 = (covergrid['density'] * covergrid['cell_volume']).sum()/covergrid['cell_volume'].sum()

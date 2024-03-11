@@ -1,38 +1,27 @@
 
 from startlaser import * 
 from collections import defaultdict
-
 # for slices we need this encantation
 from matplotlib import rcParams
 rcParams['text.latex.preamble'] = r'\newcommand{\mathdefault}[1][]{}'
 
-void_size = '50um'
-if void_size=='12p5um': 
-    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_12p5mu_bubbles/NIF_hdf5_plt_cnt_0375')
-if void_size=='50um': 
-    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_50mu_bubbles/NIF_hdf5_plt_cnt_0375')
-if void_size=='100um':
-    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_100mu_bubbles/NIF_hdf5_plt_cnt_0375')
+void_size = '50mu'
+the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
 
-'''
-to obtain SIGMA_RHO:
-'''
 # SETUP:
 field_main = 'density'
 field_two = 'cell_volume'
 field_three = None 
 
-projection = False 
-dimension = 2
-noise = False
-noiseplot_only = False
-
 proj_axis = 0  #or simply axis 
 polytropic_index = 1 # +/-0.1, for 50um voids
 the_level = 0
 
-# CONSTRUCTING THE VOLUMES, pick x or z:
-box = 'sx_box'  
+# CONSTRUCTING THE VOLUMES, pick x and z:
+if 0:
+    boxes = ['sx_box', 'sz_box']  
+if 1:  #debug 
+    boxes = ['sx_box']
 
 # M-sized boxes.
 delta_m = 0.02  #(1.2/3)/2 
@@ -40,97 +29,158 @@ edge_mtop = 0.3675
 edge_mbot = 0.3275
 viz_top = 0.4
 viz_bot = 0.0
-
 # variable volumes
 delta = 0.01
 
-# SIGNAL TO NOISE RATIOs: 
-target_snr = [inf]
 
-iterations = 1
-noiseat = 'none'  # when to add noise, at 'image' or at 'dft - no noise really...'
-lowpassfilter = 'no'  # yes:low k values, no:all k values
-
-method = 0  # method to obtain sigma N - 0: via PDF, 1: via np.std(), 2: rms 
-imaging = 'no'  # make images?
-width = .12  # for images
-
-
-collect = defaultdict(list)
 # FOR PLOTS 
-if 1:
+if 1:  # MUST CLOSE BEFORE SECOND ITERATION
     fig,ax = plt.subplots(1,1)
     fig.subplots_adjust(wspace=0, hspace=0)
+# POSSIBLE FITTING
+def afunct(x, a, b):
+    y = a * x + b
+    return y
 
-for pull in range(9): 
-    pull = pull + 1
-    if box == 'sx_box':
-        the_ledge = the_ds.arr([-delta*pull, edge_mbot, -delta_m],'code_length') 
-        the_redge = the_ds.arr([delta*pull, edge_mtop, delta_m],'code_length')  
-        #the_ledge = the_ds.arr([-delta*pull, viz_bot, -delta_m],'code_length')  
-        #he_redge = the_ds.arr([delta*pull, viz_top, delta_m],'code_length')  
-    if box == 'sz_box':
-        the_ledge = the_ds.arr([-delta_m, edge_mbot, -delta*pull],'code_length')
-        the_redge = the_ds.arr([delta_m, edge_mtop, delta*pull],'code_length')
-        #the_ledge = the_ds.arr([-delta_m, viz_bot, -delta*pull],'code_length')
-        #the_redge = the_ds.arr([delta_m, viz_top, delta*pull],'code_length')
+collect = defaultdict(list)
+collect_3D = defaultdict(list)
+for num, boxing in enumerate(boxes):  
+    print('one iteration!')
+    for pull in range(9): 
+        pull = pull + 1
+        if boxing == 'sx_box':
+            the_ledge = the_ds.arr([-delta*pull, edge_mbot, -delta_m],'code_length') 
+            the_redge = the_ds.arr([delta*pull, edge_mtop, delta_m],'code_length')  
+            #the_ledge = the_ds.arr([-delta*pull, viz_bot, -delta_m],'code_length')  
+            #he_redge = the_ds.arr([delta*pull, viz_top, delta_m],'code_length')  
+        if boxing == 'sz_box':
+            the_ledge = the_ds.arr([-delta_m, edge_mbot, -delta*pull],'code_length')
+            the_redge = the_ds.arr([delta_m, edge_mtop, delta*pull],'code_length')
+            #the_ledge = the_ds.arr([-delta_m, viz_bot, -delta*pull],'code_length')
+            #the_redge = the_ds.arr([delta_m, viz_top, delta*pull],'code_length')
 
-    the_center =0.5*the_ledge + 0.5*the_redge
-    mindx = the_ds.index.get_smallest_dx()
-    size = ((the_redge - the_ledge)/mindx).astype('int') 
-    the_region = the_ds.region(the_center, the_ledge, the_redge) 
+        the_center =0.5*the_ledge + 0.5*the_redge
+        mindx = the_ds.index.get_smallest_dx()
+        size = ((the_redge - the_ledge)/mindx).astype('int') 
+        
+        the_region = the_ds.region(the_center, the_ledge, the_redge) 
+        section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
+        
+        # OBTAIN THE CUBE: 2D FIRST
+        projection = True 
+        dimension = 1
+        cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
 
-    section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
-    section_blur = motion_blur.Motion_Blur()  #tbd; simply returns
-    cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
+        # OBTAIN SIGMA N^2
+        print('getting information')
+        sigma_sq, _ = calculate.Calculate(field_main, cg_first, cg_second) 
+        if 0:
+            collect[boxing].append(sigma_sq)
+        if projection == False: 
+            sigma_sq = None
 
-    if 0:  
-        if pull == 1:
-            a_slice = yt.SlicePlot(the_ds, proj_axis, ('gas', 'density'))#, data_source=the_region)
-            outname = 'density_slice0375_%s_%d_%s.png'%(box, proj_axis, pull)
-            a_slice.save(outname)
-            stop()
+        # OBTAIN P2D (AND P3D)           
+        four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_first, dimension)    
+ 
+        # OBTAIN SIGMA RHO
+        sigma_rho, sigma_rho2d, brunts_rsq, _ = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
+        if 0:
+            collect[boxing].append(brunts_rsq)   
+        if 0: 
+            collect[boxing].append(sigma_rho2d)   
 
-    for val,target in enumerate(target_snr):
-        for many in range(iterations):  
-
-            # ADD NOISE TO THE IMAGE
-            if 1:  
-                if noiseat == 'image':
-                    cg_wnoise, noiseonly = noiseimage.add_noise(cg_first, target)
-                if noiseat == 'none':  
-                    cg_wnoise = cg_first
-                    noiseonly = 0
-            
-            # OBTAIN SIGMA N^2
-            if 1:  #calculated
-                sigma_sq = calculate.Calculate(field_main, the_region, cg_wnoise, cg_second) 
-                if 0:
-                    collect[target].append(sigma_sq)
-            if 0:  #from PDF
-                bins, cbins, pdf = make_pdfNfit.Make_PDFnFIT(field_main, projection, proj_axis, cg_wnoise ,cg_third)  #EDIT; split into definitions 
-                sigma_sq = make_sigmasquared.Make_SigmaSquared(field_main, bins, cbins, pdf, cg_wnoise, method)
-            if projection == False: 
-                sigma_sq = None
-
-            # OBTAIN P2D AND P3D           
+        # BTW...
+        if 0:  #HOW DOES IT LOOK 
+            print('how does it look; slices')
+            if pull == 1:
+                a_slice = yt.SlicePlot(the_ds, proj_axis, ('gas', 'density'))#, data_source=the_region)
+                outname = 'density_slice0375_%s_%d_%s.png'%(box, pull)
+                a_slice.save(outname)
+                stop()
+        if 0:  # CHECK OUT THE POWER SPECTRUMS
+            print('power spectrums')
             if pull == 2:  #delete when not plotting
-                if 1:   
-                    four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, dimension, target, many)    
-                    if dimension == 1:
-                        cfp.plot(powerspec2D, ks, color='blue') 
-                        cfp.plot(powerspec3D, ks, color='green', ylog=True,ylim=[10e1,10e10], save='powerspec3d2d_2d_%s_%s_%s'%(pull,box,void_size))
-                    if dimension == 2:
-                        cfp.plot(powerspec3D, ks, color='orange', ylog=True,ylim=[10e1,10e10], save='powerspec3d_%s_%s_%s'%(pull,box,void_size))
-                
-                # OBTAIN SIGMA RHO
-                if 1:
-                    sigma_rho, sigma_rho2d, brunts_rsq = parsevals.parsevals_th(dimension, powerspec2D, powerspec3D, infxyz, ks, sigma_sq)
-                    #collect[target].append(brunts_rsq)   #plotting brunts_rsq  
-                    collect[target].append(sigma_rho2d)    #plotting sigma_rho 
+                if dimension == 1:
+                    cfp.plot(powerspec2D, ks, color='blue') 
+                    cfp.plot(powerspec3D, ks, color='green', ylog=True,ylim=[10e1,10e10], save='powerspec3d2d_2d_%s_%s_%s'%(pull,box,void_size))
+                if dimension == 2:
+                    cfp.plot(powerspec3D, ks, color='orange', ylog=True,ylim=[10e1,10e10], save='powerspec3d_%s_%s_%s'%(pull,box,void_size))
 
 
-# PLOTS & FITS: 
+        # OBTAIN THE CUBE: 3D NEXT
+        print('getting the calculated version')
+        projection = False 
+        dimension = 2
+        cg_first,cg_second,cg_third = project.Project(section,proj_axis,projection,field_main,field_two,field_three)
+        _, sigma_sqrt = calculate.Calculate(field_main, cg_first, cg_second) 
+        collect_3D[boxing].append(sigma_sqrt)   
+
+        if 1:  #CROSS-CHECK WITH CF PIPELINE 
+            dens_cube = cg_first  
+            dlos = 1/dens_cube.shape[0]  
+            coldens = turbulence_driving_analysis.get_column_density_map(dens_cube, dlos, 0) 
+            coldens = coldens/coldens.mean() 
+            power_spectrum_map, k = turbulence_driving_analysis.get_power_spectrum(coldens, zero_pad=False, weights=None, mirror=False, normalise=False, show='Fourier image')
+
+            sigma_2D = np.std(coldens)
+            Brunt_sqrt_R, power3D = turbulence_driving_analysis.get_Brunt_sqrt_R(power_spectrum_map, k)
+            sigma_3D_from_Brunt = sigma_2D / Brunt_sqrt_R
+            print('ready to collect cf pipe version')
+            collect[boxing].append(sigma_rho2d)   
+
+            sigma_3D_from_power = np.sqrt(power3D)
+            sigma_3D_from_std = np.std(dens_cube)
+
+
+
+    # PLOTS & FITS:  #LETS AUTOMATE THIS... 
+    print('got the info, plotting time')
+    the_d = np.linspace(0.02, 0.18, pull, endpoint=True)  
+    the_l = delta_m * 2
+    the_x = the_d/the_l # aspect ratio 
+    the_xlog = np.log10(the_x)
+
+    the_prey = [l for l in collect.values()]
+    emptylist = []
+    the_y = np.append(emptylist,the_prey[num])
+
+    the_ylog = np.log10(the_y) 
+    y_logerr_arr = np.array([0.046]*len(the_ylog))  #justify this number ..again 
+    y_err_up = 10**(the_ylog + y_logerr_arr) - the_y 
+    y_err_low = the_y - 10**(the_ylog - y_logerr_arr) 
+    y_err_arr = [y_err_low,y_err_up] 
+
+    the_preothery = [l for l in collect_3D.values()]
+    emptylist_3D = []
+    the_othery = np.append(emptylist_3D,the_preothery[num])
+
+    # FITTING A CURVE
+    print('will try to fit a curve now')
+    if 1:
+        rets = cfp.fit(afunct, the_xlog, the_ylog, yerr=y_logerr_arr)       
+        the_xrecipe = np.linspace(the_xlog.min(),the_xlog.max(),num=500)  #try with np.logspace(), num=more numbers for other than a line, was num=len(the_xlog)
+        the_xten =10**the_xrecipe
+        the_yrecipe = afunct(the_xrecipe, *rets.popt)  #was the_yrecipe = (rets.popt[0]*the_xrecipe + rets.popt[1])
+        the_yten = 10**the_yrecipe 
+        if 1:
+            cfp.plot(x=the_xten, y=the_yten, color='green', linestyle='dashed')
+        print('param cf vals ',rets.popt)
+
+    print('will try to fit a curve now')
+    # PLOT THE CURVE; using cpack 
+    if 1:
+        boolean = True  #True: log axes, False: no log axes 
+        if 1:
+            cfp.plot(x=the_x, y=the_othery, type='scatter', color='orange', xlog=boolean, ylog=boolean)
+            cfp.plot(x=the_x, y=the_y, yerr=y_err_arr, marker='o', linestyle='none', xlabel=r'$los/l$', ylabel=r'$\sigma_{\rho/\rho_o, BruntCF}$', \
+                 xlog=boolean, ylog=boolean, save='sigma3d_Brunt_%s_aspect_logaxes_nolims_cfpipe_%s.png'%(boxing,void_size))
+                 #ylabel=r'$\sigma_{\rho/\rho_o}$', r'$R^{1/2}$', r'$\sigma_{N/N_o}$', r'$\sigma_{Brunts}/\sigma_{3D}$'
+    print('saving, saved')
+
+
+
+
+ # DELETE??
 if 0:
     if box == 'sx_box':
         if void_size == '50um':
@@ -164,52 +214,10 @@ if 0:
                            0.2500127693861195, 0.24635852020007531, 0.2646292996131689] 
             the_tsigmaN = [0.24406163181652032, 0.2240330567092556, 0.1976677896205206, 0.17475141863190619, 0.1519246484688996, 0.13493507695323137,
                            0.1265055393613463, 0.12023505563587977, 0.11868052152719089]
-    # R SQRT
-    the_tRsqrt = np.array(the_tsigmaN)/np.array(the_tsigmaR)       
-           
-    the_d = np.linspace(0.02, 0.18, pull, endpoint=True)  
-    the_l = delta_m * 2
-    the_x = the_d/the_l # aspect ratio 
-    the_xlog = np.log10(the_x)
-
-    the_prey = [l for l in collect.values()]
-    emptylist = []
-    the_yvalues = np.append(emptylist,the_prey[0])
-    the_simgaratios = the_yvalues/the_tsigmaR 
-
-    # WHAT ARE WE PLOTTING
-    the_y = the_yvalues
-    the_othery = the_tsigmaR  
-
-    the_ylog = np.log10(the_y) 
-    y_logerr_arr = np.array([0.046]*len(the_ylog)) 
-    y_err_up = 10**(the_ylog + y_logerr_arr) - the_y 
-    y_err_low = the_y - 10**(the_ylog - y_logerr_arr) 
-    y_err_arr = [y_err_low,y_err_up] 
 
 
-    # POSSIBLE FITTING
-    def afunct(x, a, b):
-        y = a * x + b
-        return y
-    # FITTING A CURVE
-    if 1:
-        rets = cfp.fit(afunct, the_xlog, the_ylog, yerr=y_logerr_arr)
-        
-        the_xrecipe = np.linspace(the_xlog.min(),the_xlog.max(),num=500)  #try with np.logspace(), num=more numbers for other than a line, was num=len(the_xlog)
-        the_xten =10**the_xrecipe
-        the_yrecipe = afunct(the_xrecipe, *rets.popt)  #was the_yrecipe = (rets.popt[0]*the_xrecipe + rets.popt[1])
-        the_yten = 10**the_yrecipe
-        
-        if 1:
-            cfp.plot(x=the_xten, y=the_yten, color='green', linestyle='dashed')
-        print('param cf vals ',rets.popt)
-    # PLOT THE CURVE; using cpack 
-    if 1:
-        boolean = True 
-        if 1:
-            cfp.plot(x=the_x, y=the_othery, type='scatter', color='orange', xlog=boolean, ylog=boolean)
-        cfp.plot(x=the_x, y=the_y, yerr=None, marker='o', linestyle='none', xlabel=r'$los/l^{2}$', \
-                 ylabel=r'$\sigma_{\rho/\rho_o,2D}$', xlog=boolean, ylog=boolean, save='sigma3d2d_%s_aspect_logaxes_nolims_wcfp_%s.png'%(box,void_size))
-#ylim=[1.8e-1,5.5e-1]
-#ylabel=r'$\sigma_{\rho/\rho_o}$', r'$R^{1/2}$', r'$\sigma_{N/N_o}$', r'$\sigma_{Brunts}/\sigma_{3D}$'
+    if 0:  #lets leave on the side for now
+        # R SQRT
+        the_tRsqrt = np.array(the_tsigmaN)/np.array(the_tsigmaR)       
+        the_othery = the_tsigmaR  
+        the_simgaratios = the_yvalues/the_tsigmaR 

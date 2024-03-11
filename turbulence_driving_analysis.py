@@ -8,8 +8,8 @@ import shutil
 import numpy as np
 from astropy.io import fits
 from scipy import fftpack
-#from cfpack import hdfio, stop, print
-#impor cfpack as cfp
+from cfpack import hdfio, stop, print
+import cfpack as cfp
 
 #Gaussian kernel weights
 def kernel_weights(grid, centre, FWHM):
@@ -58,10 +58,10 @@ def get_Brunt_sqrt_R(power_spectrum_map, k, exclude_k0=True):
     P2D = 2 * np.pi * np.sum(P  ) * dk
     P3D = 4 * np.pi * np.sum(P*k) * dk
     Brunt_sqrt_R  = np.sqrt(P2D / P3D) # sqrt of ratio of 2D-to-3D power
-    return Brunt_sqrt_R
+    return Brunt_sqrt_R, P3D 
 
 # compute the 2D power spectrum of the moment-0 map
-def get_power_spectrum(mom0, zero_pad=False, weights=None, mirror=False, normalise=False, show=False):
+def get_power_spectrum(mom0, zero_pad=False, weights=None, mirror=False, normalise=False, show=False, lowpass=False, the_k=0):
     if weights is None: # if weight is not provided, we make an array of ones; i.e., no change to the data
         weights = np.ones(mom0.shape)
     # construct map to do power spectrum analysis on
@@ -113,7 +113,11 @@ def get_power_spectrum(mom0, zero_pad=False, weights=None, mirror=False, normali
     k = k[(-(nx%2)+1):,(-(ny%2)+1):]
     if show:
         if show != "Fourier image": cfp.plot_map(data, show=True)
-        else: cfp.plot_map(power_spectrum_map, log=True, cmap_label="Fourier power", show=True)
+        else: cfp.plot_map(power_spectrum_map, log=True, cmap_label="Fourier power", show=True)    
+
+    # low pass filter
+    if lowpass:
+        power_spectrum_map[k > the_k] = 0.0
     return power_spectrum_map, k
 
 # fits a set of 2D points, zin(x,y), to a plane (weights is the SNR)

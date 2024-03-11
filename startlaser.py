@@ -1,5 +1,4 @@
 
-
 import platform
 ver=platform.python_version()
 python_version=int(ver[0])
@@ -24,6 +23,7 @@ reload(turbulence_driving_analysis)
 
 import cfpack as cfp
 from cfpack import stop,print 
+import h5py
 
 
 # the not so typical imports, e.g. starter2.py
