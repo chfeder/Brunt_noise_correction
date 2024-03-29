@@ -13,6 +13,7 @@ def add_noise(cg_main, the_snr):
         
         # prep noise for the density
         scale = np.std(signal)/the_snr   #was scale = signal/snr 
+        # this adds gaussian noise with (mean, standard devation, and shape)
         noise = np.random.normal(mean_noise, scale=scale, size=signal.shape)  # will be different every time, so we can run it multiple times to get a PDF(N) 
         sn_signal = signal + noise  
     else:
