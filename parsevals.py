@@ -1,27 +1,32 @@
 
 from startlaser import *
 
-def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None):
+def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, the_k=0):
     # dk = 1/fourier_image.size 
     if dim == 1:
-        if 1:
+        if the_k == 0:
             # [1:] or not seems irrelevant 
-            P2D = ((p2d[1:] * dk).sum()) *dk  #avoiding dk inside the does not alter oom of sigmas
+            P2D = ((p2d[1:] * dk).sum()) *dk  #avoiding dk inside does not alter oom of sigmas
             P3D = ((p3d[1:] * dk).sum()) *dk
-            sigmaRho_sq = sigmaN_sq * (P3D/P2D)
-            if sigmaRho_sq < 0:
-                print('negative value encountered?!')
-            sigmaRho = np.sqrt(sigmaRho_sq)
-            sigmaRho2d = np.sqrt(P3D)
+        if the_k != 0:
+            k = int(the_k)
+            P2D = ((p2d[1:k] * dk).sum()) *dk  
+            P3D = ((p3d[1:k] * dk).sum()) *dk
 
-            the_R = P2D/P3D  
-            the_R_sqrt = np.sqrt(P2D/P3D)
+        sigmaRho_sq = sigmaN_sq * (P3D/P2D)
+        if sigmaRho_sq < 0:
+            print('negative value encountered?!')
+        sigmaRho = np.sqrt(sigmaRho_sq)
+        sigmaRho2d = np.sqrt(P3D)
 
-            if 0:  #print it out 
-                #print('sigma ^2 from Brunts', sigmaRho_sq)
-                print('sigma from Brunts', sigmaRho) 
-                #print('the_R', the_R)                        
-                print('the_R^sqrt', the_R_sqrt) 
+        the_R = P2D/P3D  
+        the_R_sqrt = np.sqrt(P2D/P3D)
+
+        if 0:  #print it out 
+            #print('sigma ^2 from Brunts', sigmaRho_sq)
+            print('sigma from Brunts', sigmaRho) 
+            #print('the_R', the_R)                        
+            print('the_R^sqrt', the_R_sqrt) 
 
         # testing the turbulence_driving_analysis script; def get_Brunt_sqrt_R(power_spectrum_map, k, exclude_k0=True) 
         if 0:

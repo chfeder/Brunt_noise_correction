@@ -41,7 +41,7 @@ def get_box(voids, box, projecting, proj_axis=0):
     return cg_first, cg_second
 
 
-def get_spectrumcf(the_box, ncmp=1, the_k=0):
+def get_spectrumcf(the_box, ncmp=1):
     ''' 
     from cfpack code, plus a few edits/questions:
     1. Q: ncmp = 1  #2 or leave as ncmp=1?; if ncmp > 1, there are more things to add from source.
@@ -106,9 +106,6 @@ def get_spectrumcf(the_box, ncmp=1, the_k=0):
         data_ft[d] = np.fft.fftshift(data_ft[d]) 
 
     data_ft = np.array(data_ft)
-    # added lowpass filter
-    if the_k != 0:
-        data_ft[d][k_abs > the_k] = 0.0
 
     power_tot = (np.abs(data_ft)**2).sum(axis=0)
     #if ncmp > 1:  # then more things need to happen here 
@@ -147,8 +144,8 @@ def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, noise, 
          
         # OBTAIN SIGMA N^2
         sigma_sq, _ = calculate.Calculate(field_main, cg_wnoise, cg_sec) 
-
-        # OBTAIN P2D AND P3D           
+        
+        ''' will delete soon...
         if lowpassfilter == 'no':
             ks, powspec2D, infxyz = get_spectrumcf(cg_wnoise) 
             #ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise)
@@ -159,10 +156,15 @@ def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, noise, 
             #ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise, the_k=ksnr, lowpass_filter=lowpassfilter)
             #four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, the_k=ksnr, lowpass_filter=lowpassfilter)
             #power_spectrum_map, k = turbulence_driving_analysis.get_power_spectrum(cg_wnoise, zero_pad=False, weights=None, mirror=False, normalise=False, show=False, lowpass=lowpassfilter, the_k=ksnr)
-        
-        # OBTAIN SIGMA RHO OR ...
+        ''' 
+        # OBTAIN P2D AND P3D           
+        ks, powspec2D, infxyz = get_spectrumcf(cg_wnoise) 
         powerspec3D = 2 * ks * powspec2D
-        brunts_sigma, sigma_rho2d, brunts_rsq, _ = parsevals.parsevals_th(dimension, powspec2D, powerspec3D, infxyz, ks, sigma_sq) 
+        # OBTAIN SIGMA RHO OR ...
+        if lowpassfilter == 'no':
+            brunts_sigma, sigma_rho2d, brunts_rsq, _ = parsevals.parsevals_th(dimension, powspec2D, powerspec3D, infxyz, ks, sigma_sq) 
+        if lowpassfilter == 'yes':
+            brunts_sigma, sigma_rho2d, brunts_rsq, _ = parsevals.parsevals_th(dimension, powspec2D, powerspec3D, infxyz, ks, sigma_sq, ksnr) 
         collect_rsq = np.append(collect_rsq, brunts_rsq)
         collect_sigma = np.append(collect_sigma, brunts_sigma.item())  # .item() may not be necessary...
 
@@ -174,67 +176,59 @@ def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, noise, 
     return the_rsmed, the_sigmasmed 
 
 
-def spectras(cg_signal, target, justnoise=False):
+def spectras(cg_signal, target):
     '''
     obtain spectras: signal plus noise, and noise only 
     '''
     for many in range(iterations):  
-        cg_wnoise, noiseonly = noiseimage.add_noise(cg_main, target) #cg_signal CHECK
-        if justnoise == False:
-            ks2D, powspec2D, _ = get_spectrumcf(cg_wnoise) 
-            if many == 0:
-                collect_spectra = [powspec2D]
-            if many > 0:
-                collect_spectra = np.append(collect_spectra, [powspec2D], axis=0) 
-            collect_spectranoise = 0
+        cg_wnoise, noiseonly = noiseimage.add_noise(cg_signal, target) 
 
-        if justnoise == True:
-            print('target in spectras def ', target)
-            ks2D, powspec2D_noise, _ = get_spectrumcf(noiseonly) 
-            if many == 0:
-                collect_spectranoise = [powspec2D_noise]
-            if many > 0:
-                collect_spectranoise = np.append(collect_spectranoise, [powspec2D_noise], axis=0) 
-            collect_spectra = 0
+        ks2D, powspec2D, _ = get_spectrumcf(cg_wnoise) 
+        if many == 0:
+            collect_spectra = [powspec2D]
+        if many > 0:
+            collect_spectra = np.append(collect_spectra, [powspec2D], axis=0)  
+
+        ks2D, powspec2D_noise, _ = get_spectrumcf(noiseonly) 
+        if many == 0:
+            collect_spectranoise = [powspec2D_noise]
+        if many > 0:
+            collect_spectranoise = np.append(collect_spectranoise, [powspec2D_noise], axis=0) 
          
     return ks2D, collect_spectra, collect_spectranoise
 
 
 
-
-# SETUP!
-# GENERAL BOX SETTINGS 
-field_main = 'density'
-field_two = 'cell_volume'
-polytropic_index = 1 # +/-0.1, for 50mu voids
-
-projection = True 
-dimension = 1
-noise = True
-iterations = 2
-
-# for pure signal, simply do target_snr[-1], for all others target_snr[:-1]
-target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  #edit to see effect on 0.001 and 0.0001
-
-# BOX OPTIONS: 15 total per one void size.
-void_size = '50mu'
-# 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
 if 0:
-    boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
-if 1: #debug
-    boxes = ['c_box'] 
-# 3 different projections
-if 0:  
-    projection_axis_list = [0, 1, 2]  
-if 1: #debug
-    projection_axis_list = [0, 1]
+    # SETUP!
+    # GENERAL BOX SETTINGS 
+    field_main = 'density'
+    field_two = 'cell_volume'
+    polytropic_index = 1 # +/-0.1, for 50mu voids
+
+    projection = True 
+    dimension = 1
+    noise = True
+    iterations = 1000
+
+    # BOX OPTIONS: 15 total per one void size.
+    void_size = '12p5mu'
+    # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
+    if 1:
+        boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
+    if 0: #debug
+        boxes = ['c_box'] 
+    # 3 different projections
+    if 1:  
+        projection_axis_list = [0, 1, 2]  
+    if 0: #debug
+        projection_axis_list = [0, 1]
 
 
+    # GETTING THE INFO WE NEED TO STORE
+    datatype = 'spectra'
+    target_snr = [inf, 0.01, 0.1, 1, 3, 5, 10, 100]  
 
-
-# GETTING THE INFO WE NEED TO STORE
-datatype = 'allother'
-if 1:
     collect_sigmas = defaultdict(list)
     collect_rsqrtsratio = defaultdict(list)
     collect_rsqrt = defaultdict(list)
@@ -243,7 +237,7 @@ if 1:
     collect_rsqrtpure = defaultdict(list)
     rsqrt_full =[]
     collect_spectras = defaultdict(list) 
-    collect_noisespectra = defaultdict(list)
+    collect_noisespectras = defaultdict(list)
 
     # three projection axes
     for eje, los in enumerate(projection_axis_list):
@@ -258,48 +252,44 @@ if 1:
 
                 if datatype != 'spectra':
                     rsqrt_med, sigma_med = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, noise)
+                    if target == inf:
+                        puresignal = rsqrt_med
+                        collect_rsqrtpure[target].append(rsqrt_med)   
                     if target != inf:
                         rsqrt_full = np.append(rsqrt_full, rsqrt_med)
                         collect_sigmas[target].append(sigma_med)  
                         collect_rsqrt[target].append(rsqrt_med)   
-                    if target == inf:
-                        collect_rsqrtpure[target].append(rsqrt_med)   
 
-                if datatype == 'spectra':
-                    kvals2D, collectspec, _ = spectras(cg_main, target)  
-                    if target != inf:
-                        if los == projection_axis_list[0] and boxing == boxes[0]:
-                            collect_spectras[target] = collectspec
-                        else: 
-                            collect_spectras[target] = np.append(collect_spectras[target], collectspec, axis=0) 
-
-                        if los == projection_axis_list[-1] and boxing == boxes[-1]:
-                            justnoise = True
-                            print('target in execution ', target)
-                            _, _, collectnoisespec = spectras(cg_main, target, justnoise)                  
-                            collect_noisespectra[target] = collectnoisespec
-
-            # could have done all at once, but found it less tedious to have rsqrt full first  
-            if datatype != 'spectra':
-                for val,target in enumerate(target_snr):
                     rsqrt_k = []
                     lowpassfilter = 'yes'  
                     if target != inf:
                         for kval in k_array: 
+                            if kval == 1: #for at parsevals only
+                                continue
                             rsqrt_med_k, _ = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, noise, kval)
                             rsqrt_k = np.append(rsqrt_k, rsqrt_med_k)
-                        index = np.argmin(np.abs(rsqrt_k - rsqrt_med))  #rsqrt_med should be the pure signal value here 
+                        index = np.argmin(np.abs(rsqrt_k - puresignal))  #rsqrt_med should be the pure signal value here 
                         kcross = k_array[index] 
                         rsqrt_true, _ = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, noise, kcross)
-                        rsqrt_ratio = rsqrt_true/rsqrt_full[val]
+                        rsqrt_ratio = rsqrt_true/rsqrt_med
                         collect_kvals[target].append(kcross)   
                         collect_rsqrttrue[target].append(rsqrt_true) 
                         collect_rsqrtsratio[target].append(rsqrt_ratio) 
                         print('box snr data ready ', target,boxing,los)
 
+                if datatype == 'spectra':  
+                    if target != inf:
+                        kvals2D, collectspec, collectnoisespec = spectras(cg_main, target)  
+                        if los == projection_axis_list[0] and boxing == boxes[0]:
+                            collect_spectras[target] = collectspec
+                            collect_noisespectras[target] = collectnoisespec
+                        else: 
+                            collect_spectras[target] = np.append(collect_spectras[target], collectspec, axis=0) 
+                            collect_noisespectras[target] = np.append(collect_noisespectras[target], collectnoisespec, axis=0) 
+
     if datatype == 'spectra':
         data_spectra = [*collect_spectras.values()]
-        data_noisespectra = [*collect_noisespectra.values()]
+        data_noisespectra = [*collect_noisespectras.values()]
         # get the mean of all spectra
         the_powspec = np.mean(data_spectra, axis=1)  
         the_noisepowspec = np.mean(data_noisespectra, axis=1)  
@@ -314,7 +304,7 @@ if 1:
 
     # and store the information 
     if datatype != 'spectra':
-        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_i2forwardk51_newpipe_%s.h5'%void_size
+        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_i1kforwardk51ratiofix_%s.h5'%void_size
         Fptr = h5py.File(hfivefile,'w') 
         Fptr['sigmas_%s'%void_size] = data_sigmas
         Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
@@ -325,7 +315,7 @@ if 1:
         Fptr.close()
         print('finished. check h5 file')
     if datatype == 'spectra':
-        hfivefile = '/home/552/lv9897/sflaser/h5files/powspec14_i2SNRforward_newpipe_%s.h5'%void_size
+        hfivefile = '/home/552/lv9897/sflaser/h5files/powspec14_i1kSNR_noisesignalwnoise_%s.h5'%void_size
         Fptr = h5py.File(hfivefile,'w')
         Fptr['kvals2D_%s'%void_size] = kvals2D
         Fptr['thepowspec_%s'%void_size] = the_powspec 
@@ -336,295 +326,266 @@ if 1:
 
 
 
-# GETTING THE INFO FROM STORAGE
-if 0:
-    # INITIALIZE THE FIGURE
-    fig,ax = plt.subplots(1,1)
-    voids = ['50mu']#'12p5mu, '50mu', '100mu']
-    colors = ['g'] #'orange','g', 'b']
-    for draw, void_size in enumerate(voids):
-        whichfig = 'sigmas_%s'%voids[0]
-        whichfigtwo = None 
+
+# GETTING THE INFO FROM STORAGE: NEXT, separate things into definitions! 
+if 1:
+    # POSSIBLE FIT FUNCTIONS
+    def linfunct(x, a, b):  
+        y = a * x + b
+        return y
+
+    def lininvfunct(x, a, b=1):
+        y = a * x**(-1) + b
+        return y
+
+    def tanfunct_simple(x, first, second):  #used to be x, c, d, e; try this first when data is ready
+        y = first * np.tanh(second*np.log10(x)) + (1-first)  #c should be negative, d positive; c+e=1
+        return y
+
+    def sigmarho_fit(x,a):  
+        y = 1/ (lininvfunct(x, a, b=1.0) * tanfunct_simple(x, first=first, second=second)) 
+        return y 
+
+
+    def fitthebox(whichfigure, eldata, secondparam):  
+        '''
+        GET the median, the 16th ('-' correction), and the 84th ('+' correction) of fit params a, b, c, d, etc
+        this then allows us to report param +/- correction 
+        '''
+        param_a = []
+        param_b = []
+        param_c = []
+        param_d = []
+        param_e = []
+        for j in range(15):  #avoid hard-coding numbers, but there are 15 boxes so...
+            oneboxproj = []
+            for k in range(len(xdata)):
+                prexdata = eldata[k][j]
+                if whichfigure == 'sigmas':
+                    oneboxproj = np.append(oneboxproj, prexdata)  #sigma_rho(SNR->inf)/sigma_rho(SNR) 
+                    #oneboxproj = np.append(oneboxproj, eldata[-1][j]/prexdata)  #sigma_rho(SNR->inf)/sigma_rho(SNR) 
+                else: 
+                    oneboxproj = np.append(oneboxproj, prexdata) 
+            
+            if whichfigure == 'sigmas':
+                params=None
+                rets = cfp.fit(sigmarho_fit, xdata, oneboxproj, params=params) 
+            else: 
+                params = {"first":[-2,-1,-0.1], "second":[0.5,2.0,4]} 
+                rets = cfp.fit(tanfunct_simple, xdata, oneboxproj, params=params) 
+                
+            param_a = np.append(param_a, rets.popt[0])
+            if secondparam == 1:
+                param_b = np.append(param_b, rets.popt[1])
+            if 0:
+                param_c = np.append(param_c, rets.popt[2])
+            if 0:
+                param_d = np.append(param_d, rets.popt[3])
+            if 0:
+                param_e = np.append(param_e, rets.popt[4])
+
+        med_a = np.percentile(param_a, 50) #same as np.median()
+        p16_a = np.percentile(param_a, 16)
+        p84_a = np.percentile(param_a, 84)
+        if secondparam == 1:
+            med_b = np.percentile(param_b, 50)
+            p16_b = np.percentile(param_b, 16)
+            p84_b = np.percentile(param_b, 84)
+        if 0:
+            med_c = np.percentile(param_c, 50)
+            p16_c = np.percentile(param_c, 16)
+            p84_c = np.percentile(param_c, 84)
+        if 0:
+            med_d = np.percentile(param_d, 50)
+            p16_d = np.percentile(param_d, 16)
+            p84_d = np.percentile(param_d, 84)
+        if 0:
+            med_e = np.percentile(param_e, 50)
+            p16_e = np.percentile(param_e, 16)
+            p84_e = np.percentile(param_e, 84)
+
+        if secondparam == 0:
+            med_b = p16_b = p84_b = 0
+        if 1: 
+            med_c = p16_c = p84_c = 0
+        if 1:
+            med_d = p16_d = p84_d = 0
+        if 1:
+            med_e = p16_e = p84_e = 0
+
+        if secondparam == 0:
+            param_meds = [med_a]
+            param_16s = [p16_a] 
+            param_84s = [p84_a] 
+        else:
+            param_meds = [med_a, med_b]
+            param_16s = [p16_a, p16_b]#, p16_c, p16_d, p16_e]  #report these as - for param
+            param_84s = [p84_a, p84_b]#, p84_c, p84_d, p84_e]  #report these as + for param
+            #stop()
         
-        #hfivefile = '/home/552/lv9897/sflaser/h5files/powspec14_i1k_newpipe_%s.h5'%void_size
-        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_i2forwardk51simplify_newpipe_%s.h5'%void_size
-        Fptr = h5py.File(hfivefile,'r')
-        data = list(Fptr['%s'%whichfig])  #returns a list 
-        #stop()
-        if whichfigtwo:
-            datatwo = list(Fptr['%s'%whichfigtwo])    
+        return param_meds, param_16s, param_84s
 
 
-        # POWERSPECTRA 
+    def plotthefitting(thefigures, themedians, sixteenths, eightyfours):
+        if thefigures == 'sigmas':
+            the_yrecipemed = sigmarho_fit(the_xrecipe, *themedians)  
+            the_yrecipelow = sigmarho_fit(the_xrecipe, *sixteenths)
+            the_yrecipeupp = sigmarho_fit(the_xrecipe, *eightyfours)
+        if thefigures == 'ratios':
+            the_yrecipemed = tanfunct_simple(the_xrecipe, *themedians)  
+            the_yrecipelow = tanfunct_simple(the_xrecipe, *sixteenths)
+            the_yrecipeupp = tanfunct_simple(the_xrecipe, *eightyfours)
+        return the_yrecipemed, the_yrecipelow, the_yrecipeupp
+
+
+    def boxplotscatter(thefigure, ladata, thesecond=0, secondfig=None, datasecond=None):
+        fig,ax = plt.subplots(1,1)
+
+        # funny order to make the boxplots with a plot overlayed to work
+        plt.xscale('log')
+        plt.xlim(np.array(xdata).min()/1.20, np.array(xdata).max()*1.20)
+
+        # the boxplot!  WARNING: this sets only for 'sigmas' option 
+        if thefigure == 'sigmas':
+            the_data = ladata[-1]/ladata
+            data_lista = the_data.tolist()
+        else:
+            data_lista = ladata
+        boxplot = ax.boxplot(data_lista, showfliers=True, showmeans=False, labels=xdata, positions=xdata) #\
+                            #, boxprops=dict(color="none"), capprops=dict(color="none"), medianprops=dict(color="none"))  
+
+        # ...and hacking the box plot 
+        cap_s = 1.08
+        box_s = 1.16
+        for i in range(len(ladata)):
+            cap = [xdata[i]/cap_s, xdata[i]*cap_s]
+            boxplot['caps'][2*i+0].set_data([cap, boxplot['caps'][2*i+0].get_data()[1]])  #lower cap
+            boxplot['caps'][2*i+1].set_data([cap, boxplot['caps'][2*i+1].get_data()[1]])  #upper cap
+
+            med = [xdata[i]/box_s, xdata[i]*box_s]
+            boxplot['medians'][i].set_data([med, boxplot['medians'][i].get_data()[1]]) 
+            
+            box = [xdata[i]/box_s, xdata[i]*box_s, xdata[i]*box_s, xdata[i]/box_s, xdata[i]/box_s]
+            boxplot['boxes'][i].set_data([box, boxplot['boxes'][i].get_data()[1]])
+
+        medians = [median.get_ydata()[0] for median in boxplot['medians']]
+        plt.scatter(xdata, medians, color=colors[draw], marker='o', label='Median', alpha=0.5)  #reduce the marker size! 
+
+        # for overlaying purposes, such as rhalf noise, rhalf denoised; may end up not needing/otherwise revise/edit
+        if secondfig: 
+            medians_two=[]
+            # FOR 15 boxes, all target
+            if 0:
+                for k in range(7):
+                    medians_two = np.append(medians_two, np.median(datasecond[k]))
+                plt.scatter(xdata, medians_two, color='orange', marker='o', alpha=0.5, label='other median')  #reduce the marker size! 
+            # FOR 15 boxes, one target - signal only
+            if 0:
+                medians_two = np.array([np.median(datasecond)]*len(xdata))
+                plt.scatter(xdata, medians_two, color='orange', marker='o', alpha=0.5, label='other median')  #reduce the marker size! 
+
+
+        # call the fittings procedure definition
+        meds, lows, upps = fitthebox(thefigure, data_lista, thesecond)
+        # call the fitting definition, which will provide the the_yrecipes below
+        if thefigure =='ratios':
+            ymed, ylow, yupp = plotthefitting(thefigure, meds, lows, upps)
+
+            plt.plot(the_xrecipe, ymed, color=colors[draw], linestyle='dashed')
+            plt.plot(the_xrecipe, ylow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
+            plt.plot(the_xrecipe, yupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
+            plt.fill_between(the_xrecipe, ylow, yupp, color=colors[draw], alpha=0.2)
+
+        # SAVE    
+        # ALSO AUTOMATE SOOOOOON.
+        #plt.ylabel(r'$\sigma_{\rho/\rho_o ,Br}$') 
+        #plt.ylabel(r'$R^{1/2}_{noisy}$')
+        #plt.ylabel(r'$R^{1/2}_{denoised}$, $R^{1/2}_{pure signal}$')
+        #plt.ylabel(r'$R^{1/2}_{noise}$, $R^{1/2}_{denoised}$')
+        if thefigure == 'kvals':
+            plt.yscale('log')
+            plt.ylabel('k noise')
+        if thefigure == 'sigmas':
+            plt.yscale('log')
+            plt.ylabel(r'$\sigma_{\rho/\rho_o,inf} / \sigma_{\rho/\rho_o,snr}$') 
+        if thefigure == 'ratios':
+            plt.ylabel(r'$R^{1/2}_{denoised}/R^{1/2}_{noisy}$')
+        plt.xlabel('SNR')
+
+        # really saving now
+        plt.savefig('sort_plots/boxplot15_%s_i1kfix_%s'%(thefigure,void_size))
+        print('%s_saved!'%thefigure)
+        plt.clf()
+        Fptr.close() 
+        return meds
+
+
+
+    # LOOP FOR THREE VOIDS!
+    target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  
+    xdata = np.array(target_snr[:-1])
+    the_xrecipe = np.linspace(xdata.min(), xdata.max(), num=2500)  
+    voids = ['50mu', '100mu', '12p5mu']
+    colors = ['g', 'b', 'orange']
+    for draw, void_size in enumerate(voids):
+        print('void size is ',void_size)
+        whichfig = 'kvals'
+        whichfigtwo = None 
+        mainfigure = None #'sigmas'
+
+
+        # ALL OTHER DATA: BOXPLOTS + SCATTERS + FITS
+        if whichfig != 'kvals2D':
+            hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_i1kforwardk51ratiofix_%s.h5'%void_size
+            Fptr = h5py.File(hfivefile,'r')
+            # these are parameters for the tanfunct_simple fit, initialized to zero for multiple plot purposes 
+            first = 0
+            second = 0
+
+            data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+            if whichfigtwo:
+                data_two = list(Fptr['%s_%s'%(mainfigure,void_size)])  #returns a list 
+
+            if whichfig == 'kvals':
+                for val, kvalues in enumerate(data):
+                    data[val] = data[val]/51 
+            boxplotscatter(whichfig, data, thesecond=1)  #see if it still works.
+            if mainfigure == 'sigmas':
+                first = listofmeds[0]
+                second = listofmeds[1]
+                boxplotscatter(mainfigure, data_two, thesecond=0)
+
+
+        # POWERSPECTRA: #make this a small definition too?? 
         if whichfig == 'kvals2D':
+            hfivefile = '/home/552/lv9897/sflaser/h5files/powspec14_i1kSNR_noisesignalwnoise_%s.h5'%void_size
+            Fptr = h5py.File(hfivefile,'r')
+            fig,ax = plt.subplots(1,1)
+            
             whichfigtwo = 'thepowspec'
             whichfigthree = 'thenoisepowspec'
-            xdata = Fptr['%s'%whichfig][()]  #returns a numpy array
+            ps_xdata = Fptr['%s_%s'%(whichfig,void_size)][()]  #returns a numpy array
             if whichfigtwo:
-                ydata = Fptr['%s'%whichfigtwo][()]  
+                ydata = Fptr['%s_%s'%(whichfigtwo,void_size)][()]  
             if whichfigthree:
-                nydata = Fptr['%s'%whichfigthree][()]  
+                nydata = Fptr['%s_%s'%(whichfigthree,void_size)][()]  
 
             for i in range(len(target_snr[:-1])):
-                ax.plot(xdata, ydata[i], color='blue', alpha=0.5, label='powspec') 
-                ax.plot(xdata, nydata[i], color='grey', label='powspec') 
-            ax.set(xscale='log', yscale= 'log', xlabel='k values', ylabel=r'$P_{2D}$')#, xlim=(5,51)) #, ylim=(10e-1,10e11))#, xlim=(1e0,1e2))  #xscale= 'log',
+                ax.plot(ps_xdata, ydata[i], color='blue', alpha=0.5, label='powspec') 
+                ax.plot(ps_xdata, nydata[i], color='grey', label='powspec') 
+            ax.set(yscale= 'log', xlabel='k values', ylabel=r'$P_{2D}$')#, xlim=(5,51)) #, ylim=(10e-1,10e11))#, xlim=(1e0,1e2))  #xscale= 'log',
             #ax.axvline(x=51)
-            plt.savefig('sort_plots/powspec14_i2SNRforward_newpipe_%s'%(void_size))
+            plt.savefig('sort_plots/powspec14_i1kSNRforward_noisesignalwnoise_%s'%(void_size))
             print('saved spectra14!')
             plt.clf()
             Fptr.close()         
 
-        # BOXPLOTS WITH SCATTERS
-        if whichfig != 'kvals2D':
-            xdata = np.array(target_snr[:-1])
-            xdatalog = np.log10(xdata)  
-            # funny order to make the boxplots with plot overlay to work
-            plt.xscale('log')
-            plt.xlim(np.array(xdata).min()/1.20, np.array(xdata).max()*1.20)
-
-            # the boxplot!  WARNING: this sets only for 'sigmas' option 
-            the_data = data[-1]/data
-            data_list = the_data.tolist()
-            boxplot = ax.boxplot(data, showfliers=True, showmeans=False, labels=xdata, positions=xdata)#, boxprops=dict(color="none"), capprops=dict(color="none"), medianprops=dict(color="none"))  
-
-            # ...and hacking the box plot 
-            cap_s = 1.08
-            box_s = 1.16
-            for i in range(len(data)):
-                cap = [xdata[i]/cap_s, xdata[i]*cap_s]
-                boxplot['caps'][2*i+0].set_data([cap, boxplot['caps'][2*i+0].get_data()[1]])  #lower cap
-                boxplot['caps'][2*i+1].set_data([cap, boxplot['caps'][2*i+1].get_data()[1]])  #upper cap
-
-                med = [xdata[i]/box_s, xdata[i]*box_s]
-                boxplot['medians'][i].set_data([med, boxplot['medians'][i].get_data()[1]]) 
-                
-                box = [xdata[i]/box_s, xdata[i]*box_s, xdata[i]*box_s, xdata[i]/box_s, xdata[i]/box_s]
-                boxplot['boxes'][i].set_data([box, boxplot['boxes'][i].get_data()[1]])
-
-            medians = [median.get_ydata()[0] for median in boxplot['medians']]
-            #ydatalog = np.log10(medians)
-            #stop()
-            plt.scatter(xdata, medians, color=colors[draw], marker='o', label='Median', alpha=0.5)  #reduce the marker size! 
-
-            if whichfigtwo:
-                medians_two=[]
-                # FOR 15 boxes, all target
-                if 1:
-                    for k in range(7):
-                        medians_two = np.append(medians_two, np.median(datatwo[k]))
-                    plt.scatter(xdata, medians_two, color='orange', marker='o', alpha=0.5, label='other median')  #reduce the marker size! 
-                # FOR 15 boxes, one target - signal only
-                if 0:
-                    medians_two = np.array([np.median(datatwo)]*len(xdata))
-                    plt.scatter(xdata, medians_two, color='orange', marker='o', alpha=0.5, label='other median')  #reduce the marker size! 
 
 
-            # POSSIBLE FIT FUNCTIONS
-            fitfunct = 'linear'
-            def linfunct(x, a, b):  #I may need to take the log of this!!
-                y = a * x + b
-                return y
-            def tanfunct(x, a, b, c, d):
-                y = a * np.tanh((c*x)+d) + b
-                return y
-
-            def lininvfunct(x, a, b=1):
-                y = a * x**(-1) + b
-                return y
-            def tanfunct_simple(x, first, second):  #used to be x, c, d, e; try this first when data is ready
-                y = first * np.tanh(second*np.log10(x)) + (1-first)  #c should be negative, d positive; c+e=1
-                return y
-
-            def sigmarho_fit(x,a):#, c,d,e):
-                if void_size=='12p5mu':
-                    first =1.09314738 
-                    second = -1.8465386429
-                    third = 2.039733348
-                if void_size=='50mu':
-                    first =0.990295945
-                    second =-2.0681085568
-                    third =1.9667865114
-                if void_size=='100mu':
-                    first = 1.0847199980 
-                    second = -2.1120163828 
-                    third = 2.14165109959
-                y = 1/ (lininvfunct(x, a, b=1.0) * tanfunct_simple(x, first,second,third)) 
-                return y 
-
-            def sigmfunct(x, a, b):
-                y = 1/(1 + a*np.exp(-x+b)) 
-                return y
-
-            # GET the median, the 16th ('-' correction), and the 84th ('+' correction) of fit params a, b, c, d
-            # this then allows us to report param +/- correction 
-            if 0:
-                param_a = []
-                param_b = []
-                param_c = []
-                param_d = []
-                param_e = []
-                for j in range(1):  #avoid hard-coding 15
-                    oneboxproj = []
-                    for k in range(len(target_snr[:-1])):
-                        prexdata = data[k][j]
-                        prexdatalog = np.log10(prexdata)
-                        if 0:
-                            oneboxproj = np.append(oneboxproj, prexdatalog) 
-                        if 1:
-                            oneboxproj = np.append(oneboxproj, prexdata) 
-                            #oneboxproj = np.append(oneboxproj, data[-1][j]/prexdata)  #sigma_rho(SNR->inf)/sigma_rho(SNR) 
-                    params = {"first":[-2,-1,-0.1], "second":[0.5,2.0,4]} #h, "d":[-3,-2.5,-2], "e":[1.75,2,2.25]}
-                    #params = {"a":[-1.3,0.0,1.35], "b":[-2.15,0,2.15], "c":[1.60,2.1,2.60]} 
-                    #rets = cfp.fit(sigmarho_fit, xdata, oneboxproj, params=params) 
-                    rets = cfp.fit(tanfunct_simple, xdata, oneboxproj, params=params) 
-                        
-                    param_a = np.append(param_a, rets.popt[0])
-                    if 1:
-                        param_b = np.append(param_b, rets.popt[1])
-                    if 0:
-                        param_c = np.append(param_c, rets.popt[2])
-                    if 0:
-                        param_d = np.append(param_d, rets.popt[3])
-                    if 0:
-                        param_e = np.append(param_e, rets.popt[4])
-
-                med_a = np.percentile(param_a, 50) #same as np.median()
-                p16_a = np.percentile(param_a, 16)
-                p84_a = np.percentile(param_a, 84)
-                if 1:
-                    med_b = np.percentile(param_b, 50)
-                    p16_b = np.percentile(param_b, 16)
-                    p84_b = np.percentile(param_b, 84)
-                if 0:
-                    med_c = np.percentile(param_c, 50)
-                    p16_c = np.percentile(param_c, 16)
-                    p84_c = np.percentile(param_c, 84)
-                if 0:
-                    med_d = np.percentile(param_d, 50)
-                    p16_d = np.percentile(param_d, 16)
-                    p84_d = np.percentile(param_d, 84)
-                if 0:
-                    med_e = np.percentile(param_e, 50)
-                    p16_e = np.percentile(param_e, 16)
-                    p84_e = np.percentile(param_e, 84)
-
-                if 0: 
-                    med_b = p16_b = p84_b = 0
-                if 1: 
-                    med_c = p16_c = p84_c = 0
-                if 1:
-                    med_d = p16_d = p84_d = 0
-                if 1:
-                    med_e = p16_e = p84_e = 0
-
-                param_meds = [med_a, med_b]#, med_c, med_d, med_e]
-                print("param meds ",*param_meds)
-                stop()
-                param_16s = [p16_a, p16_b]#, p16_c, p16_d, p16_e]  #report these as - for param
-                param_84s = [p84_a, p84_b]#, p84_c, p84_d, p84_e]  #report these as + for param
-
-            the_xrecipe = np.linspace(xdata.min(),xdata.max(),num=500)  #2000  
-            #the_xten = 10**the_xrecipe
-            the_xten = the_xrecipe
-
-            # fitting for the params of the boxplot
-            # to fit the median explicitly with the params..
-            if 0:
-                the_yrecipemed = tanfunct_simple(the_xrecipe, *param_meds)  
-                the_ytenmed = the_yrecipemed 
-
-                the_yrecipelow = tanfunct_simple(the_xrecipe, *param_16s)
-                the_ytenlow = the_yrecipelow
-
-                the_yrecipeupp = tanfunct_simple(the_xrecipe, *param_84s)
-                the_ytenupp = the_yrecipeupp
-            
-            if 0:
-                # ..OR with the median of the data
-                ydata_med = np.percentile(data, 50, axis=1)  #axis=0 for the 15 boxes, axis=1 for the SNRs 
-                ydatalog_med = np.log10(ydata_med)
-                if 0:
-                    rets_med = cfp.fit(lininvfunct, xdata, ydatalog_med)  
-                if 1:
-                    rets_med = cfp.fit(sigmarho_fit, xdata, ydata_med[-1]/ydata_med)  
-                    #rets_med = cfp.fit(tanfunct_simple, xdata, ydata_med)  
-                the_yrecipemed = sigmarho_fit(the_xrecipe, *rets_med.popt)
-                #the_yrecipemed = tanfunct_simple(the_xrecipe, *rets_med.popt)
-                if 0:
-                    the_ytenmed = 10**the_yrecipemed
-                if 1:
-                    the_ytenmed = the_yrecipemed
-
-                if 1:
-                    # to fit the lower bound, 16th
-                    ydata_low = np.percentile(data, 16, axis=1) 
-                    rets_low = cfp.fit(sigmarho_fit, xdata, ydata_low[-1]/ydata_low)
-                    the_yrecipelow = sigmarho_fit(the_xrecipe, *rets_low.popt)
-                    the_ytenlow = the_yrecipelow
-
-                    # to fit the upper bound, 84th
-                    ydata_upp = np.percentile(data, 84, axis=1) 
-                    rets_upp = cfp.fit(sigmarho_fit, xdata, ydata_upp[-1]/ydata_upp)
-                    the_yrecipeupp = sigmarho_fit(the_xrecipe, *rets_upp.popt)
-                    the_ytenupp = the_yrecipeupp 
-
-            # ...and plot!
-            if 0:
-                plt.plot(the_xten, the_ytenmed, color=colors[draw], linestyle='dashed')
-            if 0:
-                plt.plot(the_xten, the_ytenlow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
-                plt.plot(the_xten, the_ytenupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
-                plt.fill_between(the_xten, the_ytenlow, the_ytenupp, color=colors[draw], alpha=0.2)
-
-            if 0:  #pass the params needed; not a fit
-                first =0.990295945  #name these with more sensible names; saturation, exponent, etc.
-                second =-2.0681085568
-                third =1.9667865114
-                fixed = 1/(third+first)
-                print("%s"%void_size)
-                plt.plot(the_xten, sigmarho_fit(the_xten, fixed, first, second, third), color=colors[draw],linestyle='dashed', alpha=0.4) 
-
-    # SAVE    
-    plt.yscale('log')
-    plt.xlabel('SNR')
-
-    # all the labels, change full to noise
-    #plt.ylabel(r'$\sigma_{\rho/\rho_o,inf} / \sigma_{\rho/\rho_o,snr}$') 
-    plt.ylabel(r'$\sigma_{\rho/\rho_o ,Br}$') 
-    #plt.ylabel(r'$R^{1/2}_{noisy}$')
-    #plt.ylabel('k values')
-    #plt.ylabel(r'$R^{1/2}_{denoised}$, $R^{1/2}_{pure signal}$')
-    #plt.ylabel(r'$R^{1/2}_{noise}$, $R^{1/2}_{denoised}$')
-    #plt.ylabel(r'$R^{1/2}_{denoised}/R^{1/2}_{noisy}$')
-
-    # really saving now
-    plt.savefig('sort_plots/boxplot15_%s_i2newpipe51'%whichfig)
-    #plt.savefig('sort_plots/boxplot15_%s_ratio_abfreenorhalf_noboxes_newpipe'%(whichfig))
-    print('%s_saved!'%whichfig)
-    plt.clf()
-    Fptr.close()
+# IDAL NEXT: make this a 'signal to noise ratio study' CLASS and call it from a truer main.py file or from the bottom of this class? 
 
 
-
-
-## sigma rho vs snr multiplied, all free:
-# 50um:  a =  2.1579298, b =  0.39977052868, c =  0.0174629205, d =  -44.6403574, e =  0.4143853683
-## sigma rho vs snr divide: 
-# 50um: a =  19.8668843, b =  17.3482837809, c =  -18.8323664, d =  -1.4965170289, e =  40.1989922
-
-## y = a * np.tanh(b*log(x)) + c  
-# 12p5um: a= 1.09314738, b = -1.8465386429, c = 2.039733348
-# 50um:  a =  0.990295945, b =  -2.0681085568, c =  1.9667865114371 
-# 100um: a =  1.0847199980, b= -2.1120163828, c=2.14165109959
-
-# Sigma_B vs SNR linear fits:
-# y = a * x**(-1) + b
-# 12.5um: a=same-sh, b=0.1233595; bfix=0.2, a= 0.8831989 bfix=0.3, a=0.882093696; bfix=0.25, a=0.8826463229601 
-# 50.0um: a=0.93244, b = 0.154046, bfixed=0.3: a=0.9304810
-# 100.um: a=same-sh, b=0.2279368; bfixed=0.4, a=1.7156249314, bfixed=0.5(hits 100 exactly), a=1.714519679
-
-# PLAN 
+# PLAN : delete from here soon.
 '''
 i. slice of positions of the cubes 
 ii. plot 2d power spectrums of noise only and signal + noise
