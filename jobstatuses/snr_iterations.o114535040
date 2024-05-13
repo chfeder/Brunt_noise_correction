@@ -1,0 +1,195 @@
+yt : [INFO     ] 2024-04-26 04:35:47,192 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 04:35:47,192 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 04:35:47,194 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 04:35:47,194 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 04:35:47,194 Parameters: cosmological_simulation   = 0.0
+python version 3...
+main_snr_getdata.py: box snr data ready  0.01 l_box 0
+main_snr_getdata.py: box snr data ready  0.1 l_box 0
+main_snr_getdata.py: box snr data ready  1 l_box 0
+main_snr_getdata.py: box snr data ready  3 l_box 0
+main_snr_getdata.py: box snr data ready  5 l_box 0
+main_snr_getdata.py: box snr data ready  10 l_box 0
+main_snr_getdata.py: box snr data ready  100 l_box 0
+yt : [INFO     ] 2024-04-26 04:54:09,016 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 04:54:09,016 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 04:54:09,016 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 04:54:09,017 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 04:54:09,017 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 c_box 0
+main_snr_getdata.py: box snr data ready  0.1 c_box 0
+main_snr_getdata.py: box snr data ready  1 c_box 0
+main_snr_getdata.py: box snr data ready  3 c_box 0
+main_snr_getdata.py: box snr data ready  5 c_box 0
+main_snr_getdata.py: box snr data ready  10 c_box 0
+main_snr_getdata.py: box snr data ready  100 c_box 0
+yt : [INFO     ] 2024-04-26 05:12:30,960 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 05:12:30,960 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 05:12:30,960 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 05:12:30,960 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 05:12:30,960 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 r_box 0
+main_snr_getdata.py: box snr data ready  0.1 r_box 0
+main_snr_getdata.py: box snr data ready  1 r_box 0
+main_snr_getdata.py: box snr data ready  3 r_box 0
+main_snr_getdata.py: box snr data ready  5 r_box 0
+main_snr_getdata.py: box snr data ready  10 r_box 0
+main_snr_getdata.py: box snr data ready  100 r_box 0
+yt : [INFO     ] 2024-04-26 05:30:52,467 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 05:30:52,467 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 05:30:52,467 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 05:30:52,467 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 05:30:52,467 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 b_box 0
+main_snr_getdata.py: box snr data ready  0.1 b_box 0
+main_snr_getdata.py: box snr data ready  1 b_box 0
+main_snr_getdata.py: box snr data ready  3 b_box 0
+main_snr_getdata.py: box snr data ready  5 b_box 0
+main_snr_getdata.py: box snr data ready  10 b_box 0
+main_snr_getdata.py: box snr data ready  100 b_box 0
+yt : [INFO     ] 2024-04-26 05:49:15,165 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 05:49:15,165 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 05:49:15,165 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 05:49:15,165 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 05:49:15,165 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 f_box 0
+main_snr_getdata.py: box snr data ready  0.1 f_box 0
+main_snr_getdata.py: box snr data ready  1 f_box 0
+main_snr_getdata.py: box snr data ready  3 f_box 0
+main_snr_getdata.py: box snr data ready  5 f_box 0
+main_snr_getdata.py: box snr data ready  10 f_box 0
+main_snr_getdata.py: box snr data ready  100 f_box 0
+yt : [INFO     ] 2024-04-26 06:07:31,878 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 06:07:31,878 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 06:07:31,879 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 06:07:31,879 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 06:07:31,880 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 l_box 1
+main_snr_getdata.py: box snr data ready  0.1 l_box 1
+main_snr_getdata.py: box snr data ready  1 l_box 1
+main_snr_getdata.py: box snr data ready  3 l_box 1
+main_snr_getdata.py: box snr data ready  5 l_box 1
+main_snr_getdata.py: box snr data ready  10 l_box 1
+main_snr_getdata.py: box snr data ready  100 l_box 1
+yt : [INFO     ] 2024-04-26 06:25:47,428 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 06:25:47,428 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 06:25:47,428 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 06:25:47,428 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 06:25:47,428 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 c_box 1
+main_snr_getdata.py: box snr data ready  0.1 c_box 1
+main_snr_getdata.py: box snr data ready  1 c_box 1
+main_snr_getdata.py: box snr data ready  3 c_box 1
+main_snr_getdata.py: box snr data ready  5 c_box 1
+main_snr_getdata.py: box snr data ready  10 c_box 1
+main_snr_getdata.py: box snr data ready  100 c_box 1
+yt : [INFO     ] 2024-04-26 06:44:00,486 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 06:44:00,487 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 06:44:00,488 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 06:44:00,488 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 06:44:00,489 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 r_box 1
+main_snr_getdata.py: box snr data ready  0.1 r_box 1
+main_snr_getdata.py: box snr data ready  1 r_box 1
+main_snr_getdata.py: box snr data ready  3 r_box 1
+main_snr_getdata.py: box snr data ready  5 r_box 1
+main_snr_getdata.py: box snr data ready  10 r_box 1
+main_snr_getdata.py: box snr data ready  100 r_box 1
+yt : [INFO     ] 2024-04-26 07:02:30,283 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 07:02:30,283 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 07:02:30,283 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 07:02:30,284 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 07:02:30,284 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 b_box 1
+main_snr_getdata.py: box snr data ready  0.1 b_box 1
+main_snr_getdata.py: box snr data ready  1 b_box 1
+main_snr_getdata.py: box snr data ready  3 b_box 1
+main_snr_getdata.py: box snr data ready  5 b_box 1
+main_snr_getdata.py: box snr data ready  10 b_box 1
+main_snr_getdata.py: box snr data ready  100 b_box 1
+yt : [INFO     ] 2024-04-26 07:20:46,116 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 07:20:46,116 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 07:20:46,116 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 07:20:46,116 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 07:20:46,116 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 f_box 1
+main_snr_getdata.py: box snr data ready  0.1 f_box 1
+main_snr_getdata.py: box snr data ready  1 f_box 1
+main_snr_getdata.py: box snr data ready  3 f_box 1
+main_snr_getdata.py: box snr data ready  5 f_box 1
+main_snr_getdata.py: box snr data ready  10 f_box 1
+main_snr_getdata.py: box snr data ready  100 f_box 1
+yt : [INFO     ] 2024-04-26 07:39:02,496 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 07:39:02,496 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 07:39:02,496 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 07:39:02,497 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 07:39:02,497 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 l_box 2
+main_snr_getdata.py: box snr data ready  0.1 l_box 2
+main_snr_getdata.py: box snr data ready  1 l_box 2
+main_snr_getdata.py: box snr data ready  3 l_box 2
+main_snr_getdata.py: box snr data ready  5 l_box 2
+main_snr_getdata.py: box snr data ready  10 l_box 2
+main_snr_getdata.py: box snr data ready  100 l_box 2
+yt : [INFO     ] 2024-04-26 07:57:16,816 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 07:57:16,816 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 07:57:16,817 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 07:57:16,817 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 07:57:16,817 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 c_box 2
+main_snr_getdata.py: box snr data ready  0.1 c_box 2
+main_snr_getdata.py: box snr data ready  1 c_box 2
+main_snr_getdata.py: box snr data ready  3 c_box 2
+main_snr_getdata.py: box snr data ready  5 c_box 2
+main_snr_getdata.py: box snr data ready  10 c_box 2
+main_snr_getdata.py: box snr data ready  100 c_box 2
+yt : [INFO     ] 2024-04-26 08:15:46,445 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 08:15:46,445 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 08:15:46,445 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 08:15:46,445 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 08:15:46,446 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 r_box 2
+main_snr_getdata.py: box snr data ready  0.1 r_box 2
+main_snr_getdata.py: box snr data ready  1 r_box 2
+main_snr_getdata.py: box snr data ready  3 r_box 2
+main_snr_getdata.py: box snr data ready  5 r_box 2
+main_snr_getdata.py: box snr data ready  10 r_box 2
+main_snr_getdata.py: box snr data ready  100 r_box 2
+yt : [INFO     ] 2024-04-26 08:33:58,092 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 08:33:58,092 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 08:33:58,093 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 08:33:58,093 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 08:33:58,093 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 b_box 2
+main_snr_getdata.py: box snr data ready  0.1 b_box 2
+main_snr_getdata.py: box snr data ready  1 b_box 2
+main_snr_getdata.py: box snr data ready  3 b_box 2
+main_snr_getdata.py: box snr data ready  5 b_box 2
+main_snr_getdata.py: box snr data ready  10 b_box 2
+main_snr_getdata.py: box snr data ready  100 b_box 2
+yt : [INFO     ] 2024-04-26 08:52:11,979 Parameters: current_time              = 7.500001e-08
+yt : [INFO     ] 2024-04-26 08:52:11,979 Parameters: domain_dimensions         = [ 768 1024  768]
+yt : [INFO     ] 2024-04-26 08:52:11,979 Parameters: domain_left_edge          = [-0.15000001  0.         -0.15000001]
+yt : [INFO     ] 2024-04-26 08:52:11,980 Parameters: domain_right_edge         = [0.15000001 0.40000001 0.15000001]
+yt : [INFO     ] 2024-04-26 08:52:11,980 Parameters: cosmological_simulation   = 0.0
+main_snr_getdata.py: box snr data ready  0.01 f_box 2
+main_snr_getdata.py: box snr data ready  0.1 f_box 2
+main_snr_getdata.py: box snr data ready  1 f_box 2
+main_snr_getdata.py: box snr data ready  3 f_box 2
+main_snr_getdata.py: box snr data ready  5 f_box 2
+main_snr_getdata.py: box snr data ready  10 f_box 2
+main_snr_getdata.py: box snr data ready  100 f_box 2
+main_snr_getdata.py: finished. check h5 file
+
+======================================================================================
+                  Resource Usage on 2024-04-26 09:10:41:
+   Job Id:             114535040.gadi-pbs
+   Project:            ek9
+   Exit Status:        0
+   Service Units:      73.41
+   NCPUs Requested:    8                      NCPUs Used: 8               
+                                           CPU Time Used: 04:34:42        
+   Memory Requested:   3.0GB                 Memory Used: 720.84MB        
+   Walltime requested: 07:00:00            Walltime Used: 04:35:17        
+   JobFS requested:    100.0MB                JobFS used: 0B              
+======================================================================================

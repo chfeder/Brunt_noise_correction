@@ -127,7 +127,7 @@ def get_spectrumcf(the_box, ncmp=1):
     return bin_centers, p_tot, dk 
     
 
-def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, noise, ksnr=None):
+def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, ksnr=None):
     '''
     Adds noise to the signal if needed. Outputs sigma_rho and rsqrt. 
     '''
@@ -137,29 +137,17 @@ def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, noise, 
     for many in range(iterations):  
 
         # ADD NOISE TO THE IMAGE
-        if noise == True:
-            cg_wnoise, _ = noiseimage.add_noise(cg_main, target)
-        if noise == False:
-            cg_wnoise = cg_main
+        cg_wnoise, noiseonly = noiseimage.add_noise(cg_main, target)
          
         # OBTAIN SIGMA N^2
         sigma_sq, _ = calculate.Calculate(field_main, cg_wnoise, cg_sec) 
         
-        ''' will delete soon...
-        if lowpassfilter == 'no':
-            ks, powspec2D, infxyz = get_spectrumcf(cg_wnoise) 
-            #ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise)
-            #four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, dimension, target)    
-            #power_spectrum_map, k = turbulence_driving_analysis.get_power_spectrum(cg_wnoise, zero_pad=False, weights=None, mirror=False, normalise=False, show=False)
-        if lowpassfilter == 'yes':
-            ks, powspec2D, infxyz = get_spectrumcf(cg_wnoise, the_k=ksnr) 
-            #ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise, the_k=ksnr, lowpass_filter=lowpassfilter)
-            #four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, the_k=ksnr, lowpass_filter=lowpassfilter)
-            #power_spectrum_map, k = turbulence_driving_analysis.get_power_spectrum(cg_wnoise, zero_pad=False, weights=None, mirror=False, normalise=False, show=False, lowpass=lowpassfilter, the_k=ksnr)
-        ''' 
         # OBTAIN P2D AND P3D           
         ks, powspec2D, infxyz = get_spectrumcf(cg_wnoise) 
+        if target != inf:
+            ks, powspec2D_noise, infxyz = get_spectrumcf(noiseonly) 
         powerspec3D = 2 * ks * powspec2D
+
         # OBTAIN SIGMA RHO OR ...
         if lowpassfilter == 'no':
             brunts_sigma, sigma_rho2d, brunts_rsq, _ = parsevals.parsevals_th(dimension, powspec2D, powerspec3D, infxyz, ks, sigma_sq) 
@@ -168,77 +156,69 @@ def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, noise, 
         collect_rsq = np.append(collect_rsq, brunts_rsq)
         collect_sigma = np.append(collect_sigma, brunts_sigma.item())  # .item() may not be necessary...
 
-        if noise == False:
-            break
 
-    the_rsmed = np.median(collect_rsq)
-    the_sigmasmed = np.median(collect_sigma)
-    return the_rsmed, the_sigmasmed 
-
-
-def spectras(cg_signal, target):
-    '''
-    obtain spectras: signal plus noise, and noise only 
-    '''
-    for many in range(iterations):  
-        cg_wnoise, noiseonly = noiseimage.add_noise(cg_signal, target) 
-
-        ks2D, powspec2D, _ = get_spectrumcf(cg_wnoise) 
+        # COLLECT SPECTRAS
         if many == 0:
             collect_spectra = [powspec2D]
         if many > 0:
             collect_spectra = np.append(collect_spectra, [powspec2D], axis=0)  
 
-        ks2D, powspec2D_noise, _ = get_spectrumcf(noiseonly) 
-        if many == 0:
-            collect_spectranoise = [powspec2D_noise]
-        if many > 0:
-            collect_spectranoise = np.append(collect_spectranoise, [powspec2D_noise], axis=0) 
-         
-    return ks2D, collect_spectra, collect_spectranoise
+        if target != inf:
+            if many == 0:
+                collect_spectranoise = [powspec2D_noise]
+            if many > 0:
+                collect_spectranoise = np.append(collect_spectranoise, [powspec2D_noise], axis=0) 
 
+    the_rsmed = np.median(collect_rsq)
+    the_sigmasmed = np.median(collect_sigma)
+    if target == inf:
+        collect_spectranoise = 0
+
+    return the_rsmed, the_sigmasmed, collect_spectra, collect_spectranoise, ks 
+
+
+
+
+# MAING: SETUP!
+# GENERAL BOX SETTINGS 
+field_main = 'density'
+field_two = 'cell_volume'
+polytropic_index = 1 # +/-0.1, for 50mu voids
+
+projection = True 
+dimension = 1
+noise = True
+iterations = 1000
+
+# BOX OPTIONS: 15 total per one void size.
+void_size = '100mu'
+# 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
+if 1:
+    boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
+if 0: #debug
+    boxes = ['c_box'] 
+# 3 different projections
+if 1:  
+    projection_axis_list = [0, 1, 2]  
+if 0: #debug
+    projection_axis_list = [0,1]
+
+
+# GETTING THE INFO WE NEED TO STORE
+target_snr = [inf, 0.01, 0.1, 1, 3, 5, 10, 100]  
+
+collect_sigmas = defaultdict(list)
+collect_rsqrtsratio = defaultdict(list)
+collect_rsqrt = defaultdict(list)
+collect_kvals = defaultdict(list)
+collect_rsqrttrue = defaultdict(list)
+collect_rsqrtpure = defaultdict(list)
+rsqrt_full =[]
+collect_spectras = defaultdict(list) 
+collect_noisespectras = defaultdict(list)
 
 
 if 0:
-    # SETUP!
-    # GENERAL BOX SETTINGS 
-    field_main = 'density'
-    field_two = 'cell_volume'
-    polytropic_index = 1 # +/-0.1, for 50mu voids
-
-    projection = True 
-    dimension = 1
-    noise = True
-    iterations = 1000
-
-    # BOX OPTIONS: 15 total per one void size.
-    void_size = '12p5mu'
-    # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
-    if 1:
-        boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
-    if 0: #debug
-        boxes = ['c_box'] 
-    # 3 different projections
-    if 1:  
-        projection_axis_list = [0, 1, 2]  
-    if 0: #debug
-        projection_axis_list = [0, 1]
-
-
-    # GETTING THE INFO WE NEED TO STORE
-    datatype = 'spectra'
-    target_snr = [inf, 0.01, 0.1, 1, 3, 5, 10, 100]  
-
-    collect_sigmas = defaultdict(list)
-    collect_rsqrtsratio = defaultdict(list)
-    collect_rsqrt = defaultdict(list)
-    collect_kvals = defaultdict(list)
-    collect_rsqrttrue = defaultdict(list)
-    collect_rsqrtpure = defaultdict(list)
-    rsqrt_full =[]
-    collect_spectras = defaultdict(list) 
-    collect_noisespectras = defaultdict(list)
-
     # three projection axes
     for eje, los in enumerate(projection_axis_list):
         # five box locations
@@ -250,49 +230,41 @@ if 0:
             for val,target in enumerate(target_snr):
                 lowpassfilter = 'no'  
 
-                if datatype != 'spectra':
-                    rsqrt_med, sigma_med = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, noise)
-                    if target == inf:
-                        puresignal = rsqrt_med
-                        collect_rsqrtpure[target].append(rsqrt_med)   
-                    if target != inf:
-                        rsqrt_full = np.append(rsqrt_full, rsqrt_med)
-                        collect_sigmas[target].append(sigma_med)  
-                        collect_rsqrt[target].append(rsqrt_med)   
+                rsqrt_med, sigma_med, collectspec, collectnoisespec, kvals2D = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target)
+                if target == inf:
+                    puresignal = rsqrt_med
+                    collect_rsqrtpure[target].append(rsqrt_med)   
+                if target != inf:
+                    rsqrt_full = np.append(rsqrt_full, rsqrt_med)
+                    collect_sigmas[target].append(sigma_med)  
+                    collect_rsqrt[target].append(rsqrt_med)   
+                    
+                    # COLLECT SPECTRAS
+                    if los == projection_axis_list[0] and boxing == boxes[0]:
+                        collect_spectras[target] = collectspec
+                        collect_noisespectras[target] = collectnoisespec
+                    else: 
+                        collect_spectras[target] = np.append(collect_spectras[target], collectspec, axis=0) 
+                        collect_noisespectras[target] = np.append(collect_noisespectras[target], collectnoisespec, axis=0) 
 
-                    rsqrt_k = []
-                    lowpassfilter = 'yes'  
-                    if target != inf:
-                        for kval in k_array: 
-                            if kval == 1: #for at parsevals only
-                                continue
-                            rsqrt_med_k, _ = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, noise, kval)
-                            rsqrt_k = np.append(rsqrt_k, rsqrt_med_k)
-                        index = np.argmin(np.abs(rsqrt_k - puresignal))  #rsqrt_med should be the pure signal value here 
-                        kcross = k_array[index] 
-                        rsqrt_true, _ = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, noise, kcross)
-                        rsqrt_ratio = rsqrt_true/rsqrt_med
-                        collect_kvals[target].append(kcross)   
-                        collect_rsqrttrue[target].append(rsqrt_true) 
-                        collect_rsqrtsratio[target].append(rsqrt_ratio) 
-                        print('box snr data ready ', target,boxing,los)
+                rsqrt_k = []
+                lowpassfilter = 'yes'  
+                if target != inf:
+                    for kval in k_array: 
+                        if kval == 1: #for at parsevals only
+                            continue
+                        rsqrt_med_k, _, _, _, _= noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, kval)
+                        rsqrt_k = np.append(rsqrt_k, rsqrt_med_k)
+                    index = np.argmin(np.abs(rsqrt_k - puresignal))  #see rhalf vs k values plots to see this process visually
+                    kcross = k_array[index]   
 
-                if datatype == 'spectra':  
-                    if target != inf:
-                        kvals2D, collectspec, collectnoisespec = spectras(cg_main, target)  
-                        if los == projection_axis_list[0] and boxing == boxes[0]:
-                            collect_spectras[target] = collectspec
-                            collect_noisespectras[target] = collectnoisespec
-                        else: 
-                            collect_spectras[target] = np.append(collect_spectras[target], collectspec, axis=0) 
-                            collect_noisespectras[target] = np.append(collect_noisespectras[target], collectnoisespec, axis=0) 
+                    rsqrt_true, _, _, _, _ = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target, kcross)
+                    rsqrt_ratio = rsqrt_true/rsqrt_med
+                    collect_kvals[target].append(kcross)   
+                    collect_rsqrttrue[target].append(rsqrt_true) 
+                    collect_rsqrtsratio[target].append(rsqrt_ratio) 
+                    print('box snr data ready ', target,boxing,los)
 
-    if datatype == 'spectra':
-        data_spectra = [*collect_spectras.values()]
-        data_noisespectra = [*collect_noisespectras.values()]
-        # get the mean of all spectra
-        the_powspec = np.mean(data_spectra, axis=1)  
-        the_noisepowspec = np.mean(data_noisespectra, axis=1)  
 
     # convert the default dict to a vector array 
     data_sigmas = [*collect_sigmas.values()]
@@ -302,23 +274,49 @@ if 0:
     data_rsqrtratio = [*collect_rsqrtsratio.values()]
     data_rsqrtpure = [*collect_rsqrtpure.values()]
 
+    data_spectra = [*collect_spectras.values()]
+    data_noisespectra = [*collect_noisespectras.values()]
+    # get the mean of all spectra
+    the_powspec = np.mean(data_spectra, axis=1)  
+    the_noisepowspec = np.mean(data_noisespectra, axis=1)  
+
     # and store the information 
-    if datatype != 'spectra':
-        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_i1kforwardk51ratiofix_%s.h5'%void_size
-        Fptr = h5py.File(hfivefile,'w') 
-        Fptr['sigmas_%s'%void_size] = data_sigmas
-        Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
-        Fptr['kvals_%s'%void_size] = data_kvals
-        Fptr['rsqrttrue_%s'%void_size] = data_rsqrttrue
-        Fptr['ratios_%s'%void_size] = data_rsqrtratio
-        Fptr['rsqrtpure_%s'%void_size] = data_rsqrtpure
-        Fptr.close()
-        print('finished. check h5 file')
-    if datatype == 'spectra':
-        hfivefile = '/home/552/lv9897/sflaser/h5files/powspec14_i1kSNR_noisesignalwnoise_%s.h5'%void_size
-        Fptr = h5py.File(hfivefile,'w')
-        Fptr['kvals2D_%s'%void_size] = kvals2D
-        Fptr['thepowspec_%s'%void_size] = the_powspec 
-        Fptr['thenoisepowspec_%s'%void_size] = the_noisepowspec 
-        Fptr.close()
-        print('finished. check h5 file')
+    hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_%s.h5'%void_size
+    Fptr = h5py.File(hfivefile,'w') 
+    Fptr['sigmas_%s'%void_size] = data_sigmas
+    Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
+    Fptr['kvals_%s'%void_size] = data_kvals
+    Fptr['rsqrttrue_%s'%void_size] = data_rsqrttrue
+    Fptr['ratios_%s'%void_size] = data_rsqrtratio
+    Fptr['rsqrtpure_%s'%void_size] = data_rsqrtpure
+
+    Fptr['kvals2D_%s'%void_size] = kvals2D
+    # just the mean spectra curves
+    Fptr['thepowspec_%s'%void_size] = the_powspec 
+    Fptr['thenoisepowspec_%s'%void_size] = the_noisepowspec 
+    # the all spectra curves
+    Fptr['thepowspecAll_%s'%void_size] = data_spectra 
+    Fptr['thenoisepowspecAll_%s'%void_size] = data_noisespectra 
+
+    Fptr.close()
+    print('finished. check h5 file')
+
+
+
+
+
+
+
+# all the spectra ways attempted to make sure it is most consistent, DELETE SOON
+'''
+        if lowpassfilter == 'no':
+            ks, powspec2D, infxyz = get_spectrumcf(cg_wnoise) 
+            #ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise)
+            #four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, dimension, target)    
+            #power_spectrum_map, k = turbulence_driving_analysis.get_power_spectrum(cg_wnoise, zero_pad=False, weights=None, mirror=False, normalise=False, show=False)
+        if lowpassfilter == 'yes':
+            ks, powspec2D, infxyz = get_spectrumcf(cg_wnoise, the_k=ksnr) 
+            #ks, powerspec2D, powerspec3D, infxyz = powerspec.powerspec_lowpass(cg_wnoise, the_k=ksnr, lowpass_filter=lowpassfilter)
+            #four_amps, powerspec2D, powerspec3D, infxyz, ks = powerspec.powerspec(cg_wnoise, the_k=ksnr, lowpass_filter=lowpassfilter)
+            #power_spectrum_map, k = turbulence_driving_analysis.get_power_spectrum(cg_wnoise, zero_pad=False, weights=None, mirror=False, normalise=False, show=False, lowpass=lowpassfilter, the_k=ksnr)
+''' 

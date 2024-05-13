@@ -26,36 +26,20 @@ from cfpack import stop,print
 import h5py
 
 
-# the not so typical imports, e.g. starter2.py
+# the py file imports 
 from yt_names import *
 import extract_s1
 reload(extract_s1)
-import motion_blur
-reload(motion_blur)
 import project
 reload(project)
-import make_images
-reload(make_images)
-import signaltonoise
-reload(signaltonoise)
-import make_pdfNfit
-reload(make_pdfNfit)
-import make_sigmasquared
-reload(make_sigmasquared)
-import make_sigmavel
-reload(make_sigmavel)
 import parsevals
 reload(parsevals)
-import obtain_b
-reload(obtain_b)
 import calculate
 reload(calculate)
-import powerspec
-reload(powerspec)
-import momentmap
-reload(momentmap)
 import noiseimage
 reload(noiseimage)
+import main_snr_getdata
+reload(main_snr_getdata)
 
 
 ''' 
