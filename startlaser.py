@@ -38,8 +38,6 @@ import calculate
 reload(calculate)
 import noiseimage
 reload(noiseimage)
-import main_snr_getdata
-reload(main_snr_getdata)
 
 
 ''' 

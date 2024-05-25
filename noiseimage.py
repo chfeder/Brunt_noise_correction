@@ -17,9 +17,12 @@ def add_noise(cg_main, the_snr):
         noise = np.random.normal(mean_noise, scale=scale, size=signal.shape)  # will be different every time, so we can run it multiple times to get a PDF(N) 
         sn_signal = signal + noise  
     else:
-        #print('only if it is snr = inf')
+        print('with snr 1000000')
         sn_signal = signal
-        noise = 0
+        mean_noise = 0
+        scale = np.std(signal)/1000000   #was scale = signal/snr 
+        noise = np.random.normal(mean_noise, scale=scale, size=signal.shape)  # will be different every time, so we can run it multiple times to get a PDF(N) 
+        #noise = 0
 
     return sn_signal, noise 
 

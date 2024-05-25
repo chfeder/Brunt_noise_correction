@@ -227,6 +227,7 @@ def boxplotscatter(thefigure, ladata, theparams=0, secondfig=None, seconddata=No
 
     # SAVING    
     if thefigure == 'rsqrtfull':
+        ax.set_yscale('log')
         ax.set_ylabel(r'$R^{1/2}_{noisy}$, $R^{1/2}_{denoised}$')
     if thefigure == 'kvals':
         ax.set_ylabel('k noise')
@@ -253,13 +254,15 @@ def boxplotscatterone(thefigure, ladata, theparams=0, secondfig=None, seconddata
     if thefigure == 'sigmas':  
         the_data = ladata/ladata[-1]
         data_lista = the_data.tolist()
+    if thefigure == 'ratios':
+        data_lista = ladata[1:]
     else:
         data_lista = ladata
     boxplot = ax.boxplot(data_lista, showfliers=True, showmeans=False, labels=xdata, positions=xdata)
 
     cap_s = 1.08
     box_s = 1.16
-    for i in range(len(ladata)):
+    for i in range(len(data_lista)):
         cap = [xdata[i]/cap_s, xdata[i]*cap_s]
         boxplot['caps'][2*i+0].set_data([cap, boxplot['caps'][2*i+0].get_data()[1]])  #lower cap
         boxplot['caps'][2*i+1].set_data([cap, boxplot['caps'][2*i+1].get_data()[1]])  #upper cap
@@ -273,7 +276,7 @@ def boxplotscatterone(thefigure, ladata, theparams=0, secondfig=None, seconddata
     medians = [median.get_ydata()[0] for median in boxplot['medians']]
     ax.scatter(xdata, medians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
 
-    if thefigure in {'ratios', 'sigmas'}:
+    if thefigure in {'sigmas'}:
         # call the fittings procedure definition
         meds, lows, upps = fitthebox(thefigure, data_lista, theparams)
         # call the fitting definition, which will provide the the_yrecipes below
@@ -289,17 +292,23 @@ def boxplotscatterone(thefigure, ladata, theparams=0, secondfig=None, seconddata
         meds = 0
     
     # SAVING    
+    if thefigure == 'rsqrttrue':
+        ax.set_yscale('log')
+        ax.set_ylabel(r'$R^{1/2}_{denoised}$')
     if thefigure == 'rsqrtfull':
         ax.set_yscale('log')
         ax.set_ylabel(r'$R^{1/2}_{noisy}$, $R^{1/2}_{denoised}$')
+        #ax.set_ylabel(r'$R^{1/2}_{noisy}$')
     if thefigure == 'kvals':
         ax.set_ylabel('k noise')
+        ax.set_yscale('log')
     if thefigure == 'sigmas':
         ax.set_yscale('log')
         ax.set_ylabel(r'$\sigma_{\rho/\rho_o,snr}$')# / \sigma_{\rho/\rho_o,inf}$') 
         #ax.set_ylabel(r'$\sigma_{\/rho/\rho_o,snr} / \sigma_{\rho/\rho_o,inf}$') 
     if thefigure == 'ratios':
         ax.set_ylabel(r'$R^{1/2}_{denoised}/R^{1/2}_{noisy}$')
+        ax.set_yscale('log')
     ax.set_xlabel('SNR')
 
     # really saving now
@@ -315,24 +324,29 @@ def boxplotscatterone(thefigure, ladata, theparams=0, secondfig=None, seconddata
 # MAIN: LOOP FOR THREE VOIDS!
 numofboxes = 15
 target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  
-xdata = np.array(target_snr[:-1])
 subxdata = np.array(target_snr[2:-1])
-the_xrecipe = np.linspace(xdata.min(), xdata.max(), num=2500)  
 the_subxrecipe = np.linspace(subxdata.min(), subxdata.max(), num=2500)  
 
 whichfig = 'kvals2D'
-k_plot = 'divkmax'  #or divkmax or knoise
-whichfigtwo = None #'rsqrttrue'
-mainfigure = None#'sigmas'
-plotstyle = None#'singular'
+if whichfig == 'ratios':
+    xdata = np.array(target_snr[1:-1])
+else:
+    xdata = np.array(target_snr[:-1])
+the_xrecipe = np.linspace(xdata.min(), xdata.max(), num=2500)  
 
-voids = ['50mu', '100mu', '12p5mu']
+k_plot = 'knoise'  #or divkmax or knoise
+whichfigtwo = None#'rsqrttrue'
+mainfigure = None#'sigmas'
+plotstyle = 'singular'
+
+#voids = ['50mu', '100mu', '12p5mu']
+voids = ['100mu']#, '100mu', '12p5mu']
 colors = ['g', 'b', 'orange']
 
 if 1:
     for draw, void_size in enumerate(voids):
         print('void size is ',void_size)
-        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_%s.h5'%void_size
+        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_SintNk75_%s.h5'%void_size
         Fptr = h5py.File(hfivefile,'r')
 
         # ALL OTHER DATA: BOXPLOTS + SCATTERS + FITS
@@ -341,6 +355,7 @@ if 1:
             first = 0
             second = 0
             data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+            #stop()
             if whichfigtwo == 'rsqrttrue':
                 data_two = list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
                 listofmeds = boxplotscatter(whichfig, data, theparams=1, secondfig=whichfigtwo, seconddata=data_two) 
@@ -370,8 +385,9 @@ if 1:
         if whichfig == 'kvals2D':
             fig,ax = plt.subplots(1,1)
             
-            whichfigtwo = 'thepowspec'  #All
-            whichfigthree = 'thenoisepowspec'  #All
+            whichfigtwo = 'thepowspec' 
+            whichfigthree = 'thenoisepowspec'  
+            whichfigfour = 'thesignalpowspec'
             ps_xdata = Fptr['%s_%s'%(whichfig,void_size)][()]  #returns a numpy array
             if k_plot == 'divkmax':  #for k/k_max
                 for val, kvalues in enumerate(ps_xdata):
@@ -380,6 +396,8 @@ if 1:
                 ydata = Fptr['%s_%s'%(whichfigtwo,void_size)][()]  
             if whichfigthree:
                 nydata = Fptr['%s_%s'%(whichfigthree,void_size)][()]  
+            if whichfigfour:
+                sydata = Fptr['%s_%s'%(whichfigfour,void_size)][()]  
 
             for i, a in enumerate(target_snr[:-1]):  #len of 7
                 #to display multiple iterations (choose how many), then also do ydata[i][ii]
@@ -388,15 +406,20 @@ if 1:
                 if i == 6:  #multiple iters also do ii==19
                     ax.plot(ps_xdata, ydata[i], color=colors[draw], alpha=1.0, linewidth=0.7, label='S+N') 
                     ax.plot(ps_xdata, nydata[i], color='grey',alpha=0.8, linewidth=0.7, linestyle='dashed', label='N') 
+                    ax.plot(ps_xdata, sydata, color='r', alpha=1.0, linewidth=0.7, label='S') 
             # to label each line, could try:
             #pip install matplotlib-label-lines
             #add label = str(a) to plot, then
             #labelLines(plt.gca().get_lines(),zorder=2.5)
 
-            labeling = [r'$k_{\mathrm{noise}}$', r'$k/k_{\mathrm{max}}$']
-            ax.set(xscale= 'log', yscale= 'log', xlabel=labeling[1], ylabel=r'$P_{\mathrm{2D}}$') 
+            
+            if k_plot == 'divkmax':  #for k/k_max
+                labeling = r'$k/k_{\mathrm{max}}$'
+            if k_plot == 'knoise':  #for k/k_max
+                labeling = r'$k_{\mathrm{noise}}$'
+            ax.set(xscale='log', yscale= 'log', xlabel=labeling, ylabel=r'$P_{\mathrm{2D}}$') 
             ax.legend(loc='lower right')
-            plt.savefig('sort_plots/boxplt15_powspec14_i1k_%s_noisesignalwnoise_%s'%(k_plot,void_size))
+            plt.savefig('sort_plots/boxplot15_powspec14_i1k_k75_%s_%s'%(k_plot,void_size))
             print('saved spectra14!')
             plt.clf()
             Fptr.close()         
@@ -407,6 +430,7 @@ if 1:
                 quicky = np.log10(nydata)
                 rets = cfp.fit(linfunct, quickx[1:], quicky[-1][1:])
         Fptr.close() 
+
 
 
 
