@@ -16,11 +16,12 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, the_k=0):
         sigmaRho_sq = sigmaN_sq * (P3D/P2D)
         if sigmaRho_sq < 0:
             print('negative value encountered?!')
-        sigmaRho = np.sqrt(sigmaRho_sq)
-        sigmaRho2d = np.sqrt(P3D)
+        sigmaRhoBr = np.sqrt(sigmaRho_sq)
+        sigmaRhoP32D = np.sqrt(P3D)
 
         the_R = P2D/P3D  
         the_R_sqrt = np.sqrt(P2D/P3D)
+
 
         if 0:  #print it out 
             #print('sigma ^2 from Brunts', sigmaRho_sq)
@@ -51,10 +52,5 @@ def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, the_k=0):
         the_R_sqrt =0
 
         
-    if 0:  # write it out
-        alphaFile = open("sflaser_records.txt",'a')
-        alphaFile.write("\nSigma 3D from P3D %f"%(sigmaRho))
-        alphaFile.close()
-
-    return sigmaRho, sigmaRho2d, the_R_sqrt, sigmaN_sq 
+    return sigmaRhoBr, sigmaRhoP32D, the_R_sqrt 
 

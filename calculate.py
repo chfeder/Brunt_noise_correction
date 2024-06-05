@@ -7,19 +7,6 @@ from startlaser import *
 
 def Calculate(first_field, cg_field=None, cg_fieldtwo=None):
     
-    # if we were not using a covergrid
-    if 0:
-        if first_field == 'density': 
-            field_i = region['density']
-            cell_volume = region['cell_volume']
-
-            field_mean_i = np.mean(field_i)
-            field_ave_i = ( (field_i*cell_volume).sum()/cell_volume.sum() )
-
-            sfield_i = field_i/field_mean_i 
-            sigma_sq_i = (((sfield_i - 1) ** 2)*cell_volume).sum() / cell_volume.sum()
-            sigma_i = np.sqrt(sigma_sq_i)
-
     if 1:  # from the covergrid
         field_ii= cg_field.flatten()
         cv = cg_fieldtwo.flatten()

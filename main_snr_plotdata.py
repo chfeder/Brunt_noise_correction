@@ -6,13 +6,14 @@ from collections import defaultdict
 
 
 # POSSIBLE FIT FUNCTIONS
-def linfunct(x, a, b=1):  
-    y = a * x + b
+def linfunct(x, a, b):  
+    y = a * x + b 
+    #y = np.log(pre_y)
     return y
 
-#def lininvfunct(x, a, b=1):
-def lininvfunct(x, a, b):
-    y = a * x**(-1) + b
+def lininvfunct(x, a, b=1):
+    pre_y = a * x**(-1) + b
+    y = np.log(pre_y)
     return y
 
 def tanfunct_simple(x, first, second):  #used to be x, c, d, e; try this first when data is ready
@@ -38,22 +39,27 @@ def fitthebox(whichfigure, eldata, secondparam):
     param_c = []
     param_d = []
     param_e = []
-    for j in range(numofboxes):  #avoid hard-coding numbers, but there are 15 boxes so...
+    for j in range(numofboxes):  
         oneboxproj = []
         for k in range(len(xdata)):
             prexdata = eldata[k][j]
-            oneboxproj = np.append(oneboxproj, prexdata)  #sigma_rho(SNR->inf)/sigma_rho(SNR) 
+            oneboxproj = np.append(oneboxproj, prexdata) 
         
         if whichfigure == 'ratios': 
             print('inside the ratios')
-            params = {"first":[-2,-1,-0.1], "second":[0.5,2.0,4]} 
-            rets = cfp.fit(tanfunct_simple, xdata, oneboxproj, params=params) 
+            #params = {"first":[-2,-1,-0.1], "second":[0.5,2.0,4]} 
+            rets = cfp.fit(tanfunct_simple, xdata, oneboxproj)#, params=params) 
         if whichfigure == 'sigmas':
             print('inside the sigmas')
             params= {'a':[1e-10, 1, 1e10]}
-            #secondparam = 1 #EDIT!
-            rets = cfp.fit(sigmarho_fit, xdata, np.log(oneboxproj), params=params)#, yerr=)  #relative error 
-            
+            secondparam = 1 #EDIT!
+            rets = cfp.fit(lininvfunct, xdata, np.log(oneboxproj), params=params)#, yerr=)  #relative error 
+        if whichfigure == 'kvals':
+            print('inside fitting for kvals')
+            secondparam = 1
+            rets = cfp.fit(linfunct, xdata[1:-1], oneboxproj[1:-1])
+            print('how many params ',secondparam)
+
         param_a = np.append(param_a, rets.popt[0])
         if secondparam == 1:
             param_b = np.append(param_b, rets.popt[1])
@@ -98,6 +104,7 @@ def fitthebox(whichfigure, eldata, secondparam):
         param_16s = [p16_a] 
         param_84s = [p84_a] 
     else:
+        print("there is a b")
         param_meds = [med_a, med_b]
         param_16s = [p16_a, p16_b]#, p16_c, p16_d, p16_e]  #report these as - for param
         param_84s = [p84_a, p84_b]#, p84_c, p84_d, p84_e]  #report these as + for param
@@ -108,13 +115,17 @@ def fitthebox(whichfigure, eldata, secondparam):
 # TO PLOT THE FITTING 
 def plotthefitting(thefigures, themedians, sixteenths, eightyfours):
     if thefigures == 'sigmas':
-        the_yrecipemed = sigmarho_fit(the_xrecipe, *themedians)  
-        the_yrecipelow = sigmarho_fit(the_xrecipe, *sixteenths)
-        the_yrecipeupp = sigmarho_fit(the_xrecipe, *eightyfours)
+        the_yrecipemed = lininvfunct(the_xrecipe, *themedians)  
+        the_yrecipelow = lininvfunct(the_xrecipe, *sixteenths)
+        the_yrecipeupp = lininvfunct(the_xrecipe, *eightyfours)
     if thefigures == 'ratios':
         the_yrecipemed = tanfunct_simple(the_xrecipe, *themedians)  
         the_yrecipelow = tanfunct_simple(the_xrecipe, *sixteenths)
         the_yrecipeupp = tanfunct_simple(the_xrecipe, *eightyfours)
+    if thefigures == 'kvals':
+        the_yrecipemed = linfunct(the_xrecipe, *themedians)  
+        the_yrecipelow = linfunct(the_xrecipe, *sixteenths)
+        the_yrecipeupp = linfunct(the_xrecipe, *eightyfours)
     return the_yrecipemed, the_yrecipelow, the_yrecipeupp
 
 
@@ -252,11 +263,14 @@ def boxplotscatterone(thefigure, ladata, theparams=0, secondfig=None, seconddata
     ax.set_xlim(np.array(xdata).min()/1.20, np.array(xdata).max()*1.20)
 
     if thefigure == 'sigmas':  
+        print("inside sigmas!!")
         the_data = ladata/ladata[-1]
-        data_lista = the_data.tolist()
-    if thefigure == 'ratios':
-        data_lista = ladata[1:]
+        data_lista = the_data.tolist() 
+    elif thefigure == 'ratios':
+        print("inside ratios")
+        pre_data_lista = ladata[1:]
     else:
+        print("inside else")
         data_lista = ladata
     boxplot = ax.boxplot(data_lista, showfliers=True, showmeans=False, labels=xdata, positions=xdata)
 
@@ -276,14 +290,32 @@ def boxplotscatterone(thefigure, ladata, theparams=0, secondfig=None, seconddata
     medians = [median.get_ydata()[0] for median in boxplot['medians']]
     ax.scatter(xdata, medians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
 
-    if thefigure in {'sigmas'}:
+
+    # for overlaying purposes, such as rhalf noise, rhalf denoised
+    if secondfig: 
+        medians_two=[]
+        submedians_two=[]
+        # FOR 15 boxes, all target
+        if 1:
+            for k in range(len(seconddata)):
+                medians_two = np.append(medians_two, np.nanmedian(seconddata[k]))
+            ax.scatter(xdata, medians_two, color='r', marker='o', alpha=0.4, label='other median')  #reduce the marker size! 
+            #stop()
+
+    if thefigure in {'sigmas', 'kvals'}:
         # call the fittings procedure definition
         meds, lows, upps = fitthebox(thefigure, data_lista, theparams)
         # call the fitting definition, which will provide the the_yrecipes below
-        ln_ymed, ln_ylow, ln_yupp = plotthefitting(thefigure, meds, lows, upps)
-        ymed = np.exp(ln_ymed)
-        ylow = np.exp(ln_ylow)
-        yupp = np.exp(ln_yupp)
+        if thefigure == 'sigmas':
+            ln_ymed, ln_ylow, ln_yupp = plotthefitting(thefigure, meds, lows, upps)
+            ymed = np.exp(ln_ymed)
+            ylow = np.exp(ln_ylow)
+            yupp = np.exp(ln_yupp)
+            the_xrecipe = np.linspace(xdata.min(), xdata.max(), num=2500)  
+        elif thefigure == 'kvals':
+            ymed, ylow, yupp = plotthefitting(thefigure, meds, lows, upps)
+            the_xrecipe = np.linspace(xdata[1:-1].min(), xdata[1:-1].max(), num=2500)  
+        #stop()
         ax.plot(the_xrecipe, ymed, color=colors[draw], linestyle='dashed')
         ax.plot(the_xrecipe, ylow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
         ax.plot(the_xrecipe, yupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
@@ -300,11 +332,13 @@ def boxplotscatterone(thefigure, ladata, theparams=0, secondfig=None, seconddata
         ax.set_ylabel(r'$R^{1/2}_{noisy}$, $R^{1/2}_{denoised}$')
         #ax.set_ylabel(r'$R^{1/2}_{noisy}$')
     if thefigure == 'kvals':
-        ax.set_ylabel('k noise')
+        #ax.set_ylabel('k noise')
+        ax.set_ylabel(r'$k_{noise}/k_{max}$')
         ax.set_yscale('log')
+        #ax.set_ylim(1e-1,1e2)
     if thefigure == 'sigmas':
         ax.set_yscale('log')
-        ax.set_ylabel(r'$\sigma_{\rho/\rho_o,snr}$')# / \sigma_{\rho/\rho_o,inf}$') 
+        ax.set_ylabel(r'$\sigma_{\rho/\rho_o,snr} / \sigma_{\rho/\rho_o,inf}$') 
         #ax.set_ylabel(r'$\sigma_{\/rho/\rho_o,snr} / \sigma_{\rho/\rho_o,inf}$') 
     if thefigure == 'ratios':
         ax.set_ylabel(r'$R^{1/2}_{denoised}/R^{1/2}_{noisy}$')
@@ -328,25 +362,25 @@ subxdata = np.array(target_snr[2:-1])
 the_subxrecipe = np.linspace(subxdata.min(), subxdata.max(), num=2500)  
 
 whichfig = 'kvals2D'
-if whichfig == 'ratios':
+if whichfig == 'ratios':  # describ why briefly here.
     xdata = np.array(target_snr[1:-1])
 else:
     xdata = np.array(target_snr[:-1])
 the_xrecipe = np.linspace(xdata.min(), xdata.max(), num=2500)  
 
-k_plot = 'knoise'  #or divkmax or knoise
+k_plot = 'divkmax'  # divkmax or knoise
 whichfigtwo = None#'rsqrttrue'
 mainfigure = None#'sigmas'
-plotstyle = 'singular'
+plotstyle = 'singular'  # singular or subpanel
 
 #voids = ['50mu', '100mu', '12p5mu']
-voids = ['100mu']#, '100mu', '12p5mu']
+voids = ['100mu']
 colors = ['g', 'b', 'orange']
 
 if 1:
     for draw, void_size in enumerate(voids):
         print('void size is ',void_size)
-        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_SintNk75_%s.h5'%void_size
+        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_SintNstartk0_%s.h5'%void_size
         Fptr = h5py.File(hfivefile,'r')
 
         # ALL OTHER DATA: BOXPLOTS + SCATTERS + FITS
@@ -356,28 +390,37 @@ if 1:
             second = 0
             data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
             #stop()
-            if whichfigtwo == 'rsqrttrue':
-                data_two = list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
-                listofmeds = boxplotscatter(whichfig, data, theparams=1, secondfig=whichfigtwo, seconddata=data_two) 
 
-            # keep it singular paneled
-            elif plotstyle == 'singular':
-                listofmeds = boxplotscatterone(whichfig, data, theparams=1) #0 if first fig is sigma 
-            else: 
-                listofmeds = boxplotscatter(whichfig, data, theparams=1)
+            # SUBPANEL
+            if plotstyle == 'subpanel':
+                if whichfig == 'kvals' and k_plot=='divkmax':
+                    for val, kvalues in enumerate(data):
+                        data[val] = data[val]/data[-1] 
+                if whichfigtwo == 'rsqrttrue':
+                    data_two = list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
+                    listofmeds = boxplotscatter(whichfig, data, theparams=1, secondfig=whichfigtwo, seconddata=data_two) 
 
-            if whichfig == 'kvals':
-                for val, kvalues in enumerate(data):
-                    data[val] = data[val]/data[-1] 
-
-            if mainfigure == 'sigmas':
-                data_three = list(Fptr['%s_%s'%(mainfigure,void_size)])  
-                first = listofmeds[0]
-                second = listofmeds[1]
-                if plotstyle == 'singular':
-                    boxplotscatterone(mainfigure, data_three, theparams=0)
-                else: 
+                if mainfigure == 'sigmas':
+                    data_three = list(Fptr['%s_%s'%(mainfigure,void_size)])  
+                    first = listofmeds[0]
+                    second = listofmeds[1]
                     boxplotscatter(mainfigure, data_three, theparams=0)
+
+            # SINGULAR
+            if plotstyle == 'singular':
+                print('inside singular')
+                if whichfig == 'kvals' and k_plot=='divkmax':
+                    for val, kvalues in enumerate(data):
+                        data[val] = data[val]/data[-1] 
+                if whichfigtwo == 'rsqrttrue':
+                    data_two = list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
+                    listofmeds = boxplotscatterone(whichfig, data, theparams=1, secondfig=whichfigtwo, seconddata=data_two) 
+
+                if whichfig == 'ratios':
+                    theparams = 1  #two params
+                else:
+                    theparams = 0  #one param
+                    listofmeds = boxplotscatterone(whichfig, data, theparams=theparams)  
             
 
 
@@ -387,7 +430,6 @@ if 1:
             
             whichfigtwo = 'thepowspec' 
             whichfigthree = 'thenoisepowspec'  
-            whichfigfour = 'thesignalpowspec'
             ps_xdata = Fptr['%s_%s'%(whichfig,void_size)][()]  #returns a numpy array
             if k_plot == 'divkmax':  #for k/k_max
                 for val, kvalues in enumerate(ps_xdata):
@@ -396,30 +438,60 @@ if 1:
                 ydata = Fptr['%s_%s'%(whichfigtwo,void_size)][()]  
             if whichfigthree:
                 nydata = Fptr['%s_%s'%(whichfigthree,void_size)][()]  
-            if whichfigfour:
-                sydata = Fptr['%s_%s'%(whichfigfour,void_size)][()]  
 
-            for i, a in enumerate(target_snr[:-1]):  #len of 7
-                #to display multiple iterations (choose how many), then also do ydata[i][ii]
-                ax.plot(ps_xdata, ydata[i], color=colors[draw], alpha=1.0, linewidth=0.7)#, label=str(a))
-                ax.plot(ps_xdata, nydata[i], color='grey',alpha=0.8, linewidth=0.7, linestyle='dashed')
-                if i == 6:  #multiple iters also do ii==19
-                    ax.plot(ps_xdata, ydata[i], color=colors[draw], alpha=1.0, linewidth=0.7, label='S+N') 
-                    ax.plot(ps_xdata, nydata[i], color='grey',alpha=0.8, linewidth=0.7, linestyle='dashed', label='N') 
-                    ax.plot(ps_xdata, sydata, color='r', alpha=1.0, linewidth=0.7, label='S') 
-            # to label each line, could try:
-            #pip install matplotlib-label-lines
-            #add label = str(a) to plot, then
-            #labelLines(plt.gca().get_lines(),zorder=2.5)
+            target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
+            x_offset = 0.05
+
+            # MEDIANS ONLY
+            if 1:  
+                medians_snr = []
+                medians_noise = []
+                for iii in range(len(ydata)):
+                    medians_snr.append(np.median(ydata[iii], axis=0))
+                    medians_noise.append(np.median(nydata[iii], axis=0))
+
+                for i, a in enumerate(target_snr):  #len of 7
+                    if i == 0:
+                        ax.plot(ps_xdata, medians_snr[i], color='r', alpha=1.0, linewidth=0.5)
+                        continue
+                    if i != len(medians_snr):
+                        ax.plot(ps_xdata, medians_snr[i], color=colors[draw], alpha=1.0, linewidth=0.5)
+                        ax.plot(ps_xdata, medians_noise[i], color='grey',alpha=1.0, linewidth=0.5, linestyle='dashed')
+                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center')
+
+                    if i == len(target_snr[1:]): 
+                        ax.plot(ps_xdata, medians_snr[i], color=colors[draw], alpha=1.0, linewidth=0.5, label='S+N') 
+                        ax.plot(ps_xdata, medians_noise[i], color='grey',alpha=1.0, linewidth=0.5, linestyle='dashed', label='N') 
+                        ax.plot(ps_xdata, medians_snr[0], color='r', alpha=1.0, linewidth=0.5, label='S') 
+
+            # ALL 15 CURVES
+            if 0:  
+                for i, a in enumerate(target_snr):  #len of 7
+                    for ii in range(len(ydata[0])):
+                        if i == 0:
+                            print('how many times ',ii)
+                            ax.plot(ps_xdata, ydata[i][ii], color='r', alpha=1.0, linewidth=0.5)
+                            continue
+
+                        if ii != len(ydata[0])-1:
+                            ax.plot(ps_xdata, ydata[i][ii], color=colors[draw], alpha=0.4, linewidth=0.5)
+                            ax.plot(ps_xdata, nydata[i][ii], color='grey',alpha=0.4, linewidth=0.5, linestyle='dashed')
+                        if ii == len(ydata[0])-1: 
+                            plt.text(ps_xdata[-1] + x_offset, nydata[i][ii][-1], str(a), fontsize=12, ha='left', va='center')
+
+                        if i == len(target_snr[1:]) and ii == len(ydata[0])-1:  
+                            ax.plot(ps_xdata, ydata[i][ii], color=colors[draw], alpha=0.8, linewidth=0.5, label='S+N') 
+                            ax.plot(ps_xdata, nydata[i][ii], color='grey',alpha=0.8, linewidth=0.5, linestyle='dashed', label='N') 
+                            ax.plot(ps_xdata, ydata[0][ii], color='r', alpha=0.8, linewidth=0.5, label='S') 
 
             
             if k_plot == 'divkmax':  #for k/k_max
                 labeling = r'$k/k_{\mathrm{max}}$'
             if k_plot == 'knoise':  #for k/k_max
                 labeling = r'$k_{\mathrm{noise}}$'
-            ax.set(xscale='log', yscale= 'log', xlabel=labeling, ylabel=r'$P_{\mathrm{2D}}$') 
-            ax.legend(loc='lower right')
-            plt.savefig('sort_plots/boxplot15_powspec14_i1k_k75_%s_%s'%(k_plot,void_size))
+            ax.set(xscale='log', yscale= 'log', xlabel=labeling, ylabel=r'$P_{\mathrm{2D}}$', xlim=(1e-2,1.3e0+x_offset)) 
+            ax.legend(loc='lower right', fontsize='x-small', bbox_to_anchor=(0.97, 0))
+            plt.savefig('sort_plots/boxplot15_powspec14_i1k_%s_%s'%(k_plot,void_size))
             print('saved spectra14!')
             plt.clf()
             Fptr.close()         
