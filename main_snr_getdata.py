@@ -55,7 +55,7 @@ def get_spectrumcf(the_box, ncmp=1):
     kays = -num//2
     ke = np.array([np.min([-kays[d], num[d]//2-1]) for d in range(ndim)])
     
-    # 4 nested get_c123_coords defintions
+    # 4 nested get_c123_coords definitions
     def get_1d_coords(cmin=0, cmax=1, ndim=10, cell_centred=True):
         if cell_centred:
             d = (cmax-cmin) / float(ndim)
@@ -187,10 +187,10 @@ polytropic_index = 1 # +/-0.1, for 50mu voids
 projection = True 
 dimension = 1
 noise = True
-iterations = 1000
+iterations = 1
 
 # BOX OPTIONS: 15 total per one void size.
-void_size = '100mu'
+void_size = '12p5mu'
 # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
 if 1:
     boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
@@ -205,36 +205,45 @@ if 0: #debug
 
 # GETTING THE INFO WE NEED TO STORE
 target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
+#target_snr = [1000000]  # to obtain sigma rho 3D calculated vs brunt 
 
 collect_sigmas = defaultdict(list)
 collect_rsqrtsratio = defaultdict(list)
 collect_rsqrt = defaultdict(list)
 collect_kvals = defaultdict(list)
 collect_rsqrttrue = defaultdict(list)
-
 collect_spectras = defaultdict(list) 
 collect_noisespectras = defaultdict(list)
 
-
 # three projection axes
+calculate_3dsigmas = False#True
+sigmas3D = []
+sigmaBrunt = []
 for eje, los in enumerate(projection_axis_list):
     # five box locations
     for num, boxing in enumerate(boxes):  
         cg_main, cg_vol = get_box(void_size, boxing, projection, los)
         k_array = np.linspace(0, int(cg_main.shape[0]/2), int((cg_main.shape[0]/2)+1), endpoint=True)  #start, stop, num 
-        #stop()
+        if calculate_3dsigmas == True: 
+            _, sigma3D = calculate.Calculate(field_main, cg_main, cg_vol)
+            stringing = str(sigma3D)
+            numeric_part = stringing.split()[0]
+            numeric_value = float(numeric_part)
+            sigmas3D.append(numeric_value)
+            continue
 
         # seven SNR
         for val,target in enumerate(target_snr):
             lowpassfilter = 'no'  
             rsqrt_med, sigma_med, collectspec, collectnoisespec, kvals2D, dks, sigmaN_med = noise_iterations(iterations, cg_main, cg_vol, lowpassfilter, target)
 
+            sigmaBrunt.append(sigma_med)
+
             # COLLECT SPECTRAS
             if los == projection_axis_list[0] and boxing == boxes[0]:
                 collect_spectras[target] = [collectspec]
                 collect_noisespectras[target] = [collectnoisespec]
             else: 
-                #stop()
                 collect_spectras[target] = np.append(collect_spectras[target], [collectspec], axis=0) 
                 collect_noisespectras[target] = np.append(collect_noisespectras[target], [collectnoisespec], axis=0) 
 
@@ -269,12 +278,24 @@ data_rsqrts = [*collect_rsqrt.values()]
 data_kvals = [*collect_kvals.values()]
 data_rsqrttrue = [*collect_rsqrttrue.values()]
 data_rsqrtratio = [*collect_rsqrtsratio.values()]
-
 data_spectranoise = [*collect_spectras.values()]
 data_noisespectra = [*collect_noisespectras.values()]
-#stop()
 # and store the information 
-if 1:
+if 0:
+    hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
+    Fptr = h5py.File(hfivefile,'w') 
+    print('15 3D sigmas ',sigmas3D)
+    Fptr['sigma_3Ds_%s'%void_size] = sigmas3D
+    Fptr.close()
+    print('finished. check h5 file')
+if 0:
+    hfivefile = '/home/552/lv9897/sflaser/h5files/15sigmaBrunt_%s.h5'%void_size
+    Fptr = h5py.File(hfivefile,'w') 
+    print('15 brunt sigmas ',sigmaBrunt)
+    Fptr['sigma_brunts_%s'%void_size] = sigmaBrunt
+    Fptr.close()
+    print('finished. check h5 file')
+if 0:
     hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_SintNstartk0_%s.h5'%void_size
     Fptr = h5py.File(hfivefile,'w') 
     Fptr['sigmas_%s'%void_size] = data_sigmas
@@ -282,11 +303,9 @@ if 1:
     Fptr['kvals_%s'%void_size] = data_kvals
     Fptr['rsqrttrue_%s'%void_size] = data_rsqrttrue
     Fptr['ratios_%s'%void_size] = data_rsqrtratio
-
     Fptr['kvals2D_%s'%void_size] = kvals2D
     Fptr['thepowspec_%s'%void_size] = data_spectranoise 
     Fptr['thenoisepowspec_%s'%void_size] = data_noisespectra 
-
     Fptr.close()
     print('finished. check h5 file')
 
