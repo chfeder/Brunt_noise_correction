@@ -42,15 +42,4 @@ def Project(covergrid, pj_axis, project, field_one, field_two=None, field_three=
                 cg_two = None
             cg_three = None
 
-            '''
-            if field_one in velocities[0]:  #think of a better way
-                cg_main = covergrid['density'] 
-                cg_two = covergrid[field_two]
-                cg_three = covergrid[field_three]    
-            if field_one in velocities[1:]:
-                cg_main = covergrid[field_one]
-                cg_two = covergrid[field_two]
-                cg_three = covergrid[field_three]
-            '''
-
         return cg_main, cg_two, cg_three

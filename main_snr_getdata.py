@@ -1,9 +1,12 @@
 
 from startlaser import * 
 from collections import defaultdict
+# with the new update of cfpack and matplotlib, the following two are not needed
+#from matplotlib import rcParams
+#rcParams['text.latex.preamble'] = r'\newcommand{\mathdefault}[1][]{}'
 
 
-def get_box(voids, box, projecting, proj_axis=0):
+def get_box(voids, box, projecting, proj_axis=0, imaging='no'):
     '''
     Build the box.
     '''
@@ -102,7 +105,7 @@ def get_spectrumcf(the_box, ncmp=1):
     bins = np.arange(np.max(num)//2) - 0.5
     data_ft = []
     for d in range(ncmp):
-        data_ft.append(np.fft.fftn(data[d], norm='forward'))  #ValueError: Invalid norm value forward, should be None or "ortho".
+        data_ft.append(np.fft.fftn(data[d], norm='forward'))  
         data_ft[d] = np.fft.fftshift(data_ft[d]) 
 
     data_ft = np.array(data_ft)
@@ -117,7 +120,7 @@ def get_spectrumcf(the_box, ncmp=1):
     
     spect_tot, bins = get_binned_stats(power_tot, k_abs, bins=bins)
     bin_centers = bins[:-1]+0.5
-    integral_factor = bin_centers**(ndim-1)
+    integral_factor = bin_centers**(ndim-1)  
     if ndim > 1: integral_factor *= np.pi*2*(ndim-1)
     p_tot = spect_tot*integral_factor
     #ret = {'k': bin_centers, 'P_tot': spect_tot*integral_factor}
@@ -135,7 +138,7 @@ def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, ksnr=No
 
         # ADD NOISE TO THE IMAGE
         cg_wnoise, noiseonly = noiseimage.add_noise(cg_main, target)
-         
+     
         # OBTAIN SIGMA N^2
         sigmaN, _ = calculate.Calculate(field_main, cg_wnoise, cg_sec) 
         collect_sigmaN = np.append(collect_sigmaN, sigmaN)
@@ -178,7 +181,7 @@ def noise_iterations(iterations, cg_main, cg_sec, lowpassfilter, target, ksnr=No
 
 
 
-# MAING: SETUP!
+# MAIN: SETUP!
 # GENERAL BOX SETTINGS 
 field_main = 'density'
 field_two = 'cell_volume'
@@ -190,23 +193,130 @@ noise = True
 iterations = 1
 
 # BOX OPTIONS: 15 total per one void size.
-void_size = '12p5mu'
+void_size = '50mu'
 # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
-if 1:
+if 0:
     boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
-if 0: #debug
+if 1: #debug
     boxes = ['c_box'] 
 # 3 different projections
-if 1:  
+if 0:  
     projection_axis_list = [0, 1, 2]  
-if 0: #debug
-    projection_axis_list = [0, 1]
+if 1: #debug
+    projection_axis_list = [0,1]
 
-
-# GETTING THE INFO WE NEED TO STORE
 target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
 #target_snr = [1000000]  # to obtain sigma rho 3D calculated vs brunt 
 
+
+# IMAGES
+if 1:
+    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
+    delta_a = 0.02  
+    edge_mtop = 0.3675  
+    edge_mbot = 0.3275
+    edge_mcenter = 0.3475
+    if 1:
+        proj_2 = yt.SlicePlot(the_ds, 2, ('gas','density')) 
+
+        proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (3*delta_a, edge_mtop, 0), coord_system='data')
+        proj_2.annotate_line((-3*delta_a, edge_mbot, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
+        proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (-3*delta_a, edge_mbot, 0), coord_system='data')
+        proj_2.annotate_line((3*delta_a, edge_mtop, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
+        proj_2.annotate_line((-delta_a, edge_mtop, 0), (-delta_a, edge_mbot, 0), coord_system='data')
+        proj_2.annotate_line((delta_a, edge_mtop, 0), (delta_a, edge_mbot, 0), coord_system='data')
+
+        proj_2.set_cmap(('gas','density'), cmap='magma')
+        colorbar_2 = proj_2.plots['density'].cb
+        vmin = 1e-3 
+        vmax = 1e1 
+        colorbar_2.vmin = vmin
+        colorbar_2.vmax = vmax
+
+        proj_2.set_axes_unit('mm')
+        proj_2.set_font_size(20)
+        proj_2.set_xlabel('')
+        proj_2.plots['gas', 'density'].axes.get_xaxis().set_tick_params(labelbottom=False)
+
+        proj_2.set_zlim('density', vmin, vmax)
+        proj_2.hide_colorbar()
+        proj_2.save('z_slice.pdf')
+
+    if 0:
+        dx = 3.9062486030E-04
+        projection_length = 2*dx  #try with 1dx 
+
+        the_ledge = the_ds.arr([-0.15, edge_mbot, -0.15],'code_length')
+        the_ledge_slice = the_ds.arr([-0.15, edge_mcenter-projection_length/2, -0.15],'code_length')
+        the_redge = the_ds.arr([0.15, edge_mtop, 0.15],'code_length')
+        the_redge_slice = the_ds.arr([0.15, edge_mcenter+projection_length/2, 0.15],'code_length')
+        the_center =0.5*the_ledge + 0.5*the_redge
+        the_region_slice = the_ds.region(the_center, the_ledge_slice, the_redge_slice)  
+        the_region = the_ds.region(the_center, the_ledge, the_redge)  
+
+        proj_1 = yt.ProjectionPlot(the_ds, 1, ('gas','density'), data_source=the_region_slice)  #slices dont' accept cgs 
+
+        proj_1.annotate_line((-delta_a, 0, -3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
+        proj_1.annotate_line((delta_a, 0, -3*delta_a), (delta_a, 0, 3*delta_a), coord_system='data')
+        proj_1.annotate_line((3*delta_a, 0, delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
+        proj_1.annotate_line((3*delta_a, 0, -delta_a), (-3*delta_a, 0, -delta_a), coord_system='data')
+
+        proj_1.annotate_line((-3*delta_a, 0, -delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
+        proj_1.annotate_line((3*delta_a, 0, -delta_a), (3*delta_a, 0, delta_a), coord_system='data')
+
+        proj_1.annotate_line((delta_a, 0, -3*delta_a), (-delta_a, 0, -3*delta_a), coord_system='data')
+        proj_1.annotate_line((delta_a, 0, 3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
+
+        proj_1.set_cmap(('gas','density'), cmap='magma')
+        proj_1.flip_horizontal()
+        proj_1.swap_axes()
+
+        colorbar_1 = proj_1.plots['density'].cb
+        colorbar_1.vmin = vmin * projection_length
+        colorbar_1.vmax = vmax * projection_length
+
+        proj_1.set_axes_unit('mm')
+        proj_1.set_font_size(28)
+        proj_1.set_zlim('density', vmin*projection_length, vmax*projection_length)
+
+        proj_1.hide_colorbar()
+
+        proj_1.save('y_slice.pdf')
+
+        label = r'Density ($\mathrm{g\,cm^{-3}}$)'
+        if 1:
+            cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='vertical', panels=3, \
+                              save='cb_location.pdf')
+
+    stop()
+
+if 0:
+    target_snr = [0.1, 1, 3, 10]
+    boxing = 'c_box'
+    los = 1
+    cg_main, _ = get_box(void_size, boxing, projection, los)
+    labels = ['SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 10']
+    snr_image,_ = noiseimage.add_noise(cg_main, target_snr[3])
+    vmin = snr_image.min()
+    vmax = snr_image.max()
+    for val,target in enumerate(target_snr):
+        snr_image,_ = noiseimage.add_noise(cg_main, target)
+        cfp.plot_map(snr_image, colorbar=None, vmin=vmin, vmax=vmax)
+        plt.axis('off')
+        cfp.plot(text=labels[val], normalised_coords=True, x=0.35, y=-0.08, fontsize=18)  
+        cfp.plot_map(save='./sort_plots/c_box_%d.pdf'%val)
+    if 1:
+        label = r'Density ($\mathrm{g\,cm^{-2}}$)'
+        cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='horizontal', panels=2.5, save='cb_snr.pdf')
+
+    # plot_map returns an object; pobj 
+    # positioning happens in LaTeX
+    stop()
+
+
+
+
+# GETTING THE INFO WE NEED TO STORE
 collect_sigmas = defaultdict(list)
 collect_rsqrtsratio = defaultdict(list)
 collect_rsqrt = defaultdict(list)
@@ -224,6 +334,7 @@ for eje, los in enumerate(projection_axis_list):
     for num, boxing in enumerate(boxes):  
         cg_main, cg_vol = get_box(void_size, boxing, projection, los)
         k_array = np.linspace(0, int(cg_main.shape[0]/2), int((cg_main.shape[0]/2)+1), endpoint=True)  #start, stop, num 
+
         if calculate_3dsigmas == True: 
             _, sigma3D = calculate.Calculate(field_main, cg_main, cg_vol)
             stringing = str(sigma3D)
@@ -271,7 +382,7 @@ for eje, los in enumerate(projection_axis_list):
                 collect_rsqrt[target].append(rsqrt_med)   
                 print('box snr data ready ', target,boxing,los)
 
-
+stop()
 # convert the default dict to a vector array 
 data_sigmas = [*collect_sigmas.values()]
 data_rsqrts = [*collect_rsqrt.values()]
@@ -308,6 +419,10 @@ if 0:
     Fptr['thenoisepowspec_%s'%void_size] = data_noisespectra 
     Fptr.close()
     print('finished. check h5 file')
+
+
+
+
 
 
 

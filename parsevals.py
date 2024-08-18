@@ -1,15 +1,18 @@
 
 from startlaser import *
 
-def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, the_k=0):
-    # dk = 1/fourier_image.size 
+def parsevals_th(dim, p2d, p3d, dk, kvalues, sigmaN_sq=None, the_k=100):
+
     if dim == 1:
-        if the_k == 0:
-            # [1:] or not seems irrelevant 
-            P2D = ((p2d[1:] * dk).sum()) *dk  #avoiding dk inside does not alter oom of sigmas
+        if the_k == 100:
+            P2D = ((p2d[1:] * dk).sum()) *dk  # must have both dk-s
             P3D = ((p3d[1:] * dk).sum()) *dk
+        if the_k == 0:  #k=0 calculation should be dropped and this is what this does
+            P2D = np.nan#((p2d[1:] * dk).sum()) *dk  
+            P3D = np.nan#((p3d[1:] * dk).sum()) *dk
         if the_k != 0:
             k = int(the_k)
+            k=k+1
             P2D = ((p2d[1:k] * dk).sum()) *dk  
             P3D = ((p3d[1:k] * dk).sum()) *dk
 

@@ -23,6 +23,7 @@ reload(turbulence_driving_analysis)
 
 import cfpack as cfp
 from cfpack import stop,print 
+from cfpack import matplotlibrc   #should be okay to delete the matplotlibs above
 import h5py
 
 
@@ -38,6 +39,8 @@ import calculate
 reload(calculate)
 import noiseimage
 reload(noiseimage)
+import make_images
+reload(make_images)
 
 
 ''' 
