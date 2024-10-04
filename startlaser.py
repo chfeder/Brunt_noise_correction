@@ -39,8 +39,8 @@ import calculate
 reload(calculate)
 import noiseimage
 reload(noiseimage)
-import make_images
-reload(make_images)
+#import make_images
+#reload(make_images)
 
 
 ''' 

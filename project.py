@@ -20,19 +20,15 @@ Proj = Convolve with Gaussian (need the PSF framing camera)
 '''
 from startlaser import *
 
-def Project(covergrid, pj_axis, project, field_one, field_two=None, field_three=None):
-
-        if field_one == 'overdensity': 
-            rho_0 = (covergrid['density'] * covergrid['cell_volume']).sum()/covergrid['cell_volume'].sum()
-            covergrid.set_field_parameter('rho_0',rho_0)
-
-        velocities = ['sound_speed','velocity_x', 'velocity_y', 'velocity_z']
+def Project(covergrid, pj_axis, project, field_one, field_two=None):
 
         if project == True:
-            cg_main = covergrid[field_one].sum(axis=pj_axis)
-            #pdb.set_trace()  #check shape
+            pre_cg_main_sum = covergrid[field_one].sum(axis=pj_axis)
+            cg_main_mean = pre_cg_main_sum.mean()
+            cg_main = pre_cg_main_sum/cg_main_mean
+            cg_main_sum = cg_main
+            
             cg_two = covergrid[field_two].sum(axis=pj_axis)
-            cg_three = None
 
         if project == False:
             cg_main = covergrid[field_one] 
@@ -40,6 +36,5 @@ def Project(covergrid, pj_axis, project, field_one, field_two=None, field_three=
                 cg_two = covergrid[field_two]
             else:
                 cg_two = None
-            cg_three = None
 
-        return cg_main, cg_two, cg_three
+        return cg_main_sum, cg_main, cg_two
