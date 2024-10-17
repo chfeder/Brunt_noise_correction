@@ -3,48 +3,49 @@ from startlaser import *
 from collections import defaultdict
 import matplotlib.ticker as ticker
 import matplotlib.lines as mlines
-#from labelLines import *
 # GET INFO FROM STORAGE 
+import pdb 
 
 
 # POSSIBLE FIT FUNCTIONS
+# discovery fit functions
 def linfunct(x, a, b):  
     y = a * x + b 
-    #y = np.log(pre_y)
     return y
-
 def lininvfunct_og(x, a, b=0.25):
     y = a * x**(b) - 0.2 
-    #y = np.log(pre_y)
     return y
-def lininvfunct(x, a, b):
-    y = a * 1/np.exp(x**b) 
-    #y = np.log(pre_y)
+def discovery(x, a, b, c):
+    # originally an exponential function
+    pre_y = 1 + x**-a 
+    y = np.log(pre_y)
     return y
-
-def tanfunct_simple(x, first, second):  #used to be x, c, d, e; try this first when data is ready
-    #y = first * np.tanh(second*np.log10(x)) + (1-first)  #c should be negative, d positive; c+e=1
-    y = first * np.tanh(second*x) + (1-first)  #c should be negative, d positive; c+e=1
+def tanfunct_simple(x, first, second): 
+    y = first * np.tanh(second*x) + (1-first)  
     return y
-
 def gaussianlike(x, a, b): 
     #y = a * np.exp(-(x-1)**2 / (2 * b**2)) + c
     y = a * np.exp(-(x)**2 /b) + 1
     return y
-
 def sigmarho_fit_old_old(x,a):  
     pre_y = (lininvfunct(x, a, b=1) * tanfunct_simple(x, first=first, second=second)) 
     y = np.log(pre_y)
     return y 
-
 def sigmarho_fit_old(x, a, b, c):
     y = 1/(a * x**(b)+c)
     return y 
 
-def sigmarho_fit(x, a, b):
-    y = np.log( x**a / (x**a + b) )
+# the fitting functions we actually used
+def csnr_1(x, a, b):
+    y = np.log( (x**a + b) / x**a )
+    return y 
+def csnr_2(x, c, d):
+    y = np.log( x**c / (x**c + d) )
     return y 
 
+def csnr(x, a, b, c, d):  
+    cfactor = csnr_1(x,a,b) + csnr_2(x,c,d)
+    return cfactor 
 
 
 # GET THE FITTING 
@@ -56,58 +57,41 @@ def fitthebox(whichfigure, eldata, secondparam=0):
     param_a = []
     param_b = []
     param_c = []
-    param_d = []
-    param_e = []
+    param_d = [] 
     for j in range(numofboxes):  
-        if whichfigure == 'sigmas' or whichfigure =='sigmasdenoised':
-            xdata = [0.1, 1, 3, 5, 10, 100] 
+        xdata = [0.1, 1, 3, 5, 10, 100] 
         oneboxproj = []
         for k in range(len(xdata)):
             prexdata = eldata[k][j]
             oneboxproj = np.append(oneboxproj, prexdata) 
         
-        if whichfigure == 'ratios': 
-            #mask = ~np.isnan(oneboxproj)
-            #xdata_filtered = np.array(xdata)[mask]
-            #ydata_filtered = oneboxproj[mask]
-            print('inside the ratios')
-            secondparam = "ratios"
-            #params = {"first":[-2,-1,-0.1], "second":[0.5,2.0,4]} 
-            rets = cfp.fit(tanfunct_simple, xdata[2:], oneboxproj[2:])#, params=params) 
-            #rets = cfp.fit(tanfunct_simple, xdata[2:], oneboxproj[2:])#, params=params) 
-
-        if whichfigure == 'sigmas':
-            print('inside the sigmas')
-            secondparam ='justtwo'
-            params = {"a": [0.1, 1, 3.0], "b": [0.1, 1, 3.0]}
-            #mask = ~np.isnan(oneboxproj)
-            #y_clean = oneboxproj[mask]
-            arr_safe = np.nan_to_num(oneboxproj, nan=1)
-            rets = cfp.fit(sigmarho_fit, xdata, np.log(arr_safe), params=params)
-            #stop()
-
         if whichfigure == 'sigmasdenoised':
             secondparam ='justtwo'
             print('inside the sigmasdenoised')
-            params = {"a": [0.5, 2.5, 3.5], "b": [0.15, 0.35, 0.45]}
-            #params=None
+            params = {"a": [0.1, 1, 3.0], "b": [0.1, 1, 3.0]}
             arr_safe = np.nan_to_num(oneboxproj, nan=1)
-            #stop()
-            rets = cfp.fit(lininvfunct, xdata, np.log(arr_safe), params=params)
-
-        if whichfigure == 'kvals':
-            print('inside fitting for kvals')
-            secondparam = 1
-            rets = cfp.fit(linfunct, xdata[1:-1], oneboxproj[1:-1])
-            print('how many params ',secondparam)
+            rets = cfp.fit(csnr_1, xdata, np.log(arr_safe), params=params)
+        if whichfigure == 'sigmas':
+            print('inside the sigmas')
+            secondparam ='justtwo'
+            params = {"c": [0.1, 1, 3.0], "d": [0.1, 1, 3.0]}
+            arr_safe = np.nan_to_num(oneboxproj, nan=1)
+            rets = cfp.fit(csnr_2, xdata, np.log(arr_safe), params=params)
+        if whichfigure == 'sigmastwo':
+            print('inside the sigmas')
+            secondparam ='gauss'
+            params = {"a": [0.1, 1, 3.0], "b": [0.1, 1, 3.0], "c":[0.1, 1, 3.0],"d": [0.1, 1, 3.0] } 
+            arr_safe = np.nan_to_num(oneboxproj, nan=1)
+            rets = cfp.fit(csnr, xdata, np.log(arr_safe), params=params)
 
         param_a = np.append(param_a, rets.popt[0])
         if secondparam == 'gauss' or secondparam == 'justtwo':
             param_b = np.append(param_b, rets.popt[1])
         if secondparam== 'gauss':
             param_c = np.append(param_c, rets.popt[2])
+            param_d = np.append(param_d, rets.popt[3])
 
-    med_a = np.percentile(param_a, 50) #same as np.median()
+    med_a = np.percentile(param_a, 50) 
     p16_a = np.percentile(param_a, 16)
     p84_a = np.percentile(param_a, 84)
     if secondparam == 'gauss' or secondparam =='justtwo':
@@ -116,177 +100,60 @@ def fitthebox(whichfigure, eldata, secondparam=0):
         p84_b = np.percentile(param_b, 84)
     if secondparam == 'gauss':
         med_c = np.percentile(param_c, 50)
+        med_d = np.percentile(param_d, 50)
         p16_c = np.percentile(param_c, 16)
+        p16_d = np.percentile(param_d, 16)
         p84_c = np.percentile(param_c, 84)
-    if secondparam == 0:
+        p84_d = np.percentile(param_d, 84)
+
+    if secondparam ==0:
         med_b = p16_b = p84_b = 0
-    if 1: 
+    if secondparam ==0 or secondparam == 'justtwo': 
         med_c = p16_c = p84_c = 0
+        med_d = p16_d = p84_d = 0
 
     if secondparam == 0:
         param_meds = [med_a]
         param_16s = [p16_a] 
         param_84s = [p84_a] 
-    else:
-        print("there is a b and or c")
-        param_meds = [med_a, med_b]#, med_c]
-        param_16s = [p16_a, p16_b]#, p16_c]
-        param_84s = [p84_a, p84_b]#, p84_c]
+    if secondparam == 'justtwo':
+        param_meds = [med_a, med_b]
+        param_16s = [p16_a, p16_b]
+        param_84s = [p84_a, p84_b]
+    if secondparam == 'gauss':
+        param_meds = [med_a, med_b, med_c, med_d]
+        param_16s = [p16_a, p16_b, p16_c, med_d]
+        param_84s = [p84_a, p84_b, p84_c, med_d]
     
     return param_meds, param_16s, param_84s
 
 
-# TO PLOT THE FITTING 
-def plotthefitting(the_xxx, thefigures, themedians, sixteenths, eightyfours):
-    if thefigures == 'sigmas':
-        the_yrecipemed = sigmarho_fit(the_xxx, *themedians)  
-        the_yrecipelow = sigmarho_fit(the_xxx, *sixteenths)
-        the_yrecipeupp = sigmarho_fit(the_xxx, *eightyfours)
+def plotthefitting(the_xxx, thefigures, themedians, sixteenths=None, eightyfours=None, fitting='no'):
+    """ plot the fitting """
     if thefigures == 'sigmasdenoised':
-        the_yrecipemed = lininvfunct(the_xxx, *themedians)  
-        the_yrecipelow = lininvfunct(the_xxx, *sixteenths)
-        the_yrecipeupp = lininvfunct(the_xxx, *eightyfours)
-
-    if thefigures == 'ratios':
-        the_yrecipemed = tanfunct_simple(the_xrecipe, *themedians)  
-        the_yrecipelow = tanfunct_simple(the_xrecipe, *sixteenths)
-        the_yrecipeupp = tanfunct_simple(the_xrecipe, *eightyfours)
-    if thefigures == 'kvals':
-        the_yrecipemed = linfunct(the_xrecipe, *themedians)  
-        the_yrecipelow = linfunct(the_xrecipe, *sixteenths)
-        the_yrecipeupp = linfunct(the_xrecipe, *eightyfours)
+        the_yrecipemed = csnr_1(the_xxx, *themedians)  
+        if fitting=='yes': 
+            the_yrecipelow = csnr_1(the_xxx, *sixteenths)
+            the_yrecipeupp = csnr_1(the_xxx, *eightyfours)
+    if thefigures == 'sigmas':
+        the_yrecipemed = csnr_2(the_xxx, *themedians)  
+        if fitting=='yes': 
+            the_yrecipelow = csnr_2(the_xxx, *sixteenths)
+            the_yrecipeupp = csnr_2(the_xxx, *eightyfours)
+    if thefigures == 'sigmastwo':
+        the_yrecipemed = csnr(the_xxx, *themedians)  
+        if fitting=='yes': 
+            the_yrecipelow = csnr(the_xxx, *sixteenths)
+            the_yrecipeupp = csnr(the_xxx, *eightyfours)
+    if fitting =='no':
+        the_yrecipelow = 0  
+        the_yrecipeupp = 0 
     return the_yrecipemed, the_yrecipelow, the_yrecipeupp
 
-
-# MAKE A BOXPLOT AND SCATTER PLOT 
-def boxplotscatter(thefigure, ladata, theparams=0, secondfig=None, seconddata=None):
-    fig,ax = plt.subplots(1,1)
-    # for the plot within the figure
-    if thefigure in {'kvals', 'rsqrtfull'}:
-        right, top, width, height = [0.6, 0.2, 0.25, 0.25]
-        ax2 = fig.add_axes([right, top, width, height])
-    if thefigure in {'ratios', 'sigmas'}:
-        right, bottom, width, height = [0.6, 0.6, 0.25, 0.25]
-        ax2 = fig.add_axes([right, bottom, width, height])
-
-    # funny order to make the boxplots with a plot overlayed to work
-    ax.set_xscale('log')
-    ax.set_xlim(np.array(subxdata).min()/1.20, np.array(subxdata).max()*1.20)
-    ax2.set_xscale('log')
-    ax2.set_xlim(np.array(xdata).min()/1.20, np.array(xdata).max()*1.20)
-
-    # the boxplot!  WARNING: this sets only for 'sigmas' option 
-    if thefigure == 'sigmas':
-        the_data = ladata/ladata[-1]
-        data_lista = the_data.tolist()
-    else:
-        data_lista = ladata
-    subboxplot = ax.boxplot(data_lista[2:], showfliers=True, showmeans=False, labels=subxdata, positions=subxdata) #\
-                        #, boxprops=dict(color="none"), capprops=dict(color="none"), medianprops=dict(color="none"))  
-    boxplot = ax2.boxplot(data_lista, showfliers=True, showmeans=False, labels=xdata, positions=xdata) #\
-                        #, boxprops=dict(color="none"), capprops=dict(color="none"), medianprops=dict(color="none"))  
-
-
-    # ...and hacking the SUBBOX plot 
-    cap_s = 1.08
-    box_s = 1.16
-    for i in range(len(ladata[2:])):
-        cap = [subxdata[i]/cap_s, subxdata[i]*cap_s]
-        subboxplot['caps'][2*i+0].set_data([cap, subboxplot['caps'][2*i+0].get_data()[1]])  #lower cap
-        subboxplot['caps'][2*i+1].set_data([cap, subboxplot['caps'][2*i+1].get_data()[1]])  #upper cap
-
-        med = [subxdata[i]/box_s, subxdata[i]*box_s]
-        subboxplot['medians'][i].set_data([med, subboxplot['medians'][i].get_data()[1]]) 
-        
-        box = [subxdata[i]/box_s, subxdata[i]*box_s, subxdata[i]*box_s, subxdata[i]/box_s, subxdata[i]/box_s]
-        subboxplot['boxes'][i].set_data([box, subboxplot['boxes'][i].get_data()[1]])
-
-    submedians = [median.get_ydata()[0] for median in subboxplot['medians']]
-    ax.scatter(subxdata, submedians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
-    # ...and hacking the BOX plot 
-    cap_s = 1.08
-    box_s = 1.16
-    for i in range(len(ladata)):
-        cap = [xdata[i]/cap_s, xdata[i]*cap_s]
-        boxplot['caps'][2*i+0].set_data([cap, boxplot['caps'][2*i+0].get_data()[1]])  #lower cap
-        boxplot['caps'][2*i+1].set_data([cap, boxplot['caps'][2*i+1].get_data()[1]])  #upper cap
-
-        med = [xdata[i]/box_s, xdata[i]*box_s]
-        boxplot['medians'][i].set_data([med, boxplot['medians'][i].get_data()[1]]) 
-        
-        box = [xdata[i]/box_s, xdata[i]*box_s, xdata[i]*box_s, xdata[i]/box_s, xdata[i]/box_s]
-        boxplot['boxes'][i].set_data([box, boxplot['boxes'][i].get_data()[1]])
-
-    medians = [median.get_ydata()[0] for median in boxplot['medians']]
-    ax2.scatter(xdata, medians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
-
-
-    # for overlaying purposes, such as rhalf noise, rhalf denoised
-    if secondfig: 
-        medians_two=[]
-        submedians_two=[]
-        # FOR 15 boxes, all target
-        if 1:
-            for k in range(len(seconddata)):
-                medians_two = np.append(medians_two, np.median(seconddata[k]))
-            ax2.scatter(xdata, medians_two, color='r', marker='o', alpha=0.4, label='other median')  #reduce the marker size! 
-            for l in range(len(seconddata[2:])):
-                submedians_two = np.append(submedians_two, np.median(seconddata[2:][l]))
-            ax.scatter(subxdata, submedians_two, color='r', marker='o', alpha=0.4, label='other median')  #reduce the marker size! 
-        # FOR 15 boxes, one target - signal only
-        if 0:
-            medians_two = np.array([np.median(seconddata)]*len(xdata))
-            plt.scatter(xdata, medians_two, color='orange', marker='o', alpha=0.5, label='other median')  #reduce the marker size! 
-
-    if thefigure in {'ratios', 'sigmas'}:
-        # call the fittings procedure definition
-        meds, lows, upps = fitthebox(thefigure, data_lista, theparams)
-        # call the fitting definition, which will provide the the_yrecipes below
-        ln_ymed, ln_ylow, ln_yupp = plotthefitting(thefigure, meds, lows, upps)
-        ymed = np.exp(ln_ymed)
-        ylow = np.exp(ln_ylow)
-        yupp = np.exp(ln_yupp)
-        ax2.plot(the_xrecipe, ymed, color=colors[draw], linestyle='dashed')
-        ax2.plot(the_xrecipe, ylow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
-        ax2.plot(the_xrecipe, yupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
-        ax2.fill_between(the_xrecipe, ylow, yupp, color=colors[draw], alpha=0.2)
-
-        # to be EDITED; same as above
-        #stop()
-        '''
-        meds, lows, upps = fitthebox(thefigure, data_lista, theparams)
-        ymed, ylow, yupp = plotthefitting(thefigure, meds, lows, upps)
-        ax.plot(the_xrecipe, ymed, color=colors[draw], linestyle='dashed')
-        ax.plot(the_xrecipe, ylow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
-        ax.plot(the_xrecipe, yupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
-        ax.fill_between(the_xrecipe, ylow, yupp, color=colors[draw], alpha=0.2)
-        '''
-    else:
-        meds = 0
-    
-
-    # SAVING    
-    if thefigure == 'rsqrtfull':
-        ax.set_yscale('log')
-        ax.set_ylabel(r'$R^{1/2}_{noisy}$, $R^{1/2}_{denoised}$')
-    if thefigure == 'kvals':
-        ax.set_ylabel('k noise')
-    if thefigure == 'sigmas':
-        ax2.set_yscale('log')
-        ax.set_yscale('log')
-        ax.set_ylabel(r'$\sigma_{\rho/\rho_o,snr} / \sigma_{\rho/\rho_o,inf}$') 
-    if thefigure == 'ratios':
-        ax.set_ylabel(r'$R^{1/2}_{denoised}/R^{1/2}_{noisy}$')
-    ax.set_xlabel('SNR')
-
-    # really saving now
-    plt.savefig('sort_plots/boxplot15_powspec14_%s_i1k_%s'%(thefigure,void_size))
-    print('%s_saved!'%thefigure)
-    plt.clf()
-    return meds
-
-
+if 'kludge' not in dir():
+    kludge ={}
 def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=None, void_errname=None, styleplot='singular'):
+    """ plot the data """
     thefigs = [thefigure, secondfig]
     thedata = [ladata, seconddata]
     colores = [colors[draw], colors[draw]]
@@ -305,7 +172,6 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
             the_medians.append(np.nanpercentile(thedata[num][k], 50))
             the_lowers.append(np.nanpercentile(thedata[num][k], 16))
             the_uppers.append(np.nanpercentile(thedata[num][k], 84))
-
         the_medians = np.array(the_medians)
         the_lowers = np.array(the_lowers)
         the_uppers = np.array(the_uppers)
@@ -320,73 +186,106 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
             else:
                 ax.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
+
         if styleplot =='subpanel':
             if thefigure =='sigmasdenoised' and typeofsigma=='free':
                 ax1.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
+                if void_name =='12.5$\mathrm{\mu m}$':
+                    ax1.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7, label=r'$\sigma_{\rho/\rho_0\mathrm{Brunt,denoised}}\mathrm{(SNR\!\to\!\infty)}$')
+                else:
+                    ax1.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7)
+
+            if thefigure =='sigmasdenoised' and typeofsigma==None:
+                ax2.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
+                            ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5)
             if thefigure =='sigmas': 
                 ax2.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
-            if thefigure =='sigmasdenoised' and typeofsigma==None:
-                ax3.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
-                            ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
+            if thefigure =='sigmasdenoised' and typeofsigma=='cthree':
+                if panels=='two':
+                    ax2.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
+                                ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5)
+                if panels=='three':
+                    ax3.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
+                                ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5)
+
         if styleplot =='subpanel':
             if thefigure =='rsqrtfull':
                 print('inside plotting rhalf plot ',void_name)
                 ax1.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
-                #ax1.axhline(y=the_medians[k], linestyle='dashed', color=colores[num], alpha=0.4)
             if thefigure =='rsqrttrue':
                 ax2.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
-                ax2.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7)#, label=r'$R^{1/2}_{\mathrm{denoised}}\mathrm{(SNR\!\to\!\infty)}$')
                 if void_name =='12.5$\mathrm{\mu m}$':
                     ax2.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7, label=r'$R^{1/2}_{\mathrm{denoised}}\mathrm{(SNR\!\to\!\infty)}$')
-            #if thefigure =='ratios':
-            #    ax3.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
-            #                ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
-            #    if void_name =='12.5$\mathrm{\mu m}$':
-            #        ax3.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7, label=r'$R^{1/2}_{\mathrm{denoised}}\mathrm{(SNR\!\to\!\infty)}$')
+                else:
+                    ax2.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7)
         if secondfig == None:
             break
         if secondfig:
             break
 
-    if thefigure == 'sigmas' or thefigure=='sigmasdenoised':
-        if typeofsigma == None:
-            if 1: 
-                # to fit each box
-                the_xx = np.linspace(xdata[1:].min(), xdata[1:].max(), num=2500)  
-                # call the fittings procedure definition
-                meds, lows, upps = fitthebox(thefigure, ladata[1:])
-                print('median a, b, and maybe c', meds)
-                mediano = np.append(medianos, meds) 
-                arribas = np.append(arriba, upps)
-                abajos = np.append(abajo,lows)
-                if void_name == '100$\mathrm{\mu m}$':
-                    ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano, abajos, arribas)
-                    #ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, meds, lows, upps)
-                    ymed = np.exp(ln_ymed)
-                    #ylow = np.exp(ln_ylow)
-                    #yupp = np.exp(ln_yupp)
-                    if styleplot=='subpanel' and whichfigtwo=='sigmasdenoised': 
-                        ax2.plot(the_xx, ymed, color='k', linestyle='dashed', linewidth=3, label='fit', alpha=0.5)
-                    if styleplot=='subpanel' and whichfigtwo==None:
-                        #stop()
-                        #testx =np.array([0.1,1,3,5,10,100])
-                        #testymed = lininvfunct(testx, 0.5, 0.5) 
-                        #testymedmed = np.exp(testymed)
-                        #ax3.plot(testx,testymedmed,color='k')
-                        ax3.plot(the_xx, ymed, color='k', linestyle='dashed', linewidth=3, label='fit', alpha=0.5)
-                    #else:
-                    #    ax.plot(the_xx, ymed, color='k', linestyle='dashed', linewidth=3, label='fit', alpha=0.5)
-                    #ax.plot(the_xx, ymed, color=colors[draw], linestyle='dashed', label=labels[num], alpha=0.5)
+    # FITTING THE PLOTS
+    # WARNING: add which figures can enter the fitting.
+    if thefitting == 'one' or thefitting == 'two' or thefitting == 'three':
+        if typeofsigma=='cthree':
+            thefigure='sigmastwo'
 
-                    #ax.plot(the_xrecipe, ln_ylow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
-                    #ax.plot(the_xrecipe, ln_yupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
-                    #ax.fill_between(the_xrecipe, ln_ylow, ln_yupp, color=colors[draw], alpha=0.2)
+        # to fit each box
+        the_xx = np.linspace(xdata[1:].min(), xdata[1:].max(), num=2500)  
+
+        # call the fittings procedure definition
+        if thefigure != 'sigmastwo' or fit=='yes': 
+            meds, lows, upps = fitthebox(thefigure, ladata[1:])
+            if thefitting == 'one': 
+                medianos1.append(meds)
+            if thefitting == 'two': 
+                medianos2.append(meds)
+            if thefitting == 'three': 
+                medianos3.append(meds)
+
+        if void_name == '100$\mathrm{\mu m}$':
+            if thefitting == 'one':
+                mediano_1 = np.mean(medianos1,axis=0) 
+                ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano_1)
+                #ymed1 = np.exp(ln_ymed) 
+                #kludge['ymed1'] = ymed1
+            if thefitting == 'two':
+                mediano_2 = np.mean(medianos2,axis=0) 
+                ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano_2)
+                #ymed2 = np.exp(ln_ymed) 
+                #kludge['ymed2'] = ymed2
+            if thefitting == 'three':
+                if fit =='no':
+                    mediano_1 = np.mean(medianos1,axis=0) 
+                    mediano_2 = np.mean(medianos2,axis=0) 
+                    mediano = np.append(mediano_1, mediano_2)
+                    print('the four params ',mediano)
+                    stop()
+                    ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano)
+                    #ymed3 = kludge['ymed1']*kludge['ymed2']  
+                    #ymedreal = np.exp(ln_ymed) 
+                if fit =='yes':
+                    mediano = np.mean(medianos3,axis=0) 
+                    ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano)
+            ymed = np.exp(ln_ymed)
+
+            if styleplot=='subpanel':
+                if whichfigtwo !='sigmasdenoised' and typeofsigma==None:
+                    ax2.plot(the_xx, ymed, color='grey', linestyle='dashed', linewidth=3, label='$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
+                    #ax2.plot(the_xx, kludge['ymed1'], color='grey', linestyle='dashed', linewidth=3, label='$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
+                if whichfigtwo=='sigmasdenoised':  
+                    ax2.plot(the_xx, ymed, color='grey', linestyle='dashed', linewidth=3, label='$C_2\mathrm{(SNR)}$ fit', alpha=0.7)
+                    #ax2.plot(the_xx, kludge['ymed2'], color='k', linestyle='dashed', linewidth=3, label='$C_2\mathrm{(SNR)}$ fit', alpha=0.5)
+                if typeofsigma=='cthree':
+                    if panels=='two':
+                        ax2.plot(the_xx, ymed, color='r', linestyle='dashed', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
+                    if panels=='three':
+                        ax3.plot(the_xx, ymed, color='r', linestyle='--', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
+                        #ax3.plot(the_xx, ymed3, color='r', linestyle='--', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
     return  
-
 
 
 def plotfig(plotstyle):
@@ -445,6 +344,12 @@ def plotfig(plotstyle):
             ax.set_ylabel(label, fontsize=13)
             ylims = None#(0.5, 3)#(1e-1,0.5e1)
             yscales = 'log'
+        if whichfig == 'sigmas' and typeofsigma=='cthree':
+            label = 'Noise correction C(SNR)'
+            ax.set_xlabel("SNR", fontsize=13)
+            ax.set_ylabel(label, fontsize=13)
+            ylims = None#(0.5, 3)#(1e-1,0.5e1)
+            yscales = 'log'
         if whichfig == 'columnddenoise':
             label = r'$\sigma_{N/N_0,\mathrm{denoised}}$'
             ylims = (0,0.3)
@@ -452,6 +357,8 @@ def plotfig(plotstyle):
             ax.set_xlabel("SNR", fontsize=13)
             ax.set_ylabel(label, fontsize=13)
 
+        #yscales='log'  #WARNING, TEMP FIX
+        #ylims=None     #WARNING, TEMP FIX
         ax.set(xscale='log', yscale=yscales, ylim=ylims)
 
     if plotstyle == 'subpanel' and whichfig!= 'sigmasdenoised':
@@ -466,11 +373,6 @@ def plotfig(plotstyle):
         ax2.tick_params(axis='both', which='major', labelsize=21)
         ax2.set_xlabel("SNR", fontsize=21)
 
-        #ax3.set(xscale='log', yscale='linear')
-        #y3label=r'$R^{1/2}_{\mathrm{denoised}}/R^{1/2}$'
-        #ax3.set_ylabel(y3label, fontsize=21)
-
-        #handles, labels = ax3.get_legend_handles_labels()
         handles, labels = ax2.get_legend_handles_labels()
         desired_label = r'$R^{1/2}_{\mathrm{denoised}}\mathrm{(SNR\!\to\!\infty)}$'
         if desired_label in labels:
@@ -480,6 +382,8 @@ def plotfig(plotstyle):
             handles.append(desired_handle)
             labels.append(desired_label)
             ax2.legend(handles, labels, loc='best', fontsize=20, labelspacing=0.2) 
+
+
     if plotstyle == 'subpanel' and whichfig== 'sigmasdenoised':
         ax1.set(xscale='log', yscale='linear') 
         ylims=(0,1)
@@ -487,20 +391,33 @@ def plotfig(plotstyle):
         y1label = r'$\sigma_{\mathrm{\rho/\rho_o,Brunt,denoised}}$'
         ax1.set_ylabel(y1label, fontsize=21)
         ax1.tick_params(axis='both', which='major', labelsize=21)
-        ax1.legend(loc='best', fontsize=21)
+
+        handles, labels = ax1.get_legend_handles_labels()
+        desired_label = r'$\sigma_{\rho/\rho_0\mathrm{Brunt,denoised}}\mathrm{(SNR\!\to\!\infty)}$'
+        if desired_label in labels:
+            index = labels.index(desired_label)
+            desired_handle = handles.pop(index)
+            desired_label = labels.pop(index)
+            handles.append(desired_handle)
+            labels.append(desired_label)
+            ax1.legend(handles, labels, loc='upper left', fontsize=20, labelspacing=0.2) 
 
         ax2.set(xscale='log', yscale='log') 
-        y2label = 'Noise correction $\mathrm{C_1(SNR)}$'
+        y2label = 'Noise correction $C_i\mathrm{(SNR)}$'
         ax2.set_ylabel(y2label, fontsize=21)
         ax2.tick_params(axis='both', which='major', labelsize=21)
-        #ax2.legend(loc='best', fontsize=21)
+        ax2.legend(loc='best', fontsize=21)
+        if panels=='two':
+            ax2.set_xlabel('SNR', fontsize=21)
 
-        ax3.set(xscale='log', yscale='log')
-        y3label = 'Noise correction $\mathrm{C_2(SNR)}$'
-        ax3.set_ylabel(y3label, fontsize=21)
-        ax3.set_xlabel("SNR", fontsize=21)
-        ax3.tick_params(axis='both', which='major', labelsize=21)
-        ax3.legend(loc='best', fontsize=21)
+        if panels=='three':
+            ax3.set(xscale='log', yscale='log') 
+            y3label = 'Noise correction $C\mathrm{(SNR)}$'
+            ax3.set_ylabel(y3label, fontsize=21)
+            ax3.tick_params(axis='both', which='major', labelsize=21)
+            ax3.legend(loc='lower right', fontsize=21)
+            ax3.set_xlabel('SNR', fontsize=21)
+
 
     # really saving now
     fig.tight_layout()   #trouble for sigmas?
@@ -511,54 +428,56 @@ def plotfig(plotstyle):
 
 
 
-# MAIN: LOOP FOR THREE VOIDS!
+# MAIN: LOOP FOR THE THREE VOIDS!
 numofboxes = 15
 whichfig = 'sigmasdenoised'
-ave = False
-whichfigtwo = None 
-typeofsigma = None 
+ave = False  # there's normalized data by the average and non-normalized data
+whichfigtwo = None
+typeofsigma = None
 target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  
 xdata = np.array(target_snr[:-1])
-the_xrecipe = np.linspace(xdata.min(), xdata.max(), num=2500)  
 
 k_plot = 'divkmax'  # divkmax or knoise
 plotstyle = 'subpanel'  # singular or subpanel
-boxorplot = 'plot'  #dismissing the boxplots...
+panels = 'two'  # two or three
+fit = 'no'
 
 voids = ['12p5mu', '50mu', '100mu']
 voids_formal = ['12.5$\mathrm{\mu m}$', '50$\mathrm{\mu m}$', '100$\mathrm{\mu m}$']
 voids_eformal = ['$12.5_{\mu m, \mathrm{denoised}}$', '$50_{\mu m, \mathrm{denoised}}$', '$100_{\mu m, \mathrm{denoised}}$',]
 colors = ['magenta', 'b', 'g']
 
-if typeofsigma == 'debug': #or 'free' 
+if typeofsigma == 'debug':  #or 'free' for the one void figure 
     voids = ['50mu']  
     voids_formal = ['50$\mathrm{\mu m}$']
     colors = ['b']    
 
 if 1:
     if whichfig != 'kvals2D' and plotstyle=='singular':
-        fig,ax = plt.subplots(1,1)  #TO OVERLAY 
+        fig,ax = plt.subplots(1,1) 
     if whichfig == 'rsqrtfull' and plotstyle=='subpanel':
         fig,(ax1, ax2) = plt.subplots(2,1, sharex=True, figsize=(7, 9))  
+
     if whichfig == 'sigmasdenoised' and plotstyle=='subpanel':
-        fig,(ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, figsize=(8, 12))  
-    if whichfig == 'sigmas' or whichfig=='sigmasdenoised':
-        if typeofsigma == None:
-            medianos = []
-            arriba = []
-            abajo = []
+        if panels=='two':
+            fig,(ax1, ax2) = plt.subplots(2,1, sharex=True, figsize=(7, 9))  
+        if panels=='three':
+            fig,(ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, figsize=(8, 12))  
+        medianos1=[]
+        medianos2=[]
+        medianos3=[]
+
     for draw, void_size in enumerate(voids):
         print('void size is ',void_size)
         hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_%s.h5'%void_size
         Fptr = h5py.File(hfivefile,'r')
 
-        # ALL OTHER DATA: BOXPLOTS + SCATTERS + FITS
+        # SCATTERS + FITS
         if whichfig != 'kvals2D':
 
-            # SINGULAR
+            # SINGULAR PLOTS
             if plotstyle == 'singular':
                 data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-                #stop()
                 print('inside singular')
 
                 if whichfig == 'kvals' and k_plot=='divkmax':
@@ -566,23 +485,18 @@ if 1:
                         data[val] = data[val]/data[-1] 
                     errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
                 if whichfig == 'rsqrttrue':
-                    if boxorplot == 'plot':
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])  
+                    errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])  
                 if whichfig == 'rsqrtfull':
-                    if boxorplot == 'plot':
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])  
+                    errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])  
                 if whichfig == 'ratios':
                     print('inside fig')
                     theparams = 1  #two params
-                    if boxorplot == 'box':
-                        listofmeds = boxplotscatterone(whichfig, data, theparams=theparams)  
-                    if boxorplot == 'plot':
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
+                    errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
                 if whichfig == 'sigmas' and whichfigtwo != 'sigmasdenoised':
-                    if boxorplot == 'plot' and typeofsigma == None:
+                    if typeofsigma == None:
                         infdata = data[-1]/data 
                         errorbarsplot(whichfig, infdata, void_name=voids_formal[draw])  
-                    if boxorplot == 'plot' and typeofsigma == 'free':
+                    if typeofsigma == 'free':
                         errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
                 # NEW.
                 if whichfig == 'columnddenoise':
@@ -594,45 +508,60 @@ if 1:
                     if typeofsigma == None:
                         infdata = data[-1]/data 
                         errorbarsplot(whichfig, infdata, void_name=voids_formal[draw])  
+
                 if whichfig == 'sigmas' and whichfigtwo=='sigmasdenoised':
                     figtwodata =list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
-                    csnrdata = []
-                    for val in range(len(data)):
-                        csnrdata.append(figtwodata[val]/data[val])
-                    errorbarsplot(whichfig, csnrdata, void_name=voids_formal[draw])  
+                    if typeofsigma =='cthree':
+                        # WARNING, THIS DOES NOT WORK YET
+                        csnrdata1 = figtwodata[-1]/figtwodata
+                        whichfig = 'sigmasdenoised'
+                        thefitting='one'
+                        errorbarsplot(whichfig, csnrdata1, void_name=voids_formal[draw], styleplot=plotstyle)  
+                        csnrdata2 = np.array(figtwodata)/np.array(data)
+                        whichfig = 'sigmas'
+                        thefitting='two'
+                        errorbarsplot(whichfig, csnrdata2, void_name=voids_formal[draw], styleplot=plotstyle)  
+                        csnrdata_three = figtwodata[-1]/data
+                        whichfig = 'sigmasdenoised'
+                        thefitting = 'three'
+                        errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)  
 
 
+            # MULTIPANEL PLOTS
             if plotstyle == 'subpanel' and whichfig=='sigmasdenoised':
                 data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
                 typeofsigma ='free'
+                thefitting=None
                 errorbarsplot(whichfig, data, void_name=voids_formal[draw], styleplot=plotstyle)  
+
+                typeofsigma = None
+                infdata = data[-1]/data 
+                thefitting='one'
+                errorbarsplot(whichfig, infdata, void_name=voids_formal[draw], styleplot=plotstyle)  
 
                 whichfig = 'sigmas'
                 whichfigtwo = 'sigmasdenoised'
                 typeofsigma = None
-                data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-                figtwodata =list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
-                csnrdata = []
-                for val in range(len(data)):
-                    csnrdata.append(figtwodata[val]/data[val])
+                data_sigmas = list(Fptr['%s_%s'%(whichfig,void_size)])  
+                csnrdata = np.array(data)/np.array(data_sigmas)
+                thefitting='two'
                 errorbarsplot(whichfig, csnrdata, void_name=voids_formal[draw], styleplot=plotstyle)  
 
-                whichfig = 'sigmasdenoised'
+                whichfig='sigmasdenoised'
                 whichfigtwo = None
-                typeofsigma = None
-                data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
                 figtwodata = None
-                infdata = data[-1]/data 
-                errorbarsplot(whichfig, infdata, void_name=voids_formal[draw], styleplot=plotstyle)  
+                typeofsigma = 'cthree'
+                csnrdata_three = data[-1]/data_sigmas
+                thefitting='three'
+                errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)
+                # note: saving happens post powerspectra plots
 
-            
+
             if plotstyle == 'subpanel' and whichfig=='rsqrtfull':
+                thefitting=None
                 data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
                 errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw], styleplot=plotstyle)
                 print('after rhalf plot ',void_size)
-
-                #whichfigtwo = 'kvals' 
-                #figtwodata =list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
 
                 whichfig = 'rsqrttrue'
                 data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
@@ -646,7 +575,7 @@ if 1:
                 #              secondfig=whichfigtwo, seconddata=figtwodata)
 
 
-        # POWERSPECTRA: #make this a small definition too?? 
+        # POWERSPECTRA PLOTS 
         if whichfig == 'kvals2D':
             figfour = 'kvals'
             figfive = 'powintersects'
@@ -764,6 +693,7 @@ if 1:
                 rets = cfp.fit(linfunct, quickx[1:], quicky[-1][1:])
         Fptr.close() 
 
+
     if whichfig != 'kvals2D':
         plotfig(plotstyle) 
 
@@ -775,7 +705,7 @@ if 0:
     voids = ['50mu', '100mu', '12p5mu']
     colores = ['b', 'g', 'orange']
     for num, void_size in enumerate(voids):
-        void_size = '100mu'
+        void_size = '50mu'
         hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
         hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
         Fptr = h5py.File(hfivefile,'r')
@@ -784,6 +714,23 @@ if 0:
         ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
         ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
         ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
+        porcentajes = []
+        def percent_difference(value1, value2):
+            pdiff = np.abs(value1 - value2) / np.mean([value1, value2]) * 100
+            porcentajes.append(pdiff)
+            return
+        def percent_difference_3(value1, value2, value3, value4, value5):
+            mean_value = (value1 + value2 + value3, value4, value5) / 5 
+            pd1 = abs(value1 - mean_value) / mean_value * 100
+            pd2 = abs(value2 - mean_value) / mean_value * 100
+            pd3 = abs(value3 - mean_value) / mean_value * 100 
+            pd4 = abs(value4 - mean_value) / mean_value * 100 
+            pd5 = abs(value5 - mean_value) / mean_value * 100 
+            return pd1, pd2, pd3, pd4, pd5
+        #for i in range(len(ydata_3D)):
+        #    pdiff = percent_difference(ydata_3D[i], ydata_Brunt[i])
+        #    porcentajes.append(pdiff)
+        #mean_pdiff = np.mean(np.array(porcentajes))
         stop()
         xdata = np.linspace(1,15,15)
         fig,ax = plt.subplots(1,1)
@@ -794,5 +741,119 @@ if 0:
         print('saving, saved')
         fig.savefig('sort_plots/15boxes_brunt_3D_%s'%void_size)
         plt.close()
-
     Fptr.close() 
+
+
+
+'''
+# MAKE A BOXPLOT AND SCATTER PLOT - left for learning purposes; how to hack a boxplot. 
+def boxplotscatter(thefigure, ladata, theparams=0, secondfig=None, seconddata=None):
+    fig,ax = plt.subplots(1,1)
+    # for the plot within the figure
+    if thefigure in {'kvals', 'rsqrtfull'}:
+        right, top, width, height = [0.6, 0.2, 0.25, 0.25]
+        ax2 = fig.add_axes([right, top, width, height])
+    if thefigure in {'ratios', 'sigmas'}:
+        right, bottom, width, height = [0.6, 0.6, 0.25, 0.25]
+        ax2 = fig.add_axes([right, bottom, width, height])
+
+    # funny order to make the boxplots with a plot overlayed to work
+    ax.set_xscale('log')
+    ax.set_xlim(np.array(subxdata).min()/1.20, np.array(subxdata).max()*1.20)
+    ax2.set_xscale('log')
+    ax2.set_xlim(np.array(xdata).min()/1.20, np.array(xdata).max()*1.20)
+
+    # the boxplot!  WARNING: this sets only for 'sigmas' option 
+    if thefigure == 'sigmas':
+        the_data = ladata/ladata[-1]
+        data_lista = the_data.tolist()
+    else:
+        data_lista = ladata
+    subboxplot = ax.boxplot(data_lista[2:], showfliers=True, showmeans=False, labels=subxdata, positions=subxdata) 
+    boxplot = ax2.boxplot(data_lista, showfliers=True, showmeans=False, labels=xdata, positions=xdata) 
+
+    # ...and hacking the SUBBOX plot 
+    cap_s = 1.08
+    box_s = 1.16
+    for i in range(len(ladata[2:])):
+        cap = [subxdata[i]/cap_s, subxdata[i]*cap_s]
+        subboxplot['caps'][2*i+0].set_data([cap, subboxplot['caps'][2*i+0].get_data()[1]])  #lower cap
+        subboxplot['caps'][2*i+1].set_data([cap, subboxplot['caps'][2*i+1].get_data()[1]])  #upper cap
+
+        med = [subxdata[i]/box_s, subxdata[i]*box_s]
+        subboxplot['medians'][i].set_data([med, subboxplot['medians'][i].get_data()[1]]) 
+        
+        box = [subxdata[i]/box_s, subxdata[i]*box_s, subxdata[i]*box_s, subxdata[i]/box_s, subxdata[i]/box_s]
+        subboxplot['boxes'][i].set_data([box, subboxplot['boxes'][i].get_data()[1]])
+
+    submedians = [median.get_ydata()[0] for median in subboxplot['medians']]
+    ax.scatter(subxdata, submedians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
+    # ...and hacking the BOX plot 
+    cap_s = 1.08
+    box_s = 1.16
+    for i in range(len(ladata)):
+        cap = [xdata[i]/cap_s, xdata[i]*cap_s]
+        boxplot['caps'][2*i+0].set_data([cap, boxplot['caps'][2*i+0].get_data()[1]])  #lower cap
+        boxplot['caps'][2*i+1].set_data([cap, boxplot['caps'][2*i+1].get_data()[1]])  #upper cap
+
+        med = [xdata[i]/box_s, xdata[i]*box_s]
+        boxplot['medians'][i].set_data([med, boxplot['medians'][i].get_data()[1]]) 
+        
+        box = [xdata[i]/box_s, xdata[i]*box_s, xdata[i]*box_s, xdata[i]/box_s, xdata[i]/box_s]
+        boxplot['boxes'][i].set_data([box, boxplot['boxes'][i].get_data()[1]])
+
+    medians = [median.get_ydata()[0] for median in boxplot['medians']]
+    ax2.scatter(xdata, medians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
+
+    # for overlaying purposes, such as rhalf noise, rhalf denoised
+    if secondfig: 
+        medians_two=[]
+        submedians_two=[]
+        # FOR 15 boxes, all target
+        if 1:
+            for k in range(len(seconddata)):
+                medians_two = np.append(medians_two, np.median(seconddata[k]))
+            ax2.scatter(xdata, medians_two, color='r', marker='o', alpha=0.4, label='other median')  #reduce the marker size! 
+            for l in range(len(seconddata[2:])):
+                submedians_two = np.append(submedians_two, np.median(seconddata[2:][l]))
+            ax.scatter(subxdata, submedians_two, color='r', marker='o', alpha=0.4, label='other median')  #reduce the marker size! 
+        # FOR 15 boxes, one target - signal only
+        if 0:
+            medians_two = np.array([np.median(seconddata)]*len(xdata))
+            plt.scatter(xdata, medians_two, color='orange', marker='o', alpha=0.5, label='other median')  #reduce the marker size! 
+
+    if thefigure in {'ratios', 'sigmas'}:
+        # call the fittings procedure definition
+        meds, lows, upps = fitthebox(thefigure, data_lista, theparams)
+        # call the fitting definition, which will provide the the_yrecipes below
+        ln_ymed, ln_ylow, ln_yupp = plotthefitting(thefigure, meds, lows, upps)
+        ymed = np.exp(ln_ymed)
+        ylow = np.exp(ln_ylow)
+        yupp = np.exp(ln_yupp)
+        ax2.plot(the_xrecipe, ymed, color=colors[draw], linestyle='dashed')
+        ax2.plot(the_xrecipe, ylow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
+        ax2.plot(the_xrecipe, yupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
+        ax2.fill_between(the_xrecipe, ylow, yupp, color=colors[draw], alpha=0.2)
+    else:
+        meds = 0
+    
+    # SAVING    
+    if thefigure == 'rsqrtfull':
+        ax.set_yscale('log')
+        ax.set_ylabel(r'$R^{1/2}_{noisy}$, $R^{1/2}_{denoised}$')
+    if thefigure == 'kvals':
+        ax.set_ylabel('k noise')
+    if thefigure == 'sigmas':
+        ax2.set_yscale('log')
+        ax.set_yscale('log')
+        ax.set_ylabel(r'$\sigma_{\rho/\rho_o,snr} / \sigma_{\rho/\rho_o,inf}$') 
+    if thefigure == 'ratios':
+        ax.set_ylabel(r'$R^{1/2}_{denoised}/R^{1/2}_{noisy}$')
+    ax.set_xlabel('SNR')
+
+    # really saving now
+    plt.savefig('sort_plots/boxplot15_powspec14_%s_i1k_%s'%(thefigure,void_size))
+    print('%s_saved!'%thefigure)
+    plt.clf()
+    return meds
+'''
