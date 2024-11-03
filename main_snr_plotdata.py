@@ -263,7 +263,6 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
                     mediano_2 = np.mean(medianos2,axis=0) 
                     mediano = np.append(mediano_1, mediano_2)
                     print('the four params ',mediano)
-                    stop()
                     ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano)
                     #ymed3 = kludge['ymed1']*kludge['ymed2']  
                     #ymedreal = np.exp(ln_ymed) 
@@ -452,7 +451,7 @@ if typeofsigma == 'debug':  #or 'free' for the one void figure
     voids_formal = ['50$\mathrm{\mu m}$']
     colors = ['b']    
 
-if 1:
+if 0:
     if whichfig != 'kvals2D' and plotstyle=='singular':
         fig,ax = plt.subplots(1,1) 
     if whichfig == 'rsqrtfull' and plotstyle=='subpanel':
@@ -700,7 +699,7 @@ if 1:
 
 
 # plotting sigma rho calculated vs sigma rho brunt 
-if 0:
+if 1:
     boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
     voids = ['50mu', '100mu', '12p5mu']
     colores = ['b', 'g', 'orange']
@@ -714,11 +713,18 @@ if 0:
         ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
         ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
         ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
-        porcentajes = []
-        def percent_difference(value1, value2):
-            pdiff = np.abs(value1 - value2) / np.mean([value1, value2]) * 100
-            porcentajes.append(pdiff)
-            return
+
+        if 0:
+            porcentajes = []
+            def relative_error(trueval, brunti):
+                pdiff = (np.abs(brunti - trueval) / trueval) * 100
+                return pdiff
+            for i in range(len(ydata_3D)):
+                pdiff = relative_error(ydata_3D[i], ydata_Brunt[i])
+                porcentajes.append(pdiff)
+            mean_pdiff = np.mean(np.array(porcentajes))
+        stop()
+
         def percent_difference_3(value1, value2, value3, value4, value5):
             mean_value = (value1 + value2 + value3, value4, value5) / 5 
             pd1 = abs(value1 - mean_value) / mean_value * 100
@@ -727,11 +733,7 @@ if 0:
             pd4 = abs(value4 - mean_value) / mean_value * 100 
             pd5 = abs(value5 - mean_value) / mean_value * 100 
             return pd1, pd2, pd3, pd4, pd5
-        #for i in range(len(ydata_3D)):
-        #    pdiff = percent_difference(ydata_3D[i], ydata_Brunt[i])
-        #    porcentajes.append(pdiff)
-        #mean_pdiff = np.mean(np.array(porcentajes))
-        stop()
+
         xdata = np.linspace(1,15,15)
         fig,ax = plt.subplots(1,1)
         ax.scatter(xdata, ydata_Brunt, c=colores[num], alpha=0.7, label='brunt')

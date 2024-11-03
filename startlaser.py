@@ -39,6 +39,8 @@ import calculate
 reload(calculate)
 import noiseimage
 reload(noiseimage)
+import fake_powerlaw
+reload(fake_powerlaw)
 #import make_images
 #reload(make_images)
 

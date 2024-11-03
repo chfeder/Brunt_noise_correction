@@ -1,9 +1,6 @@
 
 from startlaser import * 
 from collections import defaultdict
-# with the new update of cfpack and matplotlib, the following two are not needed
-#from matplotlib import rcParams
-#rcParams['text.latex.preamble'] = r'\newcommand{\mathdefault}[1][]{}'
 
 
 def get_box(voids, box, projecting, proj_axis=0, imaging='no'):
@@ -17,8 +14,8 @@ def get_box(voids, box, projecting, proj_axis=0, imaging='no'):
     edge_mbot = 0.3275
 
     if box == 'c_box':
-        the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_a],'code_length')
-        the_redge = the_ds.arr([delta_a, edge_mtop, delta_a],'code_length')
+       the_ledge = the_ds.arr([-delta_a, edge_mbot, -delta_a],'code_length')
+       the_redge = the_ds.arr([delta_a, edge_mtop, delta_a],'code_length')
 
     if box == 'r_box':
         the_ledge = the_ds.arr([delta_a, edge_mbot, -delta_a],'code_length')
@@ -115,14 +112,14 @@ def get_spectrumcf(the_box, ncmp=1, sum=False, return_ft_data=True, verbose=Fals
     return bin_centers, spect_tot, power_tot 
     
 
-def noise_iterations(iterations, cg_main_sum, cg_sec, lowpassfilter, target, ksnr=None, correct=None):
+def noise_iterations(iterations, cg_main_sum, cg_sec, lowpassfilter, target, ksnr=None, correct=None, typeofnoise=None):
     collect_rsq = []
     collect_sigma = []
     collect_sigmaN = []
 
     for many in range(iterations):  
         # ADD NOISE TO THE IMAGE
-        cg_wnoise_sum, noiseonly = noiseimage.add_noise(cg_main_sum, target)
+        cg_wnoise_sum, noiseonly = noiseimage.add_noise(cg_main_sum, target, noisytype=typeofnoise)
         cg_wnoise, _ = noiseimage.add_noise(correct, target)
      
         # OBTAIN SIGMA N^2 CALCULATED
@@ -133,6 +130,7 @@ def noise_iterations(iterations, cg_main_sum, cg_sec, lowpassfilter, target, ksn
         ks, powspec2D, _ = get_spectrumcf(cg_wnoise_sum) 
         _, powspec2D_ave, _ = get_spectrumcf(cg_wnoise) 
         ks_n, powspec2D_noise, _ = get_spectrumcf(noiseonly) 
+        #stop()  #check the power spectrum of noise
         powerspec3D = 2 * ks * powspec2D
 
         # OBTAIN RHALF AND SIGMA RHO 
@@ -182,31 +180,31 @@ polytropic_index = 1 # +/-0.1, for 50mu voids
 
 projection = True 
 dimension = 1
-iterations = 1000
+iterations = 1  #1000
 
 # BOX OPTIONS: 15 total per one void size.
-void_size = '100mu'
+void_size = '50mu'
 # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
-if 1:
+if 0:
     boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
-if 0: #debug
+if 1: #debug
     boxes = ['c_box'] 
 # 3 different projections
-if 1:  
+if 0:  
     projection_axis_list = [0, 1, 2]  
-if 0: #debug
-    projection_axis_list = [0,1]
+if 1: #debug
+    projection_axis_list = [1]
 target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
 
 
 # IMAGES
-if 0:
+if 1:
     the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
     delta_a = 0.02  
     edge_mtop = 0.3675  
     edge_mbot = 0.3275
     edge_mcenter = 0.3475
-    if 1:
+    if 0:
         proj_2 = yt.SlicePlot(the_ds, 2, ('gas','density')) 
 
         proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (3*delta_a, edge_mtop, 0), coord_system='data')
@@ -233,7 +231,7 @@ if 0:
         proj_2.hide_colorbar()
         proj_2.save('z_slice.pdf')
 
-    if 1:
+    if 0:
         dx = 3.9062486030E-04
         projection_length = 2*dx  #try with 1dx 
 
@@ -282,21 +280,26 @@ if 0:
                               save='cb_location.pdf')
     stop()
 if 1:
-    target_snr = [0.1, 1, 3, 10]
+    noisetype = 'half'
+    if noisetype=='half':
+        target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
+        labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
+    if noisetype=='one':
+        target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
+        labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
     boxing = 'c_box'
     los = 1
     cg_main, _, _ = get_box(void_size, boxing, projection, los)
-    labels = ['SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 10']
-    snr_image,_ = noiseimage.add_noise(cg_main, target_snr[3])
+    snr_image,_ = noiseimage.add_noise(cg_main, target_snr[-1],noisetype=noisetype)   
     vmin = snr_image.min()
     vmax = snr_image.max()
     for val,target in enumerate(target_snr):
-        snr_image,_ = noiseimage.add_noise(cg_main, target)
+        snr_image,_ = noiseimage.add_noise(cg_main, target, noisetype=noisetype)
         cfp.plot_map(snr_image, colorbar=None, vmin=vmin, vmax=vmax)
         plt.axis('off')
         cfp.plot(text=labels[val], normalised_coords=True, x=0.35, y=-0.08, fontsize=18)  
         cfp.plot_map(save='./sort_plots/c_box_%d.pdf'%val)
-    if 1:
+    if 0:
         label = r'Density ($\mathrm{g\,cm^{-2}}$)'
         cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='horizontal', panels=2.5, save='cb_snr.pdf')
     stop()
@@ -325,6 +328,7 @@ sigmas3D = []
 no_noise = False 
 if no_noise == True:
     target_snr=[1000000]
+typeofnoise = 'rhalf'
 sigmaBrunt = []
 sigma2D = []
 rhalfs = []
@@ -346,7 +350,7 @@ for eje, los in enumerate(projection_axis_list):
         # seven SNR
         for val,target in enumerate(target_snr):
             lowpassfilter = 'no'  
-            rsqrt_med, sigma_med, collectspec, collectspec_ave, collectnoisespec, kvals2D, sigmaN_med = noise_iterations(iterations, cg_main_sum, cg_vol, lowpassfilter, target, correct=cg_main)
+            rsqrt_med, sigma_med, collectspec, collectspec_ave, collectnoisespec, kvals2D, sigmaN_med = noise_iterations(iterations, cg_main_sum, cg_vol, lowpassfilter, target, correct=cg_main, typeofnoise=typeofnoise)
             
             sigmaBrunt.append(sigma_med)
             sigma2D.append(sigmaN_med)
@@ -416,6 +420,12 @@ if no_noise == False:
     data_sigmasdenoised = [*collect_sigmasdenoised.values()] 
     #stop()
 # and store the information 
+if 0:
+    hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_noisePS_i1k_%s.h5'%void_size
+    Fptr = h5py.File(hfivefile,'w') 
+    Fptr['thenoisepowspec_%s'%void_size] = data_noisespectra 
+    Fptr.close()
+    print('finished. check h5 file')
 if 0:
     hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_ave_i1k_%s.h5'%void_size
     Fptr = h5py.File(hfivefile,'w') 
