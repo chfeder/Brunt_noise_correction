@@ -1,5 +1,6 @@
 
 __pycache__/
 *.png
+*.pdf
 /h5files
 /fourier_tools_py3

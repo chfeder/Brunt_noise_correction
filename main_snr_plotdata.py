@@ -420,7 +420,7 @@ def plotfig(plotstyle):
 
     # really saving now
     fig.tight_layout()   #trouble for sigmas?
-    fig.savefig('sort_plots/boxplot15_powspec14_%s_i1knobox.pdf'%(whichfig))
+    fig.savefig('sort_plots/boxplot15_powspec14_%s_%s_i1knobox.pdf'%(whichfig,powerlaw))
     print('%s_saved!'%whichfig)
     plt.clf()
 
@@ -428,25 +428,29 @@ def plotfig(plotstyle):
 
 
 # MAIN: LOOP FOR THE THREE VOIDS!
+# figure options: sigmas(typeofsigma='free',singular), kvals(singular), rsqrtfull (subpanel, two),
+#                 sigmasdenoised(subpanel, three); kvals2D
 numofboxes = 15
-whichfig = 'sigmasdenoised'
+whichfig = 'kvals2D'
 ave = False  # there's normalized data by the average and non-normalized data
 whichfigtwo = None
-typeofsigma = None
+typeofsigma = None 
+powerlaw='half'
 target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  
 xdata = np.array(target_snr[:-1])
 
 k_plot = 'divkmax'  # divkmax or knoise
 plotstyle = 'subpanel'  # singular or subpanel
-panels = 'two'  # two or three
-fit = 'no'
+panels = 'three'  # two or three
+fit = 'no'  #does not fit the final correction factor (as it should be)
+thefitting=None
 
 voids = ['12p5mu', '50mu', '100mu']
 voids_formal = ['12.5$\mathrm{\mu m}$', '50$\mathrm{\mu m}$', '100$\mathrm{\mu m}$']
 voids_eformal = ['$12.5_{\mu m, \mathrm{denoised}}$', '$50_{\mu m, \mathrm{denoised}}$', '$100_{\mu m, \mathrm{denoised}}$',]
 colors = ['magenta', 'b', 'g']
 
-if typeofsigma == 'debug':  #or 'free' for the one void figure 
+if typeofsigma == 'free':  #or 'free' for the one void figure 
     voids = ['50mu']  
     voids_formal = ['50$\mathrm{\mu m}$']
     colors = ['b']    
@@ -468,7 +472,7 @@ if 0:
 
     for draw, void_size in enumerate(voids):
         print('void size is ',void_size)
-        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_%s.h5'%void_size
+        hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_half_%s.h5'%void_size
         Fptr = h5py.File(hfivefile,'r')
 
         # SCATTERS + FITS
@@ -568,10 +572,6 @@ if 0:
                 #              secondfig=whichfigtwo, seconddata=figtwodata)
                 print('after true plot ',void_size)
                 whichfig = 'rsqrtfull'
-                #whichfig = 'ratios'
-                #data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-                #errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw], styleplot=plotstyle, 
-                #              secondfig=whichfigtwo, seconddata=figtwodata)
 
 
         # POWERSPECTRA PLOTS 
@@ -616,31 +616,30 @@ if 0:
                     if i != len(medians_snr):
                         ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8)
                         ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
-                        if a == 3:
-                            #stop()
-                            plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]+0.006, str(a), fontsize=12, ha='left', va='center') 
-                            continue
-                        if a == 5:
-                            if void_size == '100mu':
-                                plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.002, str(a), fontsize=12, ha='left', va='center') 
-                            else:
-                                plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center') 
-                            continue
-                        if a == 10:
-                            if void_size == '100mu':
-                                plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0004, str(a), fontsize=12, ha='left', va='center') 
-                            else:
-                                plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0001, str(a), fontsize=12, ha='left', va='center') 
-                        else:
-                            plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center') 
+                        #if a == 3:
+                        #    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]+0.006, str(a), fontsize=12, ha='left', va='center') 
+                        #    continue
+                        #if a == 5:
+                        #    if void_size == '100mu':
+                        #        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.002, str(a), fontsize=12, ha='left', va='center') 
+                        #    else:
+                        #        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center') 
+                        #    continue
+                        #if a == 10:
+                        #    if void_size == '100mu':
+                        #        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0004, str(a), fontsize=12, ha='left', va='center') 
+                        #    else:
+                        #        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0001, str(a), fontsize=12, ha='left', va='center') 
+                        #else:
+                        #    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center') 
 
                     if i == len(target_snr[1:]): 
                         ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8, label='S+N') 
                         ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N') 
                         ax.plot(ps_xdata[1:], medians_snr[0][1:], color='r', alpha=1.0, linewidth=0.8, label='S') 
                         ax.fill_between(ps_xdata[1:], the_lowers[0][1:], the_uppers[0][1:], color='r', alpha=0.2)
-                    if i == 1: 
-                        plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')  
+                    #if i == 1: 
+                    #    plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')  
 
                 data = list(Fptr['%s_%s'%(figfour,void_size)])  #returns a list 
                 data_p = list(Fptr['%s_%s'%(figfive,void_size)]) 
@@ -656,8 +655,6 @@ if 0:
                    the_medians_intshigh = np.nanpercentile(data_p[i], 84) 
 
                    ax.plot([the_medians,the_medians], [0,the_medians_ints], color=colors[draw], linestyle='dotted', alpha=0.8)
-                   #ax.plot([the_medians_low,the_medians_low], [0,the_medians_ints], color='g', linestyle='dotted', alpha=0.8)
-                   #ax.plot([the_medians_high,the_medians_high], [0,the_medians_ints], color='r', linestyle='dotted', alpha=0.8)
                    ax.fill_betweenx(yrange, the_medians_low, the_medians_high, color=colors[draw], alpha=0.1, \
                                     where=(yrange<=the_medians_intshigh), linestyle='dotted')
 
@@ -680,7 +677,7 @@ if 0:
             custom_line = mlines.Line2D([], [], color=colors[draw], linestyle='dotted', alpha= 0.8, label=r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$')
             k_legend = ax.legend(handles=[custom_line], loc='upper left', fontsize=12, bbox_to_anchor=(0.23,1.01))
 
-            plt.savefig('sort_plots/boxplot15_powspec14_i1k_%s_%s.pdf'%(k_plot,void_size))
+            plt.savefig('sort_plots/boxplot15_powspec14_i1k_%s_%s_%s.pdf'%(powerlaw,k_plot,void_size))
             print('saved spectra14!')
             plt.clf()
             Fptr.close()         
@@ -690,6 +687,7 @@ if 0:
                 quickx = np.log10(ps_xdata)
                 quicky = np.log10(nydata)
                 rets = cfp.fit(linfunct, quickx[1:], quicky[-1][1:])
+                stop()  #fix.
         Fptr.close() 
 
 
@@ -703,16 +701,31 @@ if 1:
     boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
     voids = ['50mu', '100mu', '12p5mu']
     colores = ['b', 'g', 'orange']
-    for num, void_size in enumerate(voids):
-        void_size = '50mu'
-        hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
-        hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
-        Fptr = h5py.File(hfivefile,'r')
-        Fptr_B = h5py.File(hfivefile_B,'r')
-        ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
-        ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
-        ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
-        ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
+    valuesfoam = []
+    def percent_difference_3(value1, value2, value3, value4, value5):
+        mean_value = (value1 + value2 + value3 + value4 + value5) / 5 
+        pd1 = abs(value1 - mean_value) / mean_value * 100
+        pd2 = abs(value2 - mean_value) / mean_value * 100
+        pd3 = abs(value3 - mean_value) / mean_value * 100 
+        pd4 = abs(value4 - mean_value) / mean_value * 100 
+        pd5 = abs(value5 - mean_value) / mean_value * 100 
+        return pd1, pd2, pd3, pd4, pd5
+    for val, boxesin in enumerate(boxes):
+        values = []
+        for num, void_size in enumerate(voids):
+            hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
+            hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
+            Fptr = h5py.File(hfivefile,'r')
+            Fptr_B = h5py.File(hfivefile_B,'r')
+            ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
+            ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
+            ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
+            ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
+
+            values.append(ydata_3D[val])
+            if void_size == '12p5mu':
+                valuesfoam.append(values)
+                stop()
 
         if 0:
             porcentajes = []
@@ -723,16 +736,7 @@ if 1:
                 pdiff = relative_error(ydata_3D[i], ydata_Brunt[i])
                 porcentajes.append(pdiff)
             mean_pdiff = np.mean(np.array(porcentajes))
-        stop()
 
-        def percent_difference_3(value1, value2, value3, value4, value5):
-            mean_value = (value1 + value2 + value3, value4, value5) / 5 
-            pd1 = abs(value1 - mean_value) / mean_value * 100
-            pd2 = abs(value2 - mean_value) / mean_value * 100
-            pd3 = abs(value3 - mean_value) / mean_value * 100 
-            pd4 = abs(value4 - mean_value) / mean_value * 100 
-            pd5 = abs(value5 - mean_value) / mean_value * 100 
-            return pd1, pd2, pd3, pd4, pd5
 
         xdata = np.linspace(1,15,15)
         fig,ax = plt.subplots(1,1)

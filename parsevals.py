@@ -8,9 +8,7 @@ def parsevals_th(dim, p2d, p3d, kvalues, p2d_ave=None, p3d_ave=None, sigmaN_sq=N
     if dim == 1:
         if the_k == 100:
             P2D = (p2d[1:]).sum() *dk  
-            #P2D_ave = (p2d_ave[1:]).sum() *dk  
             P3D = (p3d[1:]).sum() *dk
-            #P3D_ave = (p3d_ave[1:]).sum() *dk
         if the_k == 0:  #k=0 calculation should be dropped and this is what this does
             P2D = np.nan
             P2D_ave = np.nan
@@ -27,23 +25,19 @@ def parsevals_th(dim, p2d, p3d, kvalues, p2d_ave=None, p3d_ave=None, sigmaN_sq=N
             P3D = (p3d[1:k]).sum() *dk
             P3D_ave = (p3d_ave[1:k]).sum() *dk
 
-            if 0:
+            if 1:  # given that the non-normalized values are used for all but sigmaN
                 sigmaN = np.sqrt(P2D_ave)
-            if 1:
+            if 0:  # given that the normalized values are used
                 sigmaN = np.sqrt(P2D)
             the_R_ave = P2D_ave/P3D_ave 
             the_R_sqrt_ave = np.sqrt(the_R_ave)
             sigmaden = sigmaN * the_R_sqrt_ave**(-1) 
-
-        #if targeting == 1000000:
-        #    stop() 
 
         sigmaRho_sq = sigmaN_sq * (P3D/P2D)
         sigmaRhoBr = np.sqrt(sigmaRho_sq)
 
         the_R = P2D/P3D  
         the_R_sqrt = np.sqrt(the_R)
-
 
     if dim == 2: 
         P3D = p3d[1:].sum() *dk 

@@ -36,9 +36,9 @@ def get_box(voids, box, projecting, proj_axis=0, imaging='no'):
     size = ((the_redge - the_ledge)/mindx).astype('int') 
 
     section = extract_s1.extract_section_1(the_ds,the_level,the_ledge,size)
-    cg_first_sum, cg_first, cg_second = project.Project(section, proj_axis, projecting, field_main, field_two)
+    cg_first, cg_first_norm, cg_second = project.Project(section, proj_axis, projecting, field_main, field_two)
 
-    return cg_first_sum, cg_first, cg_second
+    return cg_first, cg_first_norm, cg_second
 
 
 def get_spectrumcf(the_box, ncmp=1, sum=False, return_ft_data=True, verbose=False): 
@@ -119,8 +119,8 @@ def noise_iterations(iterations, cg_main_sum, cg_sec, lowpassfilter, target, ksn
 
     for many in range(iterations):  
         # ADD NOISE TO THE IMAGE
-        cg_wnoise_sum, noiseonly = noiseimage.add_noise(cg_main_sum, target, noisytype=typeofnoise)
-        cg_wnoise, _ = noiseimage.add_noise(correct, target)
+        cg_wnoise_sum, noiseonly = noiseimage.add_noise(cg_main_sum, target, noisetype=typeofnoise)
+        cg_wnoise, _ = noiseimage.add_noise(correct, target, noisetype=typeofnoise)
      
         # OBTAIN SIGMA N^2 CALCULATED
         sigmaN, _ = calculate.Calculate(field_main, cg_wnoise_sum, cg_sec)
@@ -180,116 +180,118 @@ polytropic_index = 1 # +/-0.1, for 50mu voids
 
 projection = True 
 dimension = 1
-iterations = 1  #1000
+iterations = 1000  #1000
 
 # BOX OPTIONS: 15 total per one void size.
-void_size = '50mu'
+void_size = '100mu'
 # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
-if 0:
+if 1:
     boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
-if 1: #debug
+if 0: #debug
     boxes = ['c_box'] 
 # 3 different projections
-if 0:  
+if 1:  
     projection_axis_list = [0, 1, 2]  
-if 1: #debug
+if 0: #debug
     projection_axis_list = [1]
 target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
 
+# LOAD THE raw DATA
+the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
+# box dimensions
+delta_a = 0.02  
+edge_mtop = 0.3675  
+edge_mbot = 0.3275
+edge_mcenter = 0.3475
 
 # IMAGES
-if 1:
-    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
-    delta_a = 0.02  
-    edge_mtop = 0.3675  
-    edge_mbot = 0.3275
-    edge_mcenter = 0.3475
+if 0:  
+    proj_2 = yt.SlicePlot(the_ds, 2, ('gas','density')) 
+
+    proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (3*delta_a, edge_mtop, 0), coord_system='data')
+    proj_2.annotate_line((-3*delta_a, edge_mbot, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
+    proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (-3*delta_a, edge_mbot, 0), coord_system='data')
+    proj_2.annotate_line((3*delta_a, edge_mtop, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
+    proj_2.annotate_line((-delta_a, edge_mtop, 0), (-delta_a, edge_mbot, 0), coord_system='data')
+    proj_2.annotate_line((delta_a, edge_mtop, 0), (delta_a, edge_mbot, 0), coord_system='data')
+
+    proj_2.set_cmap(('gas','density'), cmap='magma')
+    colorbar_2 = proj_2.plots['density'].cb
+    vmin = 1e-3 
+    vmax = 1e1 
+    colorbar_2.vmin = vmin
+    colorbar_2.vmax = vmax
+
+    proj_2.set_axes_unit('mm')
+    proj_2.set_font_size(20)
+    proj_2.set_ylabel(r'$y \,\mathrm{(mm)}$')
+    proj_2.set_xlabel('')
+    proj_2.plots['gas', 'density'].axes.get_xaxis().set_tick_params(labelbottom=False)
+
+    proj_2.set_zlim('density', vmin, vmax)
+    proj_2.hide_colorbar()
+    proj_2.save('z_slice.pdf')
+
+if 0:
+    dx = 3.9062486030E-04
+    projection_length = 2*dx  #try with 1dx 
+
+    the_ledge = the_ds.arr([-0.15, edge_mbot, -0.15],'code_length')
+    the_ledge_slice = the_ds.arr([-0.15, edge_mcenter-projection_length/2, -0.15],'code_length')
+    the_redge = the_ds.arr([0.15, edge_mtop, 0.15],'code_length')
+    the_redge_slice = the_ds.arr([0.15, edge_mcenter+projection_length/2, 0.15],'code_length')
+    the_center =0.5*the_ledge + 0.5*the_redge
+    the_region_slice = the_ds.region(the_center, the_ledge_slice, the_redge_slice)  
+    the_region = the_ds.region(the_center, the_ledge, the_redge)  
+
+    proj_1 = yt.ProjectionPlot(the_ds, 1, ('gas','density'), data_source=the_region_slice)  #slices dont' accept cgs 
+
+    proj_1.annotate_line((-delta_a, 0, -3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
+    proj_1.annotate_line((delta_a, 0, -3*delta_a), (delta_a, 0, 3*delta_a), coord_system='data')
+    proj_1.annotate_line((3*delta_a, 0, delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
+    proj_1.annotate_line((3*delta_a, 0, -delta_a), (-3*delta_a, 0, -delta_a), coord_system='data')
+
+    proj_1.annotate_line((-3*delta_a, 0, -delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
+    proj_1.annotate_line((3*delta_a, 0, -delta_a), (3*delta_a, 0, delta_a), coord_system='data')
+
+    proj_1.annotate_line((delta_a, 0, -3*delta_a), (-delta_a, 0, -3*delta_a), coord_system='data')
+    proj_1.annotate_line((delta_a, 0, 3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
+
+    proj_1.set_cmap(('gas','density'), cmap='magma')
+    proj_1.flip_horizontal()
+    proj_1.swap_axes()
+
+    colorbar_1 = proj_1.plots['density'].cb
+    colorbar_1.vmin = vmin * projection_length
+    colorbar_1.vmax = vmax * projection_length
+
+    proj_1.set_axes_unit('mm')
+    proj_1.set_ylabel(r'$x \,\mathrm{(mm)}$')
+    proj_1.set_xlabel(r'$z \,\mathrm{(mm)}$')
+    proj_1.set_font_size(28)
+    proj_1.set_zlim('density', vmin*projection_length, vmax*projection_length)
+
+    proj_1.hide_colorbar()
+
+    proj_1.save('y_slice.pdf')
+
+    label = r'Density ($\mathrm{g\,cm^{-3}}$)'
     if 0:
-        proj_2 = yt.SlicePlot(the_ds, 2, ('gas','density')) 
-
-        proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (3*delta_a, edge_mtop, 0), coord_system='data')
-        proj_2.annotate_line((-3*delta_a, edge_mbot, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (-3*delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((3*delta_a, edge_mtop, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((-delta_a, edge_mtop, 0), (-delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((delta_a, edge_mtop, 0), (delta_a, edge_mbot, 0), coord_system='data')
-
-        proj_2.set_cmap(('gas','density'), cmap='magma')
-        colorbar_2 = proj_2.plots['density'].cb
-        vmin = 1e-3 
-        vmax = 1e1 
-        colorbar_2.vmin = vmin
-        colorbar_2.vmax = vmax
-
-        proj_2.set_axes_unit('mm')
-        proj_2.set_font_size(20)
-        proj_2.set_ylabel(r'$y \,\mathrm{(mm)}$')
-        proj_2.set_xlabel('')
-        proj_2.plots['gas', 'density'].axes.get_xaxis().set_tick_params(labelbottom=False)
-
-        proj_2.set_zlim('density', vmin, vmax)
-        proj_2.hide_colorbar()
-        proj_2.save('z_slice.pdf')
-
-    if 0:
-        dx = 3.9062486030E-04
-        projection_length = 2*dx  #try with 1dx 
-
-        the_ledge = the_ds.arr([-0.15, edge_mbot, -0.15],'code_length')
-        the_ledge_slice = the_ds.arr([-0.15, edge_mcenter-projection_length/2, -0.15],'code_length')
-        the_redge = the_ds.arr([0.15, edge_mtop, 0.15],'code_length')
-        the_redge_slice = the_ds.arr([0.15, edge_mcenter+projection_length/2, 0.15],'code_length')
-        the_center =0.5*the_ledge + 0.5*the_redge
-        the_region_slice = the_ds.region(the_center, the_ledge_slice, the_redge_slice)  
-        the_region = the_ds.region(the_center, the_ledge, the_redge)  
-
-        proj_1 = yt.ProjectionPlot(the_ds, 1, ('gas','density'), data_source=the_region_slice)  #slices dont' accept cgs 
-
-        proj_1.annotate_line((-delta_a, 0, -3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
-        proj_1.annotate_line((delta_a, 0, -3*delta_a), (delta_a, 0, 3*delta_a), coord_system='data')
-        proj_1.annotate_line((3*delta_a, 0, delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
-        proj_1.annotate_line((3*delta_a, 0, -delta_a), (-3*delta_a, 0, -delta_a), coord_system='data')
-
-        proj_1.annotate_line((-3*delta_a, 0, -delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
-        proj_1.annotate_line((3*delta_a, 0, -delta_a), (3*delta_a, 0, delta_a), coord_system='data')
-
-        proj_1.annotate_line((delta_a, 0, -3*delta_a), (-delta_a, 0, -3*delta_a), coord_system='data')
-        proj_1.annotate_line((delta_a, 0, 3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
-
-        proj_1.set_cmap(('gas','density'), cmap='magma')
-        proj_1.flip_horizontal()
-        proj_1.swap_axes()
-
-        colorbar_1 = proj_1.plots['density'].cb
-        colorbar_1.vmin = vmin * projection_length
-        colorbar_1.vmax = vmax * projection_length
-
-        proj_1.set_axes_unit('mm')
-        proj_1.set_ylabel(r'$x \,\mathrm{(mm)}$')
-        proj_1.set_xlabel(r'$z \,\mathrm{(mm)}$')
-        proj_1.set_font_size(28)
-        proj_1.set_zlim('density', vmin*projection_length, vmax*projection_length)
-
-        proj_1.hide_colorbar()
-
-        proj_1.save('y_slice.pdf')
-
-        label = r'Density ($\mathrm{g\,cm^{-3}}$)'
-        if 0:
-            cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='vertical', panels=3, \
-                              save='cb_location.pdf')
+        cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='vertical', panels=3, \
+                            save='cb_location.pdf')
     stop()
-if 1:
+
+if 0:
     noisetype = 'half'
     if noisetype=='half':
         target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
         labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
     if noisetype=='one':
-        target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
-        labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
+        target_snr = [0.1, 1, 3, 100]
+        labels = ['SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 10']
     boxing = 'c_box'
     los = 1
-    cg_main, _, _ = get_box(void_size, boxing, projection, los)
+    cg_main,_, _ = get_box(void_size, boxing, projection, los)
     snr_image,_ = noiseimage.add_noise(cg_main, target_snr[-1],noisetype=noisetype)   
     vmin = snr_image.min()
     vmax = snr_image.max()
@@ -302,7 +304,9 @@ if 1:
     if 0:
         label = r'Density ($\mathrm{g\,cm^{-2}}$)'
         cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='horizontal', panels=2.5, save='cb_snr.pdf')
-    stop()
+
+#stop()
+print('proceed to generate/store data? c to continue')
 
 
 
@@ -328,7 +332,7 @@ sigmas3D = []
 no_noise = False 
 if no_noise == True:
     target_snr=[1000000]
-typeofnoise = 'rhalf'
+typeofnoise = 'half'
 sigmaBrunt = []
 sigma2D = []
 rhalfs = []
@@ -419,15 +423,10 @@ if no_noise == False:
     data_sigmascolumndenoise = [*collect_sigmasNdenoised.values()] 
     data_sigmasdenoised = [*collect_sigmasdenoised.values()] 
     #stop()
+    print('before storing information')
 # and store the information 
-if 0:
-    hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_noisePS_i1k_%s.h5'%void_size
-    Fptr = h5py.File(hfivefile,'w') 
-    Fptr['thenoisepowspec_%s'%void_size] = data_noisespectra 
-    Fptr.close()
-    print('finished. check h5 file')
-if 0:
-    hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_ave_i1k_%s.h5'%void_size
+if 1:
+    hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_half_%s.h5'%void_size
     Fptr = h5py.File(hfivefile,'w') 
     Fptr['sigmas_%s'%void_size] = data_sigmas
     Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
@@ -441,7 +440,7 @@ if 0:
     Fptr['sigmasdenoised_%s'%void_size] = data_sigmasdenoised 
 
     Fptr['thepowspec_%s'%void_size] = data_spectranoise 
-    #Fptr['thepowspec_ave_%s'%void_size] = data_spectranoise_ave 
+    Fptr['thepowspec_ave_%s'%void_size] = data_spectranoise_ave 
     Fptr['thenoisepowspec_%s'%void_size] = data_noisespectra 
     Fptr.close()
     print('finished. check h5 file')
