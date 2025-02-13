@@ -19,27 +19,26 @@ def add_noise(cg_main, the_snr, noisetype=None):
         sn_signal = signal + noise  
         if the_snr == 1000000:
             sn_signal = signal
-
         if 0:
             plt.clf()
-            plt.hist(noise.flatten())
-            plt.savefig('noise_k1.png')
+            plt.hist(noise.flatten(),bins=100)
+            plt.savefig('noise_kone_gauss.png')
 
     if noisetype == "half":  
         the_signal = cg_main.v
         theN = the_signal.shape[0]
-        theK = 1.5
+        theK = 1  #1 for k=0, 1.5 for k=0.5, 2 for k=1, 3 for k=2, 4 for k=3 
         theMin = 0
         theMax = 51
-        noise = fake_powerlaw.fake_powerlaw(theN, theK, theMin, theMax, phase=True)
+        theAmp = 1
+        noise = fake_powerlaw.fake_powerlaw(theN, theK, theMin, theMax, Amplitude=theAmp, phase=True)
         scale = np.std(the_signal)/the_snr   
-        scale/=noise.max()
-        noise *= scale
+        scale /= noise.std()  
+        noise *= scale      
         sn_signal = the_signal + noise  
-
         if 0:
             plt.clf()
-            plt.hist(noise.flatten())
-            plt.savefig('noise_k1half.png')
+            plt.hist(noise.flatten(),bins=100)
+            plt.savefig('noise_kone_fake.png')
 
     return sn_signal, noise 

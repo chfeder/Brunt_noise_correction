@@ -130,7 +130,6 @@ def noise_iterations(iterations, cg_main_sum, cg_sec, lowpassfilter, target, ksn
         ks, powspec2D, _ = get_spectrumcf(cg_wnoise_sum) 
         _, powspec2D_ave, _ = get_spectrumcf(cg_wnoise) 
         ks_n, powspec2D_noise, _ = get_spectrumcf(noiseonly) 
-        #stop()  #check the power spectrum of noise
         powerspec3D = 2 * ks * powspec2D
 
         # OBTAIN RHALF AND SIGMA RHO 
@@ -180,7 +179,7 @@ polytropic_index = 1 # +/-0.1, for 50mu voids
 
 projection = True 
 dimension = 1
-iterations = 1000  #1000
+iterations = 1000
 
 # BOX OPTIONS: 15 total per one void size.
 void_size = '100mu'
@@ -283,12 +282,8 @@ if 0:
 
 if 0:
     noisetype = 'half'
-    if noisetype=='half':
-        target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
-        labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
-    if noisetype=='one':
-        target_snr = [0.1, 1, 3, 100]
-        labels = ['SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 10']
+    target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
+    labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
     boxing = 'c_box'
     los = 1
     cg_main,_, _ = get_box(void_size, boxing, projection, los)
@@ -304,9 +299,9 @@ if 0:
     if 0:
         label = r'Density ($\mathrm{g\,cm^{-2}}$)'
         cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='horizontal', panels=2.5, save='cb_snr.pdf')
-
-#stop()
-print('proceed to generate/store data? c to continue')
+if 0:
+    stop()
+    print('proceed to generate/store data? c to continue')
 
 
 
@@ -426,7 +421,7 @@ if no_noise == False:
     print('before storing information')
 # and store the information 
 if 1:
-    hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_half_%s.h5'%void_size
+    hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_zero_%s.h5'%void_size
     Fptr = h5py.File(hfivefile,'w') 
     Fptr['sigmas_%s'%void_size] = data_sigmas
     Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
