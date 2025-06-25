@@ -421,7 +421,7 @@ if no_noise == False:
     print('before storing information')
 # and store the information 
 if 1:
-    hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_zero_%s.h5'%void_size
+    hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p5_%s.h5'%void_size
     Fptr = h5py.File(hfivefile,'w') 
     Fptr['sigmas_%s'%void_size] = data_sigmas
     Fptr['rsqrtfull_%s'%void_size] = data_rsqrts

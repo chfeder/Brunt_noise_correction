@@ -186,7 +186,16 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
         if styleplot =='singular': 
             if typeofsigma == 'free' and thefigure=='sigmas':
                 ax.errorbar(xdata, the_medians, yerr=[lower_error, upper_error], linestyle=None, fmt=markers[1], \
-                            ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
+                            ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=None)#labels[num])
+                if 1:
+                    hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
+                    Fptr = h5py.File(hfivefile,'r')
+                    ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
+                    ymedians_3D = np.nanpercentile(ydata_3D[0:5], 50)
+                    yerrs_3D = [np.nanpercentile(ydata_3D, 16), np.nanpercentile(ydata_3D, 84)]
+                    ax.axhline(ymedians_3D, linestyle='dashed', color='b', alpha=0.5, label=r'$\sigma_{\rho/\rho_0}$')
+                    xdatafill=np.array([0.006, 1.e-02, 1.e-01, 1.e+00, 3.e+00, 5.e+00, 1.e+01, 1.e+02, 150])
+                    ax.fill_between(xdatafill, yerrs_3D[0], yerrs_3D[1], color='blue', alpha=0.1)  #prev alphas: 0.7, 0.2
             else:
                 ax.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
@@ -196,9 +205,9 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
                 ax1.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
                 if void_name =='12.5$\mathrm{\mu m}$':
-                    ax1.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7, label=r'$\sigma_{\rho/\rho_0\mathrm{Brunt,denoised}}\mathrm{(SNR\!\to\!\infty)}$')
+                    ax1.axhline(y=the_medians[k], linestyle='dashed', color=colores[num], alpha=0.5, label=r'$\sigma_{\rho/\rho_0\mathrm{Brunt,denoised}}\mathrm{(SNR\!\to\!\infty)}$')
                 else:
-                    ax1.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7)
+                    ax1.axhline(y=the_medians[k], linestyle='dashed', color=colores[num], alpha=0.5)
 
             if thefigure =='sigmasdenoised' and typeofsigma==None:
                 ax2.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
@@ -215,17 +224,28 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
                                 ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5)
 
         if styleplot =='subpanel':
+            if 1:
+                hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
+                Fptr_B = h5py.File(hfivefile_B,'r')
+                ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size]) 
+                ymedians_3D = np.nanpercentile(ydata_rhalf, 50)
+                yerrs_3D = [np.nanpercentile(ydata_rhalf, 16), np.nanpercentile(ydata_rhalf, 84)]
+                xdatafill=np.array([0.06, 1.e-01, 1.e+00, 3.e+00, 5.e+00, 1.e+01, 1.e+02, 150])
             if thefigure =='rsqrtfull':
                 print('inside plotting rhalf plot ',void_name)
                 ax1.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
+                ax1.axhline(ymedians_3D, linestyle='dashed', color=colores[num], alpha=0.5)
+                ax1.fill_between(xdatafill, yerrs_3D[0], yerrs_3D[1], color=colores[num], alpha=0.1)
             if thefigure =='rsqrttrue':
                 ax2.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
                 if void_name =='12.5$\mathrm{\mu m}$':
-                    ax2.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7, label=r'$R^{1/2}_{\mathrm{denoised}}\mathrm{(SNR\!\to\!\infty)}$')
+                    ax2.axhline(ymedians_3D, linestyle='dashed', color=colores[num], alpha=0.5, label=r'$R^{1/2}\mathrm{(SNR\!\to\!\infty)}$')
+                    ax2.fill_between(xdatafill, yerrs_3D[0], yerrs_3D[1], color=colores[num], alpha=0.1)
                 else:
-                    ax2.axhline(y=the_medians[k], linestyle='dashed', color='gray', alpha=0.7)
+                    ax2.axhline(ymedians_3D, linestyle='dashed', color=colores[num], alpha=0.5)
+                    ax2.fill_between(xdatafill, yerrs_3D[0], yerrs_3D[1], color=colores[num], alpha=0.1)
         if secondfig == None:
             break
         if secondfig:
@@ -277,7 +297,7 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
 
             if styleplot=='subpanel':
                 if whichfigtwo !='sigmasdenoised' and typeofsigma==None:
-                    ax2.plot(the_xx, ymed, color='grey', linestyle='dashed', linewidth=3, label='$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
+                    ax2.plot(the_xx, ymed, color='grey', linestyle='dotted', linewidth=3, label='$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
                     #ax2.plot(the_xx, kludge['ymed1'], color='grey', linestyle='dashed', linewidth=3, label='$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
                 if whichfigtwo=='sigmasdenoised':  
                     ax2.plot(the_xx, ymed, color='grey', linestyle='dashed', linewidth=3, label='$C_2\mathrm{(SNR)}$ fit', alpha=0.7)
@@ -286,7 +306,7 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
                     if panels=='two':
                         ax2.plot(the_xx, ymed, color='r', linestyle='dashed', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
                     if panels=='three':
-                        ax3.plot(the_xx, ymed, color='r', linestyle='--', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
+                        ax3.plot(the_xx, ymed, color='r', linestyle='solid', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.5)
                         #ax3.plot(the_xx, ymed3, color='r', linestyle='--', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
     return  
 
@@ -333,6 +353,7 @@ def plotfig(plotstyle):
             ax.set_ylabel(label, fontsize=13)
             ax.legend(loc='best', fontsize=12)
             ylims = (1e-1,1.5e2)
+            xlims= (0.006, 150)
             yscales = 'log'
         if typeofsigma =='free' and whichfig =='sigmasdenoised':
             yscales = 'linear'
@@ -362,7 +383,7 @@ def plotfig(plotstyle):
 
         #yscales='log'  #WARNING, TEMP FIX
         #ylims=None     #WARNING, TEMP FIX
-        ax.set(xscale='log', yscale=yscales, ylim=ylims)
+        ax.set(xscale='log', yscale=yscales, ylim=ylims, xlim=xlims) #EDIT
 
     if plotstyle == 'subpanel' and whichfig!= 'sigmasdenoised':
         ax1.set(xscale='log', yscale='linear') 
@@ -375,16 +396,16 @@ def plotfig(plotstyle):
         ax2.set_ylabel(y2label, fontsize=21)
         ax2.tick_params(axis='both', which='major', labelsize=21)
         ax2.set_xlabel("SNR", fontsize=21)
+        ax2.set_xlim(0.06, 150) 
 
         handles, labels = ax2.get_legend_handles_labels()
-        desired_label = r'$R^{1/2}_{\mathrm{denoised}}\mathrm{(SNR\!\to\!\infty)}$'
+        desired_label = r'$R^{1/2}\mathrm{(SNR\!\to\!\infty)}$'
+        custom_handle = mlines.Line2D([], [], color='gray', linestyle='dashed', label=desired_label)
         if desired_label in labels:
-            index = labels.index(desired_label)
-            desired_handle = handles.pop(index)
-            desired_label = labels.pop(index)
-            handles.append(desired_handle)
+            handles.append(custom_handle)
             labels.append(desired_label)
-            ax2.legend(handles, labels, loc='best', fontsize=20, labelspacing=0.2) 
+            ax2.legend(handles[1:], labels[1:], loc='best', fontsize=20, labelspacing=0.2) 
+
 
 
     if plotstyle == 'subpanel' and whichfig== 'sigmasdenoised':
@@ -397,13 +418,14 @@ def plotfig(plotstyle):
 
         handles, labels = ax1.get_legend_handles_labels()
         desired_label = r'$\sigma_{\rho/\rho_0\mathrm{Brunt,denoised}}\mathrm{(SNR\!\to\!\infty)}$'
+        custom_handle = mlines.Line2D([], [], color='gray', linestyle='dashed', label=desired_label)
         if desired_label in labels:
-            index = labels.index(desired_label)
-            desired_handle = handles.pop(index)
-            desired_label = labels.pop(index)
-            handles.append(desired_handle)
+            #index = labels.index(desired_label)
+            #desired_handle = handles.pop(index)
+            #desired_label = labels.pop(index)
+            handles.append(custom_handle)
             labels.append(desired_label)
-            ax1.legend(handles, labels, loc='upper left', fontsize=20, labelspacing=0.2) 
+            ax1.legend(handles[1:], labels[1:], loc='upper left', fontsize=20, labelspacing=0.2) 
 
         ax2.set(xscale='log', yscale='log') 
         y2label = 'Noise correction $C_i\mathrm{(SNR)}$'
@@ -435,17 +457,17 @@ def plotfig(plotstyle):
 # figure options: sigmas(typeofsigma='free',singular), kvals(singular,typeofsigma=None), rsqrtfull (subpanel, two),
 #                 sigmasdenoised(subpanel, three); kvals2D(typeofsigma=None)
 numofboxes = 15
-whichfig = 'kvals'
+whichfig = 'kvals2D'  # 'kvals', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise', 'kvals2D'
 ave = False  # there's normalized data by the average and non-normalized data
 whichfigtwo = None
-typeofsigma = None 
-powerlaw='two'
+typeofsigma = 'free' 
+powerlaw='zero'  
 target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  
 xdata = np.array(target_snr[:-1])
 
 k_plot = 'divkmax'  # divkmax or knoise
-plotstyle = 'singular'  # singular or subpanel
-panels = 'three'  # two or three
+plotstyle = 'subpanel'  # singular or subpanel
+panels = 'two'  # two or three
 fit = 'no'  #does not fit the final correction factor (as it should be)
 thefitting=None
 
@@ -476,8 +498,7 @@ if 1:
 
     for draw, void_size in enumerate(voids):
         print('void size is ',void_size)
-        #hfivefile = '/home/552/lv9897/sflaser/h5files/boxplot15_powspec14_i1k_half_%s.h5'%void_size
-        hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_two_%s.h5'%void_size
+        hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s.h5'%void_size #need to add the powerlaw
         Fptr = h5py.File(hfivefile,'r')
 
         # SCATTERS + FITS
@@ -597,7 +618,7 @@ if 1:
                 nydata = Fptr['%s_%s'%(whichfigthree,void_size)][()]  
 
             target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
-            x_offset = 0.05 #0.08, 05
+            x_offset = 0.05 #0.08
             y_offset = 5500 
             y_offset100 = 9500 
 
@@ -612,7 +633,6 @@ if 1:
                     medians_noise.append(np.median(nydata[iii], axis=0))
                     the_lowers.append(np.percentile(ydata[iii], 16, axis=0))
                     the_uppers.append(np.percentile(ydata[iii], 84, axis=0))
-                #stop()
 
                 for i, a in enumerate(target_snr):  #len of 7
                     if i == 0:
@@ -643,8 +663,8 @@ if 1:
                         ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N') 
                         ax.plot(ps_xdata[1:], medians_snr[0][1:], color='r', alpha=1.0, linewidth=0.8, label='S') 
                         ax.fill_between(ps_xdata[1:], the_lowers[0][1:], the_uppers[0][1:], color='r', alpha=0.2)
-                    #if i == 1: 
-                    #    plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')  
+                    if i == 1: 
+                        plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')  
 
                 data = list(Fptr['%s_%s'%(figfour,void_size)])  #returns a list 
                 data_p = list(Fptr['%s_%s'%(figfive,void_size)]) 
@@ -660,6 +680,7 @@ if 1:
                    the_medians_intshigh = np.nanpercentile(data_p[i], 84) 
 
                    ax.plot([the_medians,the_medians], [0,the_medians_ints], color=colors[draw], linestyle='dotted', alpha=0.8)
+                   stop()
                    ax.fill_betweenx(yrange, the_medians_low, the_medians_high, color=colors[draw], alpha=0.1, \
                                     where=(yrange<=the_medians_intshigh), linestyle='dotted')
 
@@ -695,24 +716,169 @@ if 1:
                 stop()  #fix.
         Fptr.close() 
 
-
     if whichfig != 'kvals2D':
         plotfig(plotstyle) 
 
 
-# Figure 7 with noise spec k=1, k=1/2, k=0, k=2, one void size only
+
+# TABLE 2, and can find TABLE 1 values. 
+if 0:
+    voids = ['12p5mu', '50mu', '100mu']
+    for num, void_size in enumerate(voids):
+        hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
+        hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
+        Fptr = h5py.File(hfivefile,'r')
+        Fptr_B = h5py.File(hfivefile_B,'r')
+        ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
+        ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
+        ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
+        ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
+        fourlists = [ydata_3D, ydata_2Ds, ydata_rhalf, ydata_Brunt]
+        median_vals =[]
+        lower_vals =[]
+        upper_vals =[]
+        for num, param in enumerate(fourlists):
+            median_vals.append(np.percentile(fourlists[num],50))
+            lower_vals.append(np.percentile(fourlists[num],16))
+            upper_vals.append(np.percentile(fourlists[num],84))
+        print('void size is ',void_size)
+        print('median values ',np.array(median_vals))
+        print('upper val error ',np.array(upper_vals)-np.array(median_vals))
+        print('lower val error ',np.array(median_vals)-np.array(lower_vals))
+
+        # Section 3.2
+        med1 = np.percentile([ydata_Brunt[0],ydata_Brunt[5],ydata_Brunt[10]],50)
+        med2 = np.percentile([ydata_Brunt[1],ydata_Brunt[6],ydata_Brunt[11]],50)
+        med3 = np.percentile([ydata_Brunt[2],ydata_Brunt[7],ydata_Brunt[12]],50)
+        med4 = np.percentile([ydata_Brunt[3],ydata_Brunt[8],ydata_Brunt[13]],50)
+        med5 = np.percentile([ydata_Brunt[4],ydata_Brunt[9],ydata_Brunt[14]],50)
+        print('medians ',med1, med2, med3, med4, med5)
+        medstd = np.std([med1,med2, med3, med4, med5])
+
+        # Section 3.3 - relative errors sigr vs sigr_b
+        rel_error = abs(np.array(ydata_Brunt)-np.array(ydata_3D))/abs(np.array(ydata_3D))
+        rel_error_percent = rel_error*100 
+        rel_error_mean = np.mean(rel_error_percent)
+        rel_error_std = np.std(rel_error_percent)
+
+# APPENDIX FIGURES
+if 0:
+    void_size = '50mu'
+    hfivefile_0p0 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_0p0_%s.h5'%void_size
+    hfivefile_0p5 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_0p5_%s.h5'%void_size
+    hfivefile_1p0 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s.h5'%void_size
+    hfivefile_1p5 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p5_%s.h5'%void_size
+    hfivefile_2p0 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_2p0_%s.h5'%void_size
+    hfivefiles = [hfivefile_0p0, hfivefile_0p5, hfivefile_1p0, hfivefile_1p5, hfivefile_2p0]    
+    the_medians = []
+    the_uppers = []
+    the_lowers = []
+    target_pl = [0.0, 0.5, 1.0, 1.5, 2.0]
+    pl_data = np.array(target_pl)
+    target_snr = [0.1, 1, 3, 5, 10, 100]
+    colors=['k','gray','b','g','orange','r']
+    collect_snr = defaultdict(list)
+    collect_lowersnr= defaultdict(list)
+    collect_uppersnr = defaultdict(list)
+# FIGURE 10, appendix B: k/kmax, sigma_B,d vs pl=0, 0.5, 1, 1.5, 2
+if 0:
+    whichfig = 'kvals'   #sigmasdenoised, kvals 
+    fig,ax = plt.subplots(1,1)  
+    for pl, hfivefile in enumerate(hfivefiles):    
+        Fptr = h5py.File(hfivefile,'r') 
+        data = list(Fptr['%s_%s'%(whichfig,void_size)])  
+
+        for val, kvalues in enumerate(data):
+            if whichfig=='kvals':
+                data[val] = data[val]/data[-1] 
+            the_medians.append(np.nanpercentile(data[val], 50))
+            the_lowers.append(np.nanpercentile(data[val], 16))
+            the_uppers.append(np.nanpercentile(data[val], 84))
+            lower_error = np.array(the_medians) - np.array(the_lowers)
+            upper_error = np.array(the_uppers) - np.array(the_medians)
+        for snr in range(len(target_snr)): 
+            collect_snr[snr].append(the_medians[1:][snr])
+            collect_lowersnr[snr].append(lower_error[1:][snr])
+            collect_uppersnr[snr].append(upper_error[1:][snr])
+        the_medians = []
+        the_uppers = []
+        the_lowers = []
+    data_snrs = [*collect_snr.values()]
+    data_snrslow = [*collect_lowersnr.values()]
+    data_snrsupp = [*collect_uppersnr.values()]
+    for val, snrnum in enumerate(target_snr): 
+        ax.errorbar(pl_data, data_snrs[val], yerr=[data_snrslow[val], data_snrsupp[val]], linestyle=None, \
+                    color=colors[val], alpha=0.5)
+        if whichfig=='kvals':
+            labeling = r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$'
+            xoffset = 0.05 
+            yoffset = 0.06 
+            plt.text(pl_data[-1]+xoffset, data_snrs[val][-1], str(snrnum), fontsize=12, ha='left', va='center', color=colors[val]) 
+            if val==len(target_snr)-1:
+                plt.text(pl_data[-1], data_snrs[val][-1]+yoffset, 'SNR', color='gray', fontsize=12, ha='left', va='center')  
+            ax.set(xlabel=r'$\alpha$', ylabel=labeling, xlim=(-0.1,2.25), ylim=(-0.05,1.12))
+        if whichfig=='sigmasdenoised':
+            labeling = r'$\sigma_{\mathrm{\rho/\rho_o,Brunt,denoised}}$'
+            ax.set(xlabel=r'$\alpha$', ylabel=labeling, xlim=(-0.1,2.25))
+    plt.savefig('sort_plots/cubes15_pl6_%s_%s_i1knobox.pdf'%(whichfig,void_size))
+
+
+
+# TABLES VALUES EXPLORATION
+if 0:
+    boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
+    voids = ['50mu', '100mu', '12p5mu']
+    colores = ['b', 'g', 'orange']
+    valuesfoam = []
+    def percent_difference_3(value1, value2, value3, value4, value5):
+            mean_value = (value1 + value2 + value3 + value4 + value5) / 5 
+            pd1 = abs(value1 - mean_value) / mean_value * 100
+            pd2 = abs(value2 - mean_value) / mean_value * 100
+            pd3 = abs(value3 - mean_value) / mean_value * 100 
+            pd4 = abs(value4 - mean_value) / mean_value * 100 
+            pd5 = abs(value5 - mean_value) / mean_value * 100 
+            return pd1, pd2, pd3, pd4, pd5
+    for val, boxesin in enumerate(boxes):
+        values = []
+        for num, void_size in enumerate(voids):
+            hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
+            hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
+            Fptr = h5py.File(hfivefile,'r')
+            Fptr_B = h5py.File(hfivefile_B,'r')
+            ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
+            ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
+            ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
+            ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
+            values.append(ydata_3D[val])
+            if void_size == '12p5mu':
+                valuesfoam.append(values)
+                stop()
+        if 0:
+            porcentajes = []
+            def relative_error(trueval, brunti):
+                pdiff = (np.abs(brunti - trueval) / trueval) * 100
+                return pdiff
+            for i in range(len(ydata_3D)):
+                pdiff = relative_error(ydata_3D[i], ydata_Brunt[i])
+                porcentajes.append(pdiff)
+            mean_pdiff = np.mean(np.array(porcentajes))
+        xdata = np.linspace(1,15,15)
+        fig,ax = plt.subplots(1,1)
+        ax.scatter(xdata, ydata_Brunt, c=colores[num], alpha=0.7, label='brunt')
+        ax.scatter(xdata, ydata_3D, c='k', alpha=0.5, label='3D')
+        ax.set(ylim=(0.0,1.0), xlabel='number of boxes', ylabel=r'$\sigma_{\rho}$') 
+        ax.legend(loc='best')
+        print('saving, saved')
+        fig.savefig('sort_plots/15boxes_brunt_3D_%s'%void_size)
+        plt.close()
+        Fptr.close() 
+
+# FIGURE 7 EXPLORATION with noise spec k=1, k=1/2, k=0, k=2, one void size only
 # WARNING: changed lines 162 - 166
 if 0:
-    void_size = '12p5mu'
-    #voids_formal = ['50$\mathrm{\mu m}$, pl=1', '50$\mathrm{\mu m}$, pl=1/2']
     voids_formal = ['pl=1', 'pl=1/2', 'pl=0', 'pl=2']
     plotstyle='subpanel'
     whichfig = 'sigmasdenoised' 
-    hfivefile_one = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_one_%s.h5'%void_size
-    hfivefile_half = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_half_%s.h5'%void_size
-    hfivefile_zero = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_zero_%s.h5'%void_size
-    hfivefile_two = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_two_%s.h5'%void_size
-    hfivefiles = [hfivefile_one, hfivefile_half, hfivefile_zero, hfivefile_two]    
     fig,(ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, figsize=(8, 12))  
     medianos1=[]
     medianos2=[]
@@ -749,167 +915,3 @@ if 0:
         errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)
     plotfig(plotstyle)
     
-# plotting sigma rho calculated vs sigma rho brunt 
-if 0:
-    boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
-    voids = ['50mu', '100mu', '12p5mu']
-    colores = ['b', 'g', 'orange']
-    valuesfoam = []
-    def percent_difference_3(value1, value2, value3, value4, value5):
-        mean_value = (value1 + value2 + value3 + value4 + value5) / 5 
-        pd1 = abs(value1 - mean_value) / mean_value * 100
-        pd2 = abs(value2 - mean_value) / mean_value * 100
-        pd3 = abs(value3 - mean_value) / mean_value * 100 
-        pd4 = abs(value4 - mean_value) / mean_value * 100 
-        pd5 = abs(value5 - mean_value) / mean_value * 100 
-        return pd1, pd2, pd3, pd4, pd5
-    for val, boxesin in enumerate(boxes):
-        values = []
-        for num, void_size in enumerate(voids):
-            hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
-            hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
-            Fptr = h5py.File(hfivefile,'r')
-            Fptr_B = h5py.File(hfivefile_B,'r')
-            ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
-            ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
-            ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
-            ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
-
-            values.append(ydata_3D[val])
-            if void_size == '12p5mu':
-                valuesfoam.append(values)
-                stop()
-        if 0:
-            porcentajes = []
-            def relative_error(trueval, brunti):
-                pdiff = (np.abs(brunti - trueval) / trueval) * 100
-                return pdiff
-            for i in range(len(ydata_3D)):
-                pdiff = relative_error(ydata_3D[i], ydata_Brunt[i])
-                porcentajes.append(pdiff)
-            mean_pdiff = np.mean(np.array(porcentajes))
-        xdata = np.linspace(1,15,15)
-        fig,ax = plt.subplots(1,1)
-        ax.scatter(xdata, ydata_Brunt, c=colores[num], alpha=0.7, label='brunt')
-        ax.scatter(xdata, ydata_3D, c='k', alpha=0.5, label='3D')
-        ax.set(ylim=(0.0,1.0), xlabel='number of boxes', ylabel=r'$\sigma_{\rho}$') 
-        ax.legend(loc='best')
-        print('saving, saved')
-        fig.savefig('sort_plots/15boxes_brunt_3D_%s'%void_size)
-        plt.close()
-    Fptr.close() 
-
-
-
-'''
-# MAKE A BOXPLOT AND SCATTER PLOT - left for learning purposes; how to hack a boxplot. 
-def boxplotscatter(thefigure, ladata, theparams=0, secondfig=None, seconddata=None):
-    fig,ax = plt.subplots(1,1)
-    # for the plot within the figure
-    if thefigure in {'kvals', 'rsqrtfull'}:
-        right, top, width, height = [0.6, 0.2, 0.25, 0.25]
-        ax2 = fig.add_axes([right, top, width, height])
-    if thefigure in {'ratios', 'sigmas'}:
-        right, bottom, width, height = [0.6, 0.6, 0.25, 0.25]
-        ax2 = fig.add_axes([right, bottom, width, height])
-
-    # funny order to make the boxplots with a plot overlayed to work
-    ax.set_xscale('log')
-    ax.set_xlim(np.array(subxdata).min()/1.20, np.array(subxdata).max()*1.20)
-    ax2.set_xscale('log')
-    ax2.set_xlim(np.array(xdata).min()/1.20, np.array(xdata).max()*1.20)
-
-    # the boxplot!  WARNING: this sets only for 'sigmas' option 
-    if thefigure == 'sigmas':
-        the_data = ladata/ladata[-1]
-        data_lista = the_data.tolist()
-    else:
-        data_lista = ladata
-    subboxplot = ax.boxplot(data_lista[2:], showfliers=True, showmeans=False, labels=subxdata, positions=subxdata) 
-    boxplot = ax2.boxplot(data_lista, showfliers=True, showmeans=False, labels=xdata, positions=xdata) 
-
-    # ...and hacking the SUBBOX plot 
-    cap_s = 1.08
-    box_s = 1.16
-    for i in range(len(ladata[2:])):
-        cap = [subxdata[i]/cap_s, subxdata[i]*cap_s]
-        subboxplot['caps'][2*i+0].set_data([cap, subboxplot['caps'][2*i+0].get_data()[1]])  #lower cap
-        subboxplot['caps'][2*i+1].set_data([cap, subboxplot['caps'][2*i+1].get_data()[1]])  #upper cap
-
-        med = [subxdata[i]/box_s, subxdata[i]*box_s]
-        subboxplot['medians'][i].set_data([med, subboxplot['medians'][i].get_data()[1]]) 
-        
-        box = [subxdata[i]/box_s, subxdata[i]*box_s, subxdata[i]*box_s, subxdata[i]/box_s, subxdata[i]/box_s]
-        subboxplot['boxes'][i].set_data([box, subboxplot['boxes'][i].get_data()[1]])
-
-    submedians = [median.get_ydata()[0] for median in subboxplot['medians']]
-    ax.scatter(subxdata, submedians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
-    # ...and hacking the BOX plot 
-    cap_s = 1.08
-    box_s = 1.16
-    for i in range(len(ladata)):
-        cap = [xdata[i]/cap_s, xdata[i]*cap_s]
-        boxplot['caps'][2*i+0].set_data([cap, boxplot['caps'][2*i+0].get_data()[1]])  #lower cap
-        boxplot['caps'][2*i+1].set_data([cap, boxplot['caps'][2*i+1].get_data()[1]])  #upper cap
-
-        med = [xdata[i]/box_s, xdata[i]*box_s]
-        boxplot['medians'][i].set_data([med, boxplot['medians'][i].get_data()[1]]) 
-        
-        box = [xdata[i]/box_s, xdata[i]*box_s, xdata[i]*box_s, xdata[i]/box_s, xdata[i]/box_s]
-        boxplot['boxes'][i].set_data([box, boxplot['boxes'][i].get_data()[1]])
-
-    medians = [median.get_ydata()[0] for median in boxplot['medians']]
-    ax2.scatter(xdata, medians, color=colors[draw], marker='o', label='Median', alpha=0.8)  #reduce the marker size! 
-
-    # for overlaying purposes, such as rhalf noise, rhalf denoised
-    if secondfig: 
-        medians_two=[]
-        submedians_two=[]
-        # FOR 15 boxes, all target
-        if 1:
-            for k in range(len(seconddata)):
-                medians_two = np.append(medians_two, np.median(seconddata[k]))
-            ax2.scatter(xdata, medians_two, color='r', marker='o', alpha=0.4, label='other median')  #reduce the marker size! 
-            for l in range(len(seconddata[2:])):
-                submedians_two = np.append(submedians_two, np.median(seconddata[2:][l]))
-            ax.scatter(subxdata, submedians_two, color='r', marker='o', alpha=0.4, label='other median')  #reduce the marker size! 
-        # FOR 15 boxes, one target - signal only
-        if 0:
-            medians_two = np.array([np.median(seconddata)]*len(xdata))
-            plt.scatter(xdata, medians_two, color='orange', marker='o', alpha=0.5, label='other median')  #reduce the marker size! 
-
-    if thefigure in {'ratios', 'sigmas'}:
-        # call the fittings procedure definition
-        meds, lows, upps = fitthebox(thefigure, data_lista, theparams)
-        # call the fitting definition, which will provide the the_yrecipes below
-        ln_ymed, ln_ylow, ln_yupp = plotthefitting(thefigure, meds, lows, upps)
-        ymed = np.exp(ln_ymed)
-        ylow = np.exp(ln_ylow)
-        yupp = np.exp(ln_yupp)
-        ax2.plot(the_xrecipe, ymed, color=colors[draw], linestyle='dashed')
-        ax2.plot(the_xrecipe, ylow, color=colors[draw], linestyle='dotted', alpha=0.7, label='lower') 
-        ax2.plot(the_xrecipe, yupp, color=colors[draw], linestyle='dotted', alpha=0.7, label='upper')  
-        ax2.fill_between(the_xrecipe, ylow, yupp, color=colors[draw], alpha=0.2)
-    else:
-        meds = 0
-    
-    # SAVING    
-    if thefigure == 'rsqrtfull':
-        ax.set_yscale('log')
-        ax.set_ylabel(r'$R^{1/2}_{noisy}$, $R^{1/2}_{denoised}$')
-    if thefigure == 'kvals':
-        ax.set_ylabel('k noise')
-    if thefigure == 'sigmas':
-        ax2.set_yscale('log')
-        ax.set_yscale('log')
-        ax.set_ylabel(r'$\sigma_{\rho/\rho_o,snr} / \sigma_{\rho/\rho_o,inf}$') 
-    if thefigure == 'ratios':
-        ax.set_ylabel(r'$R^{1/2}_{denoised}/R^{1/2}_{noisy}$')
-    ax.set_xlabel('SNR')
-
-    # really saving now
-    plt.savefig('sort_plots/boxplot15_powspec14_%s_i1k_%s'%(thefigure,void_size))
-    print('%s_saved!'%thefigure)
-    plt.clf()
-    return meds
-'''
