@@ -7,7 +7,7 @@ def get_box(voids, box, projecting, proj_axis=0, imaging='no'):
     '''
     Build the box. Get the cover grid. Project (or not)
     '''
-    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(voids))
+    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_512_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(voids))
     the_level = 0
     delta_a = 0.02  #(1.2/3)/2
     edge_mtop = 0.3675 
@@ -182,7 +182,7 @@ dimension = 1
 iterations = 1000
 
 # BOX OPTIONS: 15 total per one void size.
-void_size = '100mu'
+void_size = '50mu'
 # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
 if 1:
     boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box'] 
@@ -196,7 +196,7 @@ if 0: #debug
 target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
 
 # LOAD THE raw DATA
-the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_1024_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
+the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_512_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
 # box dimensions
 delta_a = 0.02  
 edge_mtop = 0.3675  
@@ -421,7 +421,7 @@ if no_noise == False:
     print('before storing information')
 # and store the information 
 if 1:
-    hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p5_%s.h5'%void_size
+    hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s_512.h5'%void_size
     Fptr = h5py.File(hfivefile,'w') 
     Fptr['sigmas_%s'%void_size] = data_sigmas
     Fptr['rsqrtfull_%s'%void_size] = data_rsqrts

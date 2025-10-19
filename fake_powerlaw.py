@@ -35,9 +35,6 @@ def fake_powerlaw(N, alphaT, kmin, kmax, Amplitude=1, phase=False, rando=False, 
         Ahat = Ahatmag*np.cos(phi)+Ahatmag*np.sin(phi)*1j
         Ahat[0,0] = np.abs(Ahat[0,0])  #2D
 
-    H = Ahat.shape[0]//2
-    Atotal=Ahat
-    Ahat = Ahat[:,:H+1]  #2D
-    Q = np.fft.irfftn(Ahat)
+    Q = np.fft.irfftn(Ahat, s=Ahat.shape)
     return Q
 

@@ -457,16 +457,16 @@ def plotfig(plotstyle):
 # figure options: sigmas(typeofsigma='free',singular), kvals(singular,typeofsigma=None), rsqrtfull (subpanel, two),
 #                 sigmasdenoised(subpanel, three); kvals2D(typeofsigma=None)
 numofboxes = 15
-whichfig = 'kvals2D'  # 'kvals', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise', 'kvals2D'
+whichfig = 'kvals'  # 'kvals', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise', 'kvals2D'
 ave = False  # there's normalized data by the average and non-normalized data
 whichfigtwo = None
-typeofsigma = 'free' 
-powerlaw='zero'  
+typeofsigma = "free" 
+powerlaw='one'  
 target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  
 xdata = np.array(target_snr[:-1])
 
 k_plot = 'divkmax'  # divkmax or knoise
-plotstyle = 'subpanel'  # singular or subpanel
+plotstyle = 'singular'  # singular or subpanel
 panels = 'two'  # two or three
 fit = 'no'  #does not fit the final correction factor (as it should be)
 thefitting=None
@@ -498,7 +498,7 @@ if 1:
 
     for draw, void_size in enumerate(voids):
         print('void size is ',void_size)
-        hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s.h5'%void_size #need to add the powerlaw
+        hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s_512.h5'%void_size #need to add the powerlaw
         Fptr = h5py.File(hfivefile,'r')
 
         # SCATTERS + FITS
