@@ -7,7 +7,7 @@ def get_box(voids, box, projecting, proj_axis=0, imaging='no'):
     '''
     Build the box. Get the cover grid. Project (or not)
     '''
-    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_512_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(voids))
+    the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_2048_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(voids))
     the_level = 0
     delta_a = 0.02  #(1.2/3)/2
     edge_mtop = 0.3675 
@@ -196,7 +196,7 @@ if 0: #debug
 target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
 
 # LOAD THE raw DATA
-the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_512_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
+the_ds = yt.load('/scratch/ek9/ccf100/nif/turb_foam_gamma_5_3_3d_2048_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
 # box dimensions
 delta_a = 0.02  
 edge_mtop = 0.3675  
@@ -311,16 +311,16 @@ collect_sigmas = defaultdict(list)
 collect_rsqrtsratio = defaultdict(list)
 collect_rsqrt = defaultdict(list)
 collect_kvals = defaultdict(list)
-collect_p2dsInt = defaultdict(list)  #new
-collect_sigmasNdenoised = defaultdict(list)  #new
-collect_sigmasdenoised =defaultdict(list) #new
+collect_p2dsInt = defaultdict(list)  
+collect_sigmasNdenoised = defaultdict(list)  
+collect_sigmasdenoised =defaultdict(list) 
 collect_rsqrttrue = defaultdict(list)
 collect_spectras = defaultdict(list) 
 collect_spectras_ave = defaultdict(list) 
 collect_noisespectras = defaultdict(list)
 
 # 3D data
-calculate_3dsigmas = False#True
+calculate_3dsigmas = False
 sigmas3D = []
 
 # No noise data
@@ -378,15 +378,11 @@ for eje, los in enumerate(projection_axis_list):
                 meannoisespec = collectnoisespec
 
                 print('target ',target)
-                #index = np.argmin(np.abs(signalonly[1:] - meannoisespec[1:]))   
                 index = np.argmin(np.abs(signalonly - meannoisespec))   
                 print('index ', index)
-                #kcross = kvals2D[index]   
                 kcross = index   
-                #crossing_signalnoise = signalonly[1:][int(kcross)]
                 crossing_signalnoise = signalonly[:][index]
                 collect_p2dsInt[target].append(crossing_signalnoise) 
-                #stop()
 
                 if 1:
                     _, sigmaNdenoised, rsqrt_true, sigmadenoised = parsevals.parsevals_th(dimension, medspec2D, medspec3D, kvals2D, \
@@ -417,11 +413,10 @@ if no_noise == False:
     data_powintersects = [*collect_p2dsInt.values()] 
     data_sigmascolumndenoise = [*collect_sigmasNdenoised.values()] 
     data_sigmasdenoised = [*collect_sigmasdenoised.values()] 
-    #stop()
     print('before storing information')
 # and store the information 
 if 1:
-    hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s_512.h5'%void_size
+    hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s_2048.h5'%void_size
     Fptr = h5py.File(hfivefile,'w') 
     Fptr['sigmas_%s'%void_size] = data_sigmas
     Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
