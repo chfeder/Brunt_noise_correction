@@ -1,40 +1,38 @@
+#!/usr/bin/env python
 
-from startlaser import * 
+from startlaser import *
 from collections import defaultdict
 import matplotlib.ticker as ticker
 import matplotlib.lines as mlines
-# GET INFO FROM STORAGE 
-import pdb 
 
 
 # POSSIBLE FIT FUNCTIONS
 # discovery fit functions
-def linfunct(x, a, b):  
-    y = a * x + b 
+def linfunct(x, a, b):
+    y = a * x + b
     return y
 def lininvfunct_og(x, a, b=0.25):
-    y = a * x**(b) - 0.2 
+    y = a * x**(b) - 0.2
     return y
 def discovery(x, a, b, c):
     # originally an exponential function
-    pre_y = 1 + x**-a 
+    pre_y = 1 + x**-a
     y = np.log(pre_y)
     return y
-def tanfunct_simple(x, first, second): 
-    y = first * np.tanh(second*x) + (1-first)  
+def tanfunct_simple(x, first, second):
+    y = first * np.tanh(second*x) + (1-first)
     return y
-def gaussianlike(x, a, b): 
+def gaussianlike(x, a, b):
     #y = a * np.exp(-(x-1)**2 / (2 * b**2)) + c
     y = a * np.exp(-(x)**2 /b) + 1
     return y
-def sigmarho_fit_old_old(x,a):  
-    pre_y = (lininvfunct(x, a, b=1) * tanfunct_simple(x, first=first, second=second)) 
+def sigmarho_fit_old_old(x,a):
+    pre_y = (lininvfunct(x, a, b=1) * tanfunct_simple(x, first=first, second=second))
     y = np.log(pre_y)
     return y 
 def sigmarho_fit_old(x, a, b, c):
     y = 1/(a * x**(b)+c)
     return y 
-
 # the fitting functions we actually used
 def csnr_1(x, a, b):
     y = np.log( (x**a + b) / x**a )
@@ -42,14 +40,13 @@ def csnr_1(x, a, b):
 def csnr_2(x, c, d):
     y = np.log( x**c / (x**c + d) )
     return y 
-
-def csnr(x, a, b, c, d):  
+def csnr(x, a, b, c, d):
     cfactor = csnr_1(x,a,b) + csnr_2(x,c,d)
     return cfactor 
 
+# ============================= fitting ======================================
 
-# GET THE FITTING 
-def fitthebox(whichfigure, eldata, secondparam=0):  
+def fitthebox(whichfigure, eldata, secondparam=0):
     '''
     GET the median, the 16th ('-' correction), and the 84th ('+' correction) of fit params a, b, c, d, etc
     this then allows us to report param +/- correction 
@@ -127,34 +124,35 @@ def fitthebox(whichfigure, eldata, secondparam=0):
         param_meds = [med_a, med_b, med_c, med_d]
         param_16s = [p16_a, p16_b, p16_c, med_d]
         param_84s = [p84_a, p84_b, p84_c, med_d]
-    
+
     return param_meds, param_16s, param_84s
 
+# ===================================================================
 
 def plotthefitting(the_xxx, thefigures, themedians, sixteenths=None, eightyfours=None, fitting='no'):
     """ plot the fitting """
     if thefigures == 'sigmasdenoised':
         the_yrecipemed = csnr_1(the_xxx, *themedians)  
-        if fitting=='yes': 
+        if fitting=='yes':
             the_yrecipelow = csnr_1(the_xxx, *sixteenths)
             the_yrecipeupp = csnr_1(the_xxx, *eightyfours)
     if thefigures == 'sigmas':
         the_yrecipemed = csnr_2(the_xxx, *themedians)  
-        if fitting=='yes': 
+        if fitting=='yes':
             the_yrecipelow = csnr_2(the_xxx, *sixteenths)
             the_yrecipeupp = csnr_2(the_xxx, *eightyfours)
     if thefigures == 'sigmastwo':
         the_yrecipemed = csnr(the_xxx, *themedians)  
-        if fitting=='yes': 
+        if fitting=='yes':
             the_yrecipelow = csnr(the_xxx, *sixteenths)
             the_yrecipeupp = csnr(the_xxx, *eightyfours)
     if fitting =='no':
-        the_yrecipelow = 0  
-        the_yrecipeupp = 0 
+        the_yrecipelow = 0
+        the_yrecipeupp = 0
     return the_yrecipemed, the_yrecipelow, the_yrecipeupp
 
-if 'kludge' not in dir():
-    kludge ={}
+# ===================================================================
+
 def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=None, void_errname=None, styleplot='singular'):
     """ plot the data """
     thefigs = [thefigure, secondfig]
@@ -188,7 +186,7 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
                 ax.errorbar(xdata, the_medians, yerr=[lower_error, upper_error], linestyle=None, fmt=markers[1], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=None)#labels[num])
                 if 1:
-                    hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
+                    hfivefile = '../h5files/15sigma3D_%s.h5'%void_size
                     Fptr = h5py.File(hfivefile,'r')
                     ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
                     ymedians_3D = np.nanpercentile(ydata_3D[0:5], 50)
@@ -204,8 +202,9 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
             if thefigure =='sigmasdenoised' and typeofsigma=='free':
                 ax1.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
-                if void_name =='12.5$\mathrm{\mu m}$':
-                    ax1.axhline(y=the_medians[k], linestyle='dashed', color=colores[num], alpha=0.5, label=r'$\sigma_{\rho/\rho_0\mathrm{Brunt,denoised}}\mathrm{(SNR\!\to\!\infty)}$')
+                if void_name == r'12.5$\mathrm{\mu m}$':
+                    ax1.axhline(y=the_medians[k], linestyle='dashed', color=colores[num], alpha=0.5,
+                        label=r'$\sigma_{\rho/\rho_0\mathrm{Brunt,denoised}}\mathrm{(SNR\!\to\!\infty)}$')
                 else:
                     ax1.axhline(y=the_medians[k], linestyle='dashed', color=colores[num], alpha=0.5)
 
@@ -225,7 +224,7 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
 
         if styleplot =='subpanel':
             if 1:
-                hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
+                hfivefile_B = '../h5files/15nonoise_%s.h5'%void_size
                 Fptr_B = h5py.File(hfivefile_B,'r')
                 ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size]) 
                 ymedians_3D = np.nanpercentile(ydata_rhalf, 50)
@@ -240,8 +239,9 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
             if thefigure =='rsqrttrue':
                 ax2.errorbar(xdata[1:], the_medians[1:], yerr=yerrs, linestyle=None, fmt=markers[draw], \
                             ecolor=colores[num], color=colores[num], alpha=alphas[num], capsize=5, label=labels[num])
-                if void_name =='12.5$\mathrm{\mu m}$':
-                    ax2.axhline(ymedians_3D, linestyle='dashed', color=colores[num], alpha=0.5, label=r'$R^{1/2}\mathrm{(SNR\!\to\!\infty)}$')
+                if void_name == r'12.5$\mathrm{\mu m}$':
+                    ax2.axhline(ymedians_3D, linestyle='dashed', color=colores[num], alpha=0.5,
+                                label=r'$R^{1/2}\mathrm{(SNR\!\to\!\infty)}$')
                     ax2.fill_between(xdatafill, yerrs_3D[0], yerrs_3D[1], color=colores[num], alpha=0.1)
                 else:
                     ax2.axhline(ymedians_3D, linestyle='dashed', color=colores[num], alpha=0.5)
@@ -270,17 +270,13 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
             if thefitting == 'three': 
                 medianos3.append(meds)
 
-        if void_name == '100$\mathrm{\mu m}$':
+        if void_name == r'100$\mathrm{\mu m}$':
             if thefitting == 'one':
                 mediano_1 = np.mean(medianos1,axis=0) 
                 ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano_1)
-                #ymed1 = np.exp(ln_ymed) 
-                #kludge['ymed1'] = ymed1
             if thefitting == 'two':
                 mediano_2 = np.mean(medianos2,axis=0) 
                 ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano_2)
-                #ymed2 = np.exp(ln_ymed) 
-                #kludge['ymed2'] = ymed2
             if thefitting == 'three':
                 if fit =='no':
                     mediano_1 = np.mean(medianos1,axis=0) 
@@ -288,8 +284,6 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
                     mediano = np.append(mediano_1, mediano_2)
                     print('the four params ',mediano)
                     ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano)
-                    #ymed3 = kludge['ymed1']*kludge['ymed2']  
-                    #ymedreal = np.exp(ln_ymed) 
                 if fit =='yes':
                     mediano = np.mean(medianos3,axis=0) 
                     ln_ymed, ln_ylow, ln_yupp = plotthefitting(the_xx, thefigure, mediano)
@@ -297,19 +291,17 @@ def errorbarsplot(thefigure, ladata, void_name=None, secondfig=None, seconddata=
 
             if styleplot=='subpanel':
                 if whichfigtwo !='sigmasdenoised' and typeofsigma==None:
-                    ax2.plot(the_xx, ymed, color='grey', linestyle='dotted', linewidth=3, label='$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
-                    #ax2.plot(the_xx, kludge['ymed1'], color='grey', linestyle='dashed', linewidth=3, label='$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
+                    ax2.plot(the_xx, ymed, color='grey', linestyle='dotted', linewidth=3, label=r'$C_1\mathrm{(SNR)}$ fit', alpha=0.7)
                 if whichfigtwo=='sigmasdenoised':  
-                    ax2.plot(the_xx, ymed, color='grey', linestyle='dashed', linewidth=3, label='$C_2\mathrm{(SNR)}$ fit', alpha=0.7)
-                    #ax2.plot(the_xx, kludge['ymed2'], color='k', linestyle='dashed', linewidth=3, label='$C_2\mathrm{(SNR)}$ fit', alpha=0.5)
+                    ax2.plot(the_xx, ymed, color='grey', linestyle='dashed', linewidth=3, label=r'$C_2\mathrm{(SNR)}$ fit', alpha=0.7)
                 if typeofsigma=='cthree':
                     if panels=='two':
-                        ax2.plot(the_xx, ymed, color='r', linestyle='dashed', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
+                        ax2.plot(the_xx, ymed, color='r', linestyle='dashed', linewidth=3, label=r'$C\mathrm{(SNR)}$', alpha=0.7)
                     if panels=='three':
-                        ax3.plot(the_xx, ymed, color='r', linestyle='solid', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.5)
-                        #ax3.plot(the_xx, ymed3, color='r', linestyle='--', linewidth=3, label='$C\mathrm{(SNR)}$', alpha=0.7)
+                        ax3.plot(the_xx, ymed, color='r', linestyle='solid', linewidth=3, label=r'$C\mathrm{(SNR)}$', alpha=0.5)
     return  
 
+# ===================================================================
 
 def plotfig(plotstyle):
     if plotstyle == 'singular':
@@ -408,8 +400,6 @@ def plotfig(plotstyle):
             labels.append(desired_label)
             ax2.legend(handles[1:], labels[1:], loc='best', fontsize=20, labelspacing=0.2) 
 
-
-
     if plotstyle == 'subpanel' and whichfig== 'sigmasdenoised':
         ax1.set(xscale='log', yscale='linear') 
         ylims=(0,1)
@@ -430,7 +420,7 @@ def plotfig(plotstyle):
             ax1.legend(handles[1:], labels[1:], loc='upper left', fontsize=20, labelspacing=0.2) 
 
         ax2.set(xscale='log', yscale='log') 
-        y2label = 'Noise correction $C_i\mathrm{(SNR)}$'
+        y2label = r'Noise correction $C_i\mathrm{(SNR)}$'
         ax2.set_ylabel(y2label, fontsize=21)
         ax2.tick_params(axis='both', which='major', labelsize=21)
         ax2.legend(loc='best', fontsize=21)
@@ -439,491 +429,490 @@ def plotfig(plotstyle):
 
         if panels=='three':
             ax3.set(xscale='log', yscale='log') 
-            y3label = 'Noise correction $C\mathrm{(SNR)}$'
+            y3label = r'Noise correction $C\mathrm{(SNR)}$'
             ax3.set_ylabel(y3label, fontsize=21)
             ax3.tick_params(axis='both', which='major', labelsize=21)
             ax3.legend(loc='lower right', fontsize=21)
             ax3.set_xlabel('SNR', fontsize=21)
 
-
     # really saving now
     fig.tight_layout()   #trouble for sigmas?
-    fig.savefig('sort_plots/cubes15_spectra15_%s_%s_i1knobox.pdf'%(whichfig,powerlaw))
+    fig.savefig('../figs/cubes15_spectra15_%s_%s_i1knobox.pdf'%(whichfig,powerlaw))
     print('%s_saved!'%whichfig)
     plt.clf()
 
 
+# ===== the following applies in case we are running this in script mode =====
+if __name__ == "__main__":
 
+    # figure options: FIG 3: sigmas(typeofsigma='free',singular), FIG 5: kvals(singular,typeofsigma=None), FIG 6: rsqrtfull (subpanel, two),
+    #                 FIG 7: sigmasdenoised(subpanel, three); FIG 4: kvals2D(typeofsigma=None for all 3 voids, "free" for 50um, 3 rez)
+    numofboxes = 15
+    whichfig = 'kvals2D' # 'kvals', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise', 'kvals2D'
+    ave = False  # there's normalized data by the average and non-normalized data
+    whichfigtwo = None
+    typeofsigma = "free"
+    powerlaw='one'
+    target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, np.inf]
+    xdata = np.array(target_snr[:-1])
 
-# MAIN: LOOP FOR THE THREE VOIDS!
-# figure options: FIG 3: sigmas(typeofsigma='free',singular), FIG 5: kvals(singular,typeofsigma=None), FIG 6: rsqrtfull (subpanel, two),
-#                 FIG 7: sigmasdenoised(subpanel, three); FIG 4: kvals2D(typeofsigma=None for all 3 voids, "free" for 50um, 3 rez)
-numofboxes = 15
-whichfig = 'kvals2D'  # 'kvals', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise', 'kvals2D'
-ave = False  # there's normalized data by the average and non-normalized data
-whichfigtwo = None
-typeofsigma = "free" 
-powerlaw='one'  
-target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, inf]  
-xdata = np.array(target_snr[:-1])
+    k_plot = 'divkmax'  # divkmax or knoise
+    plotstyle = 'singular'  # singular or subpanel
+    panels = 'two'  # two or three
+    fit = 'no'  #does not fit the final correction factor (as it should be)
+    thefitting = None
 
-k_plot = 'divkmax'  # divkmax or knoise
-plotstyle = 'singular'  # singular or subpanel
-panels = 'two'  # two or three
-fit = 'no'  #does not fit the final correction factor (as it should be)
-thefitting=None
+    voids = ['12p5mu', '50mu', '100mu']
+    resolutions = ['512', '1024', '2048']
 
-voids = ['12p5mu', '50mu', '100mu']
-resolutions = ['512', '1024', '2048']
-voids_formal = ['12.5$\mathrm{\mu m}$', '50$\mathrm{\mu m}$', '100$\mathrm{\mu m}$']
-voids_eformal = ['$12.5_{\mu m, \mathrm{denoised}}$', '$50_{\mu m, \mathrm{denoised}}$', '$100_{\mu m, \mathrm{denoised}}$',]
-colors = ['magenta', 'b', 'g']
+    resolutions = ['512']
 
-if typeofsigma == 'free':  #or 'free' for the one void figure 
-    voids_formal = ['512', '1024', '2048']
-    voids = ['50mu']  
-    colors = ['orange', 'blue', 'purple']    
+    voids_formal = [r'12.5$\mathrm{\mu m}$', r'50$\mathrm{\mu m}$', r'100$\mathrm{\mu m}$']
+    voids_eformal = [r'$12.5_{\mu m, \mathrm{denoised}}$', r'$50_{\mu m, \mathrm{denoised}}$', r'$100_{\mu m, \mathrm{denoised}}$']
+    colors = ['magenta', 'b', 'g']
 
-if 1:
-    if whichfig != 'kvals2D' and plotstyle=='singular':
-        fig,ax = plt.subplots(1,1) 
-    if whichfig == 'rsqrtfull' and plotstyle=='subpanel':
-        fig,(ax1, ax2) = plt.subplots(2,1, sharex=True, figsize=(7, 9))  
+    if typeofsigma == 'free':  # or 'free' for the one void figure
+        voids_formal = ['512', '1024', '2048']
+        voids = ['50mu']
+        colors = ['orange', 'blue', 'purple']
 
-    if whichfig == 'sigmasdenoised' and plotstyle=='subpanel':
-        if panels=='two':
+    if 1:
+        if whichfig != 'kvals2D' and plotstyle=='singular':
+            fig,ax = plt.subplots(1,1) 
+        if whichfig == 'rsqrtfull' and plotstyle=='subpanel':
             fig,(ax1, ax2) = plt.subplots(2,1, sharex=True, figsize=(7, 9))  
-        if panels=='three':
-            fig,(ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, figsize=(8, 12))  
-        medianos1=[]
-        medianos2=[]
-        medianos3=[]
 
-    for draw, rez in enumerate(resolutions):
-        print('resolution, ',rez)
-        for bubble, void_size in enumerate(voids):
-            print('void size is ',void_size)
-            hfivefile = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s_%s.h5'%(void_size,rez) #need to add the powerlaw
-            Fptr = h5py.File(hfivefile,'r')
+        if whichfig == 'sigmasdenoised' and plotstyle=='subpanel':
+            if panels=='two':
+                fig,(ax1, ax2) = plt.subplots(2,1, sharex=True, figsize=(7, 9))
+            if panels=='three':
+                fig,(ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, figsize=(8, 12))
+            medianos1=[]
+            medianos2=[]
+            medianos3=[]
 
-            # SCATTERS + FITS
-            if whichfig != 'kvals2D':
+        for draw, rez in enumerate(resolutions):
+            print('resolution(s) = ', rez, color='green')
+            for bubble, void_size in enumerate(voids):
+                print('void size = ', void_size, color='green')
+                hfivefile = '../h5files/15cubes15spectra_i1k_1p0_%s_%s.h5'%(void_size,rez) #need to add the powerlaw
+                Fptr = h5py.File(hfivefile,'r')
 
-                # SINGULAR PLOTS
-                if plotstyle == 'singular':
-                    data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-                    print('inside singular')
+                # SCATTERS + FITS
+                if whichfig != 'kvals2D':
 
-                    if whichfig == 'kvals' and k_plot=='divkmax':
-                        for val, kvalues in enumerate(data):
-                            data[val] = data[val]/data[-1] 
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
-                    if whichfig == 'rsqrttrue':
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])  
-                    if whichfig == 'rsqrtfull':
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])  
-                    if whichfig == 'ratios':
-                        print('inside fig')
-                        theparams = 1  #two params
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
-                    if whichfig == 'sigmas' and whichfigtwo != 'sigmasdenoised':
-                        if typeofsigma == None:
-                            infdata = data[-1]/data 
-                            errorbarsplot(whichfig, infdata, void_name=voids_formal[draw])  
-                        if typeofsigma == 'free':
-                            errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
-                    # NEW.
-                    if whichfig == 'columnddenoise':
-                        errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
+                    # SINGULAR PLOTS
+                    if plotstyle == 'singular':
+                        data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+                        print('inside singular')
 
-                    if whichfig == 'sigmasdenoised':
-                        if typeofsigma == 'free':
-                            errorbarsplot(whichfig, data, void_name=voids_formal[draw])  
-                        if typeofsigma == None:
-                            infdata = data[-1]/data 
-                            errorbarsplot(whichfig, infdata, void_name=voids_formal[draw])  
+                        if whichfig == 'kvals' and k_plot=='divkmax':
+                            for val, kvalues in enumerate(data):
+                                data[val] = data[val]/data[-1]
+                            errorbarsplot(whichfig, data, void_name=voids_formal[draw])
+                        if whichfig == 'rsqrttrue':
+                            errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])
+                        if whichfig == 'rsqrtfull':
+                            errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw])
+                        if whichfig == 'ratios':
+                            print('inside fig')
+                            theparams = 1  #two params
+                            errorbarsplot(whichfig, data, void_name=voids_formal[draw])
+                        if whichfig == 'sigmas' and whichfigtwo != 'sigmasdenoised':
+                            if typeofsigma == None:
+                                infdata = data[-1]/data 
+                                errorbarsplot(whichfig, infdata, void_name=voids_formal[draw])
+                            if typeofsigma == 'free':
+                                errorbarsplot(whichfig, data, void_name=voids_formal[draw])
+                        # NEW.
+                        if whichfig == 'columnddenoise':
+                            errorbarsplot(whichfig, data, void_name=voids_formal[draw])
 
-                    if whichfig == 'sigmas' and whichfigtwo=='sigmasdenoised':
-                        figtwodata =list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
-                        if typeofsigma =='cthree':
-                            # WARNING, THIS DOES NOT WORK YET
-                            csnrdata1 = figtwodata[-1]/figtwodata
-                            whichfig = 'sigmasdenoised'
-                            thefitting='one'
-                            errorbarsplot(whichfig, csnrdata1, void_name=voids_formal[draw], styleplot=plotstyle)  
-                            csnrdata2 = np.array(figtwodata)/np.array(data)
-                            whichfig = 'sigmas'
-                            thefitting='two'
-                            errorbarsplot(whichfig, csnrdata2, void_name=voids_formal[draw], styleplot=plotstyle)  
-                            csnrdata_three = figtwodata[-1]/data
-                            whichfig = 'sigmasdenoised'
-                            thefitting = 'three'
-                            errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)  
+                        if whichfig == 'sigmasdenoised':
+                            if typeofsigma == 'free':
+                                errorbarsplot(whichfig, data, void_name=voids_formal[draw])
+                            if typeofsigma == None:
+                                infdata = data[-1]/data 
+                                errorbarsplot(whichfig, infdata, void_name=voids_formal[draw])
 
+                        if whichfig == 'sigmas' and whichfigtwo=='sigmasdenoised':
+                            figtwodata =list(Fptr['%s_%s'%(whichfigtwo,void_size)])  
+                            if typeofsigma =='cthree':
+                                # WARNING, THIS DOES NOT WORK YET
+                                csnrdata1 = figtwodata[-1]/figtwodata
+                                whichfig = 'sigmasdenoised'
+                                thefitting='one'
+                                errorbarsplot(whichfig, csnrdata1, void_name=voids_formal[draw], styleplot=plotstyle)
+                                csnrdata2 = np.array(figtwodata)/np.array(data)
+                                whichfig = 'sigmas'
+                                thefitting='two'
+                                errorbarsplot(whichfig, csnrdata2, void_name=voids_formal[draw], styleplot=plotstyle)
+                                csnrdata_three = figtwodata[-1]/data
+                                whichfig = 'sigmasdenoised'
+                                thefitting = 'three'
+                                errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)
 
-                # MULTIPANEL PLOTS
-                if plotstyle == 'subpanel' and whichfig=='sigmasdenoised':
-                    data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-                    typeofsigma ='free'
-                    thefitting=None
-                    errorbarsplot(whichfig, data, void_name=voids_formal[draw], styleplot=plotstyle)  
+                    # MULTIPANEL PLOTS
+                    if plotstyle == 'subpanel' and whichfig=='sigmasdenoised':
+                        data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+                        typeofsigma ='free'
+                        thefitting=None
+                        errorbarsplot(whichfig, data, void_name=voids_formal[draw], styleplot=plotstyle)
 
-                    typeofsigma = None
-                    infdata = data[-1]/data 
-                    thefitting='one'
-                    errorbarsplot(whichfig, infdata, void_name=voids_formal[draw], styleplot=plotstyle)  
+                        typeofsigma = None
+                        infdata = data[-1]/data 
+                        thefitting='one'
+                        errorbarsplot(whichfig, infdata, void_name=voids_formal[draw], styleplot=plotstyle)
 
-                    whichfig = 'sigmas'
-                    whichfigtwo = 'sigmasdenoised'
-                    typeofsigma = None
-                    data_sigmas = list(Fptr['%s_%s'%(whichfig,void_size)])  
-                    csnrdata = np.array(data)/np.array(data_sigmas)
-                    thefitting='two'
-                    errorbarsplot(whichfig, csnrdata, void_name=voids_formal[draw], styleplot=plotstyle)  
+                        whichfig = 'sigmas'
+                        whichfigtwo = 'sigmasdenoised'
+                        typeofsigma = None
+                        data_sigmas = list(Fptr['%s_%s'%(whichfig,void_size)])
+                        csnrdata = np.array(data)/np.array(data_sigmas)
+                        thefitting='two'
+                        errorbarsplot(whichfig, csnrdata, void_name=voids_formal[draw], styleplot=plotstyle)
 
-                    whichfig='sigmasdenoised'
-                    whichfigtwo = None
-                    figtwodata = None
-                    typeofsigma = 'cthree'
-                    csnrdata_three = data[-1]/data_sigmas
-                    thefitting='three'
-                    errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)
-                    # note: saving happens post powerspectra plots
+                        whichfig='sigmasdenoised'
+                        whichfigtwo = None
+                        figtwodata = None
+                        typeofsigma = 'cthree'
+                        csnrdata_three = data[-1]/data_sigmas
+                        thefitting='three'
+                        errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)
+                        # note: saving happens post powerspectra plots
 
+                    if plotstyle == 'subpanel' and whichfig=='rsqrtfull':
+                        thefitting=None
+                        data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+                        errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw], styleplot=plotstyle)
+                        print('after rhalf plot ',void_size)
 
-                if plotstyle == 'subpanel' and whichfig=='rsqrtfull':
-                    thefitting=None
-                    data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-                    errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw], styleplot=plotstyle)
-                    print('after rhalf plot ',void_size)
+                        whichfig = 'rsqrttrue'
+                        data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+                        errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw], styleplot=plotstyle)
+                        #              secondfig=whichfigtwo, seconddata=figtwodata)
+                        print('after true plot ',void_size)
+                        whichfig = 'rsqrtfull'
 
-                    whichfig = 'rsqrttrue'
-                    data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-                    errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw], styleplot=plotstyle)
-                    #              secondfig=whichfigtwo, seconddata=figtwodata)
-                    print('after true plot ',void_size)
-                    whichfig = 'rsqrtfull'
+                # POWERSPECTRA PLOTS
+                if whichfig == 'kvals2D':
+                    figfour = 'kvals'
+                    figfive = 'powintersects'
+                    fig,ax = plt.subplots(1,1)
+                    
+                    whichfigtwo = 'thepowspec' 
+                    whichfigthree = 'thenoisepowspec'
+                    ps_xdata = Fptr['%s_%s'%(whichfig,void_size)][()]  #returns a numpy array
+                    if k_plot == 'divkmax':  #for k/k_max
+                        for val, kvalues in enumerate(ps_xdata):
+                            ps_xdata[val] = ps_xdata[val]/ps_xdata[-1] 
+                    if whichfigtwo:
+                        ydata = Fptr['%s_%s'%(whichfigtwo,void_size)][()]  
+                    if whichfigthree:
+                        nydata = Fptr['%s_%s'%(whichfigthree,void_size)][()]  
 
+                    target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
+                    x_offset = 0.05 #0.08
+                    y_offset = 5500 
+                    y_offset100 = 9500 
 
-            # POWERSPECTRA PLOTS 
-            if whichfig == 'kvals2D':
-                figfour = 'kvals'
-                figfive = 'powintersects'
-                fig,ax = plt.subplots(1,1)
-                
-                whichfigtwo = 'thepowspec' 
-                whichfigthree = 'thenoisepowspec'  
-                ps_xdata = Fptr['%s_%s'%(whichfig,void_size)][()]  #returns a numpy array
-                if k_plot == 'divkmax':  #for k/k_max
-                    for val, kvalues in enumerate(ps_xdata):
-                        ps_xdata[val] = ps_xdata[val]/ps_xdata[-1] 
-                if whichfigtwo:
-                    ydata = Fptr['%s_%s'%(whichfigtwo,void_size)][()]  
-                if whichfigthree:
-                    nydata = Fptr['%s_%s'%(whichfigthree,void_size)][()]  
+                    # MEDIANS ONLY
+                    if 1:
+                        medians_snr = []
+                        medians_noise = []
+                        the_lowers = []
+                        the_uppers = []
+                        for iii in range(len(ydata)):
+                            medians_snr.append(np.median(ydata[iii], axis=0))
+                            medians_noise.append(np.median(nydata[iii], axis=0))
+                            the_lowers.append(np.percentile(ydata[iii], 16, axis=0))
+                            the_uppers.append(np.percentile(ydata[iii], 84, axis=0))
 
-                target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
-                x_offset = 0.05 #0.08
-                y_offset = 5500 
-                y_offset100 = 9500 
-
-                # MEDIANS ONLY
-                if 1:  
-                    medians_snr = []
-                    medians_noise = []
-                    the_lowers = []
-                    the_uppers = []
-                    for iii in range(len(ydata)):
-                        medians_snr.append(np.median(ydata[iii], axis=0))
-                        medians_noise.append(np.median(nydata[iii], axis=0))
-                        the_lowers.append(np.percentile(ydata[iii], 16, axis=0))
-                        the_uppers.append(np.percentile(ydata[iii], 84, axis=0))
-
-                    for i, a in enumerate(target_snr):  #len of 7
-                        if i == 0:
-                            if rez != '512':
-                                ax.plot(ps_xdata, medians_snr[i], color='r', alpha=1.0, linewidth=0.8)
-                            continue
-                        if i != len(medians_snr):
-                            if rez == '512':
-                                ax.plot(ps_xdata[1:25], medians_snr[i][1:25], color=colors[draw], alpha=1.0, linewidth=0.8)
-                                ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
-                            else: 
+                        for i, a in enumerate(target_snr):  #len of 7
+                            if i == 0:
+                                if rez != '512':
+                                    ax.plot(ps_xdata, medians_snr[i], color='r', alpha=1.0, linewidth=0.8)
+                                continue
+                            if i != len(medians_snr):
+                                #if rez == '512':
+                                #    ax.plot(ps_xdata[1:25], medians_snr[i][1:25], color=colors[draw], alpha=1.0, linewidth=0.8)
+                                #    ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
+                                #else: 
                                 ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8)
                                 ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
-                            if a == 3:
-                                plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]+0.006, str(a), fontsize=12, ha='left', va='center') 
-                                continue
-                            if a == 5:
-                                if void_size == '100mu':
-                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.002, str(a), fontsize=12, ha='left', va='center') 
+                                if a == 3:
+                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]+0.006, str(a), fontsize=12, ha='left', va='center')
+                                    continue
+                                if a == 5:
+                                    if void_size == '100mu':
+                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.002, str(a), fontsize=12, ha='left', va='center')
+                                    else:
+                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center')
+                                    continue
+                                if a == 10:
+                                    if void_size == '100mu':
+                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0004, str(a), fontsize=12, ha='left', va='center')
+                                    else:
+                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0001, str(a), fontsize=12, ha='left', va='center')
                                 else:
-                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center') 
-                                continue
-                            if a == 10:
-                                if void_size == '100mu':
-                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0004, str(a), fontsize=12, ha='left', va='center') 
+                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center')
+
+                            if i == len(target_snr[1:]):
+                                ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8, label='S+N')
+                                if rez == '512':
+                                    ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
                                 else:
-                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0001, str(a), fontsize=12, ha='left', va='center') 
-                            else:
-                                plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center') 
+                                    ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
+                                ax.plot(ps_xdata[1:], medians_snr[0][1:], color='r', alpha=1.0, linewidth=0.8, label='S')
+                                ax.fill_between(ps_xdata[1:], the_lowers[0][1:], the_uppers[0][1:], color='r', alpha=0.2)
+                            if i == 1: 
+                                plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')
 
-                        if i == len(target_snr[1:]): 
-                            ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8, label='S+N') 
-                            if rez == '512':
-                                ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N') 
-                            else:
-                                ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N') 
-                            ax.plot(ps_xdata[1:], medians_snr[0][1:], color='r', alpha=1.0, linewidth=0.8, label='S') 
-                            ax.fill_between(ps_xdata[1:], the_lowers[0][1:], the_uppers[0][1:], color='r', alpha=0.2)
-                        if i == 1: 
-                            plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')  
+                        data = list(Fptr['%s_%s'%(figfour,void_size)])  #returns a list
+                        data_p = list(Fptr['%s_%s'%(figfive,void_size)])
+                        for val, kvalues in enumerate(data):
+                            data[val] = data[val]/data[-1]
+                        yrange = np.linspace(0, 1, 10000)
+                        for i, an in enumerate(target_snr[2:7]):  #len of 7
+                            i = i+1
+                            the_medians = np.nanpercentile(data[i], 50)
+                            the_medians_low = np.nanpercentile(data[i], 16)
+                            the_medians_high = np.nanpercentile(data[i], 84)
+                            the_medians_ints = np.nanpercentile(data_p[i], 50) 
+                            the_medians_intshigh = np.nanpercentile(data_p[i], 84) 
 
-                    data = list(Fptr['%s_%s'%(figfour,void_size)])  #returns a list 
-                    data_p = list(Fptr['%s_%s'%(figfive,void_size)]) 
-                    for val, kvalues in enumerate(data):
-                        data[val] = data[val]/data[-1] 
-                    yrange = np.linspace(0, 1, 10000)
-                    for i, an in enumerate(target_snr[2:7]):  #len of 7
-                        i = i+1
-                        the_medians = np.nanpercentile(data[i], 50)
-                        the_medians_low = np.nanpercentile(data[i], 16)
-                        the_medians_high = np.nanpercentile(data[i], 84)
-                        the_medians_ints = np.nanpercentile(data_p[i], 50) 
-                        the_medians_intshigh = np.nanpercentile(data_p[i], 84) 
+                            ax.plot([the_medians,the_medians], [0,the_medians_ints], color=colors[draw], linestyle='dotted', alpha=0.8)
+                            ax.fill_betweenx(yrange, the_medians_low, the_medians_high, color=colors[draw], alpha=0.1, \
+                                                where=(yrange<=the_medians_intshigh), linestyle='dotted')
 
-                        ax.plot([the_medians,the_medians], [0,the_medians_ints], color=colors[draw], linestyle='dotted', alpha=0.8)
-                        ax.fill_betweenx(yrange, the_medians_low, the_medians_high, color=colors[draw], alpha=0.1, \
-                                            where=(yrange<=the_medians_intshigh), linestyle='dotted')
+                    # SAVING! 
+                    if k_plot == 'divkmax':  #for k/k_max
+                        labeling = r'$k/k_{\mathrm{max}}$'
+                    if ave==False:
+                        ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.5e0), ylim= (1e-7,3.5e4+y_offset))  #(1e-2,1.7e0+x_offset) 
+                    if ave==True:
+                        ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.5e0), ylim= None)  #(1e-2,1.7e0+x_offset) 
+                    ylabel=r'$P_{\mathrm{2D}}$'
+                    ax.set_xlabel(labeling, fontsize=12)
+                    ax.set_ylabel(ylabel, fontsize=12)
 
-                # SAVING! 
-                if k_plot == 'divkmax':  #for k/k_max
-                    labeling = r'$k/k_{\mathrm{max}}$'
-                if ave==False:
-                    ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.5e0), ylim= (1e-7,3.5e4+y_offset))  #(1e-2,1.7e0+x_offset) 
-                if ave==True:
-                    ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.5e0), ylim= None)  #(1e-2,1.7e0+x_offset) 
-                ylabel=r'$P_{\mathrm{2D}}$'
-                ax.set_xlabel(labeling, fontsize=12)
-                ax.set_ylabel(ylabel, fontsize=12)
+                    if void_size == '100mu': 
+                        main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=(0.01, 1.02))
+                    else:
+                        main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=(0.01, 1.01))
+                    ax.add_artist(main_legend)
+                    custom_line = mlines.Line2D([], [], color=colors[draw], linestyle='dotted', alpha= 0.8, label=r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$')
+                    k_legend = ax.legend(handles=[custom_line], loc='upper left', fontsize=12, bbox_to_anchor=(0.23,1.01))
 
-                if void_size == '100mu': 
-                    main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=(0.01, 1.02))
-                else:
-                    main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=(0.01, 1.01))
-                ax.add_artist(main_legend)
-                custom_line = mlines.Line2D([], [], color=colors[draw], linestyle='dotted', alpha= 0.8, label=r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$')
-                k_legend = ax.legend(handles=[custom_line], loc='upper left', fontsize=12, bbox_to_anchor=(0.23,1.01))
+                    filename = '../figs/cubes15_spectra15_i1k_%s_%s_%s_%s.pdf'%(powerlaw, k_plot, void_size, rez)
+                    plt.savefig(filename)
+                    print(filename+' written.', color='magenta')
+                    plt.clf()
+                    Fptr.close()
 
-                plt.savefig('sort_plots/cubes15_spectra15_i1k_%s_%s_%s_%s.pdf'%(powerlaw,k_plot,void_size,rez))
-                print('saved spectra14!')
-                plt.clf()
-                Fptr.close()         
+                    # A QUICK CHECK TO SEE IF P2D VS K LOG-LOG POWERLAW IS INDEED 1. YES. 
+                    if 0:
+                        quickx = np.log10(ps_xdata)
+                        quicky = np.log10(nydata)
+                        rets = cfp.fit(linfunct, quickx[1:], quicky[-1][1:])
+                        stop()  #fix.
+                Fptr.close() 
 
-                # A QUICK CHECK TO SEE IF P2D VS K LOG-LOG POWERLAW IS INDEED 1. YES. 
-                if 0:
-                    quickx = np.log10(ps_xdata)
-                    quicky = np.log10(nydata)
-                    rets = cfp.fit(linfunct, quickx[1:], quicky[-1][1:])
-                    stop()  #fix.
-            Fptr.close() 
-
-        if whichfig != 'kvals2D':
-            plotfig(plotstyle) 
+            if whichfig != 'kvals2D':
+                plotfig(plotstyle)
 
 
-
-# TABLE 2, and can find TABLE 1 values. 
-if 0:
-    voids = ['12p5mu', '50mu', '100mu']
-    for num, void_size in enumerate(voids):
-        hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
-        hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
-        Fptr = h5py.File(hfivefile,'r')
-        Fptr_B = h5py.File(hfivefile_B,'r')
-        ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
-        ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
-        ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
-        ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
-        fourlists = [ydata_3D, ydata_2Ds, ydata_rhalf, ydata_Brunt]
-        median_vals =[]
-        lower_vals =[]
-        upper_vals =[]
-        for num, param in enumerate(fourlists):
-            median_vals.append(np.percentile(fourlists[num],50))
-            lower_vals.append(np.percentile(fourlists[num],16))
-            upper_vals.append(np.percentile(fourlists[num],84))
-        print('void size is ',void_size)
-        print('median values ',np.array(median_vals))
-        print('upper val error ',np.array(upper_vals)-np.array(median_vals))
-        print('lower val error ',np.array(median_vals)-np.array(lower_vals))
-
-        # Section 3.2
-        med1 = np.percentile([ydata_Brunt[0],ydata_Brunt[5],ydata_Brunt[10]],50)
-        med2 = np.percentile([ydata_Brunt[1],ydata_Brunt[6],ydata_Brunt[11]],50)
-        med3 = np.percentile([ydata_Brunt[2],ydata_Brunt[7],ydata_Brunt[12]],50)
-        med4 = np.percentile([ydata_Brunt[3],ydata_Brunt[8],ydata_Brunt[13]],50)
-        med5 = np.percentile([ydata_Brunt[4],ydata_Brunt[9],ydata_Brunt[14]],50)
-        print('medians ',med1, med2, med3, med4, med5)
-        medstd = np.std([med1,med2, med3, med4, med5])
-
-        # Section 3.3 - relative errors sigr vs sigr_b
-        rel_error = abs(np.array(ydata_Brunt)-np.array(ydata_3D))/abs(np.array(ydata_3D))
-        rel_error_percent = rel_error*100 
-        rel_error_mean = np.mean(rel_error_percent)
-        rel_error_std = np.std(rel_error_percent)
-
-# APPENDIX FIGURES
-if 0:
-    void_size = '50mu'
-    hfivefile_0p0 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_0p0_%s.h5'%void_size
-    hfivefile_0p5 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_0p5_%s.h5'%void_size
-    hfivefile_1p0 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p0_%s.h5'%void_size
-    hfivefile_1p5 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_1p5_%s.h5'%void_size
-    hfivefile_2p0 = '/home/552/lv9897/sflaser/h5files/15cubes15spectra_i1k_2p0_%s.h5'%void_size
-    hfivefiles = [hfivefile_0p0, hfivefile_0p5, hfivefile_1p0, hfivefile_1p5, hfivefile_2p0]    
-    the_medians = []
-    the_uppers = []
-    the_lowers = []
-    target_pl = [0.0, 0.5, 1.0, 1.5, 2.0]
-    pl_data = np.array(target_pl)
-    target_snr = [0.1, 1, 3, 5, 10, 100]
-    colors=['k','gray','b','g','orange','r']
-    collect_snr = defaultdict(list)
-    collect_lowersnr= defaultdict(list)
-    collect_uppersnr = defaultdict(list)
-# FIGURE 10, appendix B: k/kmax, sigma_B,d vs pl=0, 0.5, 1, 1.5, 2
-if 0:
-    whichfig = 'kvals'   #sigmasdenoised, kvals 
-    fig,ax = plt.subplots(1,1)  
-    for pl, hfivefile in enumerate(hfivefiles):    
-        Fptr = h5py.File(hfivefile,'r') 
-        data = list(Fptr['%s_%s'%(whichfig,void_size)])  
-
-        for val, kvalues in enumerate(data):
-            if whichfig=='kvals':
-                data[val] = data[val]/data[-1] 
-            the_medians.append(np.nanpercentile(data[val], 50))
-            the_lowers.append(np.nanpercentile(data[val], 16))
-            the_uppers.append(np.nanpercentile(data[val], 84))
-            lower_error = np.array(the_medians) - np.array(the_lowers)
-            upper_error = np.array(the_uppers) - np.array(the_medians)
-        for snr in range(len(target_snr)): 
-            collect_snr[snr].append(the_medians[1:][snr])
-            collect_lowersnr[snr].append(lower_error[1:][snr])
-            collect_uppersnr[snr].append(upper_error[1:][snr])
-        the_medians = []
-        the_uppers = []
-        the_lowers = []
-    data_snrs = [*collect_snr.values()]
-    data_snrslow = [*collect_lowersnr.values()]
-    data_snrsupp = [*collect_uppersnr.values()]
-    for val, snrnum in enumerate(target_snr): 
-        ax.errorbar(pl_data, data_snrs[val], yerr=[data_snrslow[val], data_snrsupp[val]], linestyle=None, \
-                    color=colors[val], alpha=0.5)
-        if whichfig=='kvals':
-            labeling = r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$'
-            xoffset = 0.05 
-            yoffset = 0.06 
-            plt.text(pl_data[-1]+xoffset, data_snrs[val][-1], str(snrnum), fontsize=12, ha='left', va='center', color=colors[val]) 
-            if val==len(target_snr)-1:
-                plt.text(pl_data[-1], data_snrs[val][-1]+yoffset, 'SNR', color='gray', fontsize=12, ha='left', va='center')  
-            ax.set(xlabel=r'$\alpha$', ylabel=labeling, xlim=(-0.1,2.25), ylim=(-0.05,1.12))
-        if whichfig=='sigmasdenoised':
-            labeling = r'$\sigma_{\mathrm{\rho/\rho_o,Brunt,denoised}}$'
-            ax.set(xlabel=r'$\alpha$', ylabel=labeling, xlim=(-0.1,2.25))
-    plt.savefig('sort_plots/cubes15_pl6_%s_%s_i1knobox.pdf'%(whichfig,void_size))
-
-
-
-# TABLES VALUES EXPLORATION
-if 0:
-    boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
-    voids = ['50mu', '100mu', '12p5mu']
-    colores = ['b', 'g', 'orange']
-    valuesfoam = []
-    def percent_difference_3(value1, value2, value3, value4, value5):
-            mean_value = (value1 + value2 + value3 + value4 + value5) / 5 
-            pd1 = abs(value1 - mean_value) / mean_value * 100
-            pd2 = abs(value2 - mean_value) / mean_value * 100
-            pd3 = abs(value3 - mean_value) / mean_value * 100 
-            pd4 = abs(value4 - mean_value) / mean_value * 100 
-            pd5 = abs(value5 - mean_value) / mean_value * 100 
-            return pd1, pd2, pd3, pd4, pd5
-    for val, boxesin in enumerate(boxes):
-        values = []
+    # TABLE 2, and can find TABLE 1 values.
+    if 0:
+        voids = ['12p5mu', '50mu', '100mu']
         for num, void_size in enumerate(voids):
-            hfivefile = '/home/552/lv9897/sflaser/h5files/15sigma3D_%s.h5'%void_size
-            hfivefile_B = '/home/552/lv9897/sflaser/h5files/15nonoise_%s.h5'%void_size
+            hfivefile = '../h5files/15sigma3D_%s.h5'%void_size
+            hfivefile_B = '../h5files/15nonoise_%s.h5'%void_size
             Fptr = h5py.File(hfivefile,'r')
             Fptr_B = h5py.File(hfivefile_B,'r')
             ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
             ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
             ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
             ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
-            values.append(ydata_3D[val])
-            if void_size == '12p5mu':
-                valuesfoam.append(values)
-                stop()
-        if 0:
-            porcentajes = []
-            def relative_error(trueval, brunti):
-                pdiff = (np.abs(brunti - trueval) / trueval) * 100
-                return pdiff
-            for i in range(len(ydata_3D)):
-                pdiff = relative_error(ydata_3D[i], ydata_Brunt[i])
-                porcentajes.append(pdiff)
-            mean_pdiff = np.mean(np.array(porcentajes))
-        xdata = np.linspace(1,15,15)
-        fig,ax = plt.subplots(1,1)
-        ax.scatter(xdata, ydata_Brunt, c=colores[num], alpha=0.7, label='brunt')
-        ax.scatter(xdata, ydata_3D, c='k', alpha=0.5, label='3D')
-        ax.set(ylim=(0.0,1.0), xlabel='number of boxes', ylabel=r'$\sigma_{\rho}$') 
-        ax.legend(loc='best')
-        print('saving, saved')
-        fig.savefig('sort_plots/15boxes_brunt_3D_%s'%void_size)
-        plt.close()
-        Fptr.close() 
+            fourlists = [ydata_3D, ydata_2Ds, ydata_rhalf, ydata_Brunt]
+            median_vals =[]
+            lower_vals =[]
+            upper_vals =[]
+            for num, param in enumerate(fourlists):
+                median_vals.append(np.percentile(fourlists[num],50))
+                lower_vals.append(np.percentile(fourlists[num],16))
+                upper_vals.append(np.percentile(fourlists[num],84))
+            print('void size is ',void_size)
+            print('median values ',np.array(median_vals))
+            print('upper val error ',np.array(upper_vals)-np.array(median_vals))
+            print('lower val error ',np.array(median_vals)-np.array(lower_vals))
 
-# FIGURE 7 EXPLORATION with noise spec k=1, k=1/2, k=0, k=2, one void size only
-# WARNING: changed lines 162 - 166
-if 0:
-    voids_formal = ['pl=1', 'pl=1/2', 'pl=0', 'pl=2']
-    plotstyle='subpanel'
-    whichfig = 'sigmasdenoised' 
-    fig,(ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, figsize=(8, 12))  
-    medianos1=[]
-    medianos2=[]
-    medianos3=[]
-    colors=['b','cyan','g','orange']
-    for draw, hfivefile in enumerate(hfivefiles):    
-        Fptr = h5py.File(hfivefile,'r') 
-        data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
-        typeofsigma ='free'
-        thefitting=None
-        errorbarsplot(whichfig, data, void_name=voids_formal[draw], styleplot=plotstyle)  
+            # Section 3.2
+            med1 = np.percentile([ydata_Brunt[0],ydata_Brunt[5],ydata_Brunt[10]],50)
+            med2 = np.percentile([ydata_Brunt[1],ydata_Brunt[6],ydata_Brunt[11]],50)
+            med3 = np.percentile([ydata_Brunt[2],ydata_Brunt[7],ydata_Brunt[12]],50)
+            med4 = np.percentile([ydata_Brunt[3],ydata_Brunt[8],ydata_Brunt[13]],50)
+            med5 = np.percentile([ydata_Brunt[4],ydata_Brunt[9],ydata_Brunt[14]],50)
+            print('medians ',med1, med2, med3, med4, med5)
+            medstd = np.std([med1,med2, med3, med4, med5])
 
-        print('draw',draw)
+            # Section 3.3 - relative errors sigr vs sigr_b
+            rel_error = abs(np.array(ydata_Brunt)-np.array(ydata_3D))/abs(np.array(ydata_3D))
+            rel_error_percent = rel_error*100 
+            rel_error_mean = np.mean(rel_error_percent)
+            rel_error_std = np.std(rel_error_percent)
 
-        typeofsigma = None
-        infdata = data[-1]/data 
-        thefitting='one'
-        errorbarsplot(whichfig, infdata, void_name=voids_formal[draw], styleplot=plotstyle)  
+    # APPENDIX FIGURES
+    if 0:
+        void_size = '50mu'
+        hfivefile_0p0 = '../h5files/15cubes15spectra_i1k_0p0_%s.h5'%void_size
+        hfivefile_0p5 = '../h5files/15cubes15spectra_i1k_0p5_%s.h5'%void_size
+        hfivefile_1p0 = '../h5files/15cubes15spectra_i1k_1p0_%s.h5'%void_size
+        hfivefile_1p5 = '../h5files/15cubes15spectra_i1k_1p5_%s.h5'%void_size
+        hfivefile_2p0 = '../h5files/15cubes15spectra_i1k_2p0_%s.h5'%void_size
+        hfivefiles = [hfivefile_0p0, hfivefile_0p5, hfivefile_1p0, hfivefile_1p5, hfivefile_2p0]    
+        the_medians = []
+        the_uppers = []
+        the_lowers = []
+        target_pl = [0.0, 0.5, 1.0, 1.5, 2.0]
+        pl_data = np.array(target_pl)
+        target_snr = [0.1, 1, 3, 5, 10, 100]
+        colors=['k','gray','b','g','orange','r']
+        collect_snr = defaultdict(list)
+        collect_lowersnr= defaultdict(list)
+        collect_uppersnr = defaultdict(list)
+    # FIGURE 10, appendix B: k/kmax, sigma_B,d vs pl=0, 0.5, 1, 1.5, 2
+    if 0:
+        whichfig = 'kvals'   #sigmasdenoised, kvals 
+        fig,ax = plt.subplots(1,1)  
+        for pl, hfivefile in enumerate(hfivefiles):    
+            Fptr = h5py.File(hfivefile,'r') 
+            data = list(Fptr['%s_%s'%(whichfig,void_size)])  
 
-        whichfig = 'sigmas'
-        whichfigtwo = 'sigmasdenoised'
-        typeofsigma = None
-        data_sigmas = list(Fptr['%s_%s'%(whichfig,void_size)])  
-        csnrdata = np.array(data)/np.array(data_sigmas)
-        thefitting='two'
-        errorbarsplot(whichfig, csnrdata, void_name=voids_formal[draw], styleplot=plotstyle)  
+            for val, kvalues in enumerate(data):
+                if whichfig=='kvals':
+                    data[val] = data[val]/data[-1] 
+                the_medians.append(np.nanpercentile(data[val], 50))
+                the_lowers.append(np.nanpercentile(data[val], 16))
+                the_uppers.append(np.nanpercentile(data[val], 84))
+                lower_error = np.array(the_medians) - np.array(the_lowers)
+                upper_error = np.array(the_uppers) - np.array(the_medians)
+            for snr in range(len(target_snr)): 
+                collect_snr[snr].append(the_medians[1:][snr])
+                collect_lowersnr[snr].append(lower_error[1:][snr])
+                collect_uppersnr[snr].append(upper_error[1:][snr])
+            the_medians = []
+            the_uppers = []
+            the_lowers = []
+        data_snrs = [*collect_snr.values()]
+        data_snrslow = [*collect_lowersnr.values()]
+        data_snrsupp = [*collect_uppersnr.values()]
+        for val, snrnum in enumerate(target_snr): 
+            ax.errorbar(pl_data, data_snrs[val], yerr=[data_snrslow[val], data_snrsupp[val]], linestyle=None, \
+                        color=colors[val], alpha=0.5)
+            if whichfig=='kvals':
+                labeling = r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$'
+                xoffset = 0.05 
+                yoffset = 0.06 
+                plt.text(pl_data[-1]+xoffset, data_snrs[val][-1], str(snrnum), fontsize=12, ha='left', va='center', color=colors[val]) 
+                if val==len(target_snr)-1:
+                    plt.text(pl_data[-1], data_snrs[val][-1]+yoffset, 'SNR', color='gray', fontsize=12, ha='left', va='center')  
+                ax.set(xlabel=r'$\alpha$', ylabel=labeling, xlim=(-0.1,2.25), ylim=(-0.05,1.12))
+            if whichfig=='sigmasdenoised':
+                labeling = r'$\sigma_{\mathrm{\rho/\rho_o,Brunt,denoised}}$'
+                ax.set(xlabel=r'$\alpha$', ylabel=labeling, xlim=(-0.1,2.25))
+        plt.savefig('../figs/cubes15_pl6_%s_%s_i1knobox.pdf'%(whichfig,void_size))
 
-        whichfig='sigmasdenoised'
-        whichfigtwo = None
-        figtwodata = None
-        typeofsigma = 'cthree'
-        csnrdata_three = data[-1]/data_sigmas
-        thefitting='three'
-        errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)
-    plotfig(plotstyle)
-    
+
+
+    # TABLES VALUES EXPLORATION
+    if 0:
+        boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
+        voids = ['50mu', '100mu', '12p5mu']
+        colores = ['b', 'g', 'orange']
+        valuesfoam = []
+        def percent_difference_3(value1, value2, value3, value4, value5):
+                mean_value = (value1 + value2 + value3 + value4 + value5) / 5 
+                pd1 = abs(value1 - mean_value) / mean_value * 100
+                pd2 = abs(value2 - mean_value) / mean_value * 100
+                pd3 = abs(value3 - mean_value) / mean_value * 100 
+                pd4 = abs(value4 - mean_value) / mean_value * 100 
+                pd5 = abs(value5 - mean_value) / mean_value * 100 
+                return pd1, pd2, pd3, pd4, pd5
+        for val, boxesin in enumerate(boxes):
+            values = []
+            for num, void_size in enumerate(voids):
+                hfivefile = '../h5files/15sigma3D_%s.h5'%void_size
+                hfivefile_B = '../h5files/15nonoise_%s.h5'%void_size
+                Fptr = h5py.File(hfivefile,'r')
+                Fptr_B = h5py.File(hfivefile_B,'r')
+                ydata_3D = list(Fptr['sigma_3Ds_%s'%void_size])  
+                ydata_Brunt = list(Fptr_B['sigma_brunts_%s'%void_size])  
+                ydata_2Ds = list(Fptr_B['sigma_2Ds_%s'%void_size])  
+                ydata_rhalf = list(Fptr_B['sigma_rhalfs_%s'%void_size])  
+                values.append(ydata_3D[val])
+                if void_size == '12p5mu':
+                    valuesfoam.append(values)
+                    stop()
+            if 0:
+                porcentajes = []
+                def relative_error(trueval, brunti):
+                    pdiff = (np.abs(brunti - trueval) / trueval) * 100
+                    return pdiff
+                for i in range(len(ydata_3D)):
+                    pdiff = relative_error(ydata_3D[i], ydata_Brunt[i])
+                    porcentajes.append(pdiff)
+                mean_pdiff = np.mean(np.array(porcentajes))
+            xdata = np.linspace(1,15,15)
+            fig,ax = plt.subplots(1,1)
+            ax.scatter(xdata, ydata_Brunt, c=colores[num], alpha=0.7, label='brunt')
+            ax.scatter(xdata, ydata_3D, c='k', alpha=0.5, label='3D')
+            ax.set(ylim=(0.0,1.0), xlabel='number of boxes', ylabel=r'$\sigma_{\rho}$') 
+            ax.legend(loc='best')
+            print('saving, saved')
+            fig.savefig('../figs/15boxes_brunt_3D_%s'%void_size)
+            plt.close()
+            Fptr.close() 
+
+    # FIGURE 7 EXPLORATION with noise spec k=1, k=1/2, k=0, k=2, one void size only
+    # WARNING: changed lines 162 - 166
+    if 0:
+        voids_formal = ['pl=1', 'pl=1/2', 'pl=0', 'pl=2']
+        plotstyle='subpanel'
+        whichfig = 'sigmasdenoised' 
+        fig,(ax1, ax2, ax3) = plt.subplots(3,1, sharex=True, figsize=(8, 12))  
+        medianos1=[]
+        medianos2=[]
+        medianos3=[]
+        colors=['b','cyan','g','orange']
+        for draw, hfivefile in enumerate(hfivefiles):    
+            Fptr = h5py.File(hfivefile,'r') 
+            data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+            typeofsigma ='free'
+            thefitting=None
+            errorbarsplot(whichfig, data, void_name=voids_formal[draw], styleplot=plotstyle)  
+
+            print('draw',draw)
+
+            typeofsigma = None
+            infdata = data[-1]/data 
+            thefitting='one'
+            errorbarsplot(whichfig, infdata, void_name=voids_formal[draw], styleplot=plotstyle)  
+
+            whichfig = 'sigmas'
+            whichfigtwo = 'sigmasdenoised'
+            typeofsigma = None
+            data_sigmas = list(Fptr['%s_%s'%(whichfig,void_size)])  
+            csnrdata = np.array(data)/np.array(data_sigmas)
+            thefitting='two'
+            errorbarsplot(whichfig, csnrdata, void_name=voids_formal[draw], styleplot=plotstyle)  
+
+            whichfig='sigmasdenoised'
+            whichfigtwo = None
+            figtwodata = None
+            typeofsigma = 'cthree'
+            csnrdata_three = data[-1]/data_sigmas
+            thefitting='three'
+            errorbarsplot(whichfig, csnrdata_three, void_name=voids_formal[draw], styleplot=plotstyle)
+        plotfig(plotstyle)
+        
