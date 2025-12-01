@@ -17,15 +17,14 @@ import scipy
 from scipy.optimize import curve_fit
 from scipy import fft
 import scipy.stats as stats
-from numpy import inf 
+import h5py
+
 import turbulence_driving_analysis
 reload(turbulence_driving_analysis)
 
 import cfpack as cfp
-from cfpack import stop,print 
-from cfpack import matplotlibrc   #should be okay to delete the matplotlibs above
-import h5py
-
+from cfpack import stop, print
+cfp.load_plot_style()
 
 # the py file imports 
 from yt_names import *
@@ -41,15 +40,3 @@ import noiseimage
 reload(noiseimage)
 import fake_powerlaw
 reload(fake_powerlaw)
-#import make_images
-#reload(make_images)
-
-
-''' 
-# to import things from sub directories
-path_list= ["./the_sub_directory_1", "./the_subdirectory_2",...\
-            ...]
-for directory in path_list:
-    if directory not in sys.path:
-        sys.path += [directory]
-'''
