@@ -495,15 +495,16 @@ if __name__ == "__main__":
             print('resolution(s) = ', rez, color='green')
             for bubble, void_size in enumerate(voids):
                 print('void size = ', void_size, color='green')
-                hfivefile = '../h5files/15cubes15spectra_i1k_1p0_%s_%s.h5'%(void_size,rez) #need to add the powerlaw
-                Fptr = h5py.File(hfivefile,'r')
+                hfivefile = '../h5files/15cubes15spectra_i1k_1p0_%s_%s.h5'%(void_size,rez) # need to add the powerlaw
+                Fptr = h5py.File(hfivefile, 'r')
+                print("read from '"+hfivefile+"'", color='green')
 
                 # SCATTERS + FITS
                 if whichfig != 'kvals2D':
 
                     # SINGULAR PLOTS
                     if plotstyle == 'singular':
-                        data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
+                        data = list(Fptr['%s_%s'%(whichfig,void_size)]) # returns a list
                         print('inside singular')
 
                         if whichfig == 'kvals' and k_plot=='divkmax':
@@ -591,30 +592,27 @@ if __name__ == "__main__":
                         data = list(Fptr['%s_%s'%(whichfig,void_size)])  #returns a list 
                         errorbarsplot(whichfig, data, void_name=voids_formal[draw], void_errname=voids_eformal[draw], styleplot=plotstyle)
                         #              secondfig=whichfigtwo, seconddata=figtwodata)
-                        print('after true plot ',void_size)
+                        print('after true plot ', void_size)
                         whichfig = 'rsqrtfull'
 
                 # POWERSPECTRA PLOTS
                 if whichfig == 'kvals2D':
-                    figfour = 'kvals'
-                    figfive = 'powintersects'
                     fig,ax = plt.subplots(1,1)
-                    
-                    whichfigtwo = 'thepowspec' 
+                    whichfigtwo = 'thepowspec'
                     whichfigthree = 'thenoisepowspec'
-                    ps_xdata = Fptr['%s_%s'%(whichfig,void_size)][()]  #returns a numpy array
+                    ps_xdata = Fptr['%s_%s'%(whichfig, void_size)][()]  #returns a numpy array
                     if k_plot == 'divkmax':  #for k/k_max
                         for val, kvalues in enumerate(ps_xdata):
-                            ps_xdata[val] = ps_xdata[val]/ps_xdata[-1] 
+                            ps_xdata[val] = ps_xdata[val] / ps_xdata[-1]
                     if whichfigtwo:
-                        ydata = Fptr['%s_%s'%(whichfigtwo,void_size)][()]  
+                        ydata = Fptr['%s_%s'%(whichfigtwo, void_size)][()]
                     if whichfigthree:
-                        nydata = Fptr['%s_%s'%(whichfigthree,void_size)][()]  
+                        nydata = Fptr['%s_%s'%(whichfigthree, void_size)][()]
 
-                    target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]  
+                    target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]
                     x_offset = 0.05 #0.08
-                    y_offset = 5500 
-                    y_offset100 = 9500 
+                    y_offset = 5500
+                    y_offset100 = 9500
 
                     # MEDIANS ONLY
                     if 1:
@@ -622,13 +620,13 @@ if __name__ == "__main__":
                         medians_noise = []
                         the_lowers = []
                         the_uppers = []
-                        for iii in range(len(ydata)):
+                        for iii in range(len(ydata)): # loop over SNRs
                             medians_snr.append(np.median(ydata[iii], axis=0))
                             medians_noise.append(np.median(nydata[iii], axis=0))
                             the_lowers.append(np.percentile(ydata[iii], 16, axis=0))
                             the_uppers.append(np.percentile(ydata[iii], 84, axis=0))
 
-                        for i, a in enumerate(target_snr):  #len of 7
+                        for i, a in enumerate(target_snr): # len of 7
                             if i == 0:
                                 if rez != '512':
                                     ax.plot(ps_xdata, medians_snr[i], color='r', alpha=1.0, linewidth=0.8)
@@ -637,7 +635,7 @@ if __name__ == "__main__":
                                 #if rez == '512':
                                 #    ax.plot(ps_xdata[1:25], medians_snr[i][1:25], color=colors[draw], alpha=1.0, linewidth=0.8)
                                 #    ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
-                                #else: 
+                                #else:
                                 ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8)
                                 ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
                                 if a == 3:
@@ -659,34 +657,33 @@ if __name__ == "__main__":
 
                             if i == len(target_snr[1:]):
                                 ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8, label='S+N')
-                                if rez == '512':
-                                    ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
-                                else:
-                                    ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
+                                #if rez == '512':
+                                #    ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
+                                #else:
+                                ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
                                 ax.plot(ps_xdata[1:], medians_snr[0][1:], color='r', alpha=1.0, linewidth=0.8, label='S')
-                                ax.fill_between(ps_xdata[1:], the_lowers[0][1:], the_uppers[0][1:], color='r', alpha=0.2)
-                            if i == 1: 
+                                ax.fill_between(ps_xdata[1:], the_lowers[0][1:], the_uppers[0][1:], color='r', alpha=0.2, edgecolor='none') # red fill
+                            if i == 1:
                                 plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')
 
-                        data = list(Fptr['%s_%s'%(figfour,void_size)])  #returns a list
-                        data_p = list(Fptr['%s_%s'%(figfive,void_size)])
+                        data = list(Fptr['%s_%s'%('kvals', void_size)]) # returns a list
+                        data_p = list(Fptr['%s_%s'%('powintersects', void_size)])
                         for val, kvalues in enumerate(data):
-                            data[val] = data[val]/data[-1]
+                            data[val] = data[val] / data[-1] # division by kmax
                         yrange = np.linspace(0, 1, 10000)
-                        for i, an in enumerate(target_snr[2:7]):  #len of 7
+                        for i, an in enumerate(target_snr[2:7]): # len of 7
                             i = i+1
                             the_medians = np.nanpercentile(data[i], 50)
                             the_medians_low = np.nanpercentile(data[i], 16)
                             the_medians_high = np.nanpercentile(data[i], 84)
-                            the_medians_ints = np.nanpercentile(data_p[i], 50) 
-                            the_medians_intshigh = np.nanpercentile(data_p[i], 84) 
+                            the_medians_ints = np.nanpercentile(data_p[i], 50) # intersection y value (50th)
+                            the_medians_intshigh = np.nanpercentile(data_p[i], 84)
+                            ax.plot([the_medians,the_medians], [0,the_medians_ints], color=colors[draw], linestyle='solid', alpha=0.8, zorder=10)
+                            #ax.fill_betweenx(yrange, the_medians_low, the_medians_high, color=colors[draw], alpha=0.1, \
+                            #                    where=(yrange<=the_medians_intshigh), linestyle='dotted') # intersect fill
 
-                            ax.plot([the_medians,the_medians], [0,the_medians_ints], color=colors[draw], linestyle='dotted', alpha=0.8)
-                            ax.fill_betweenx(yrange, the_medians_low, the_medians_high, color=colors[draw], alpha=0.1, \
-                                                where=(yrange<=the_medians_intshigh), linestyle='dotted')
-
-                    # SAVING! 
-                    if k_plot == 'divkmax':  #for k/k_max
+                    # SAVING!
+                    if k_plot == 'divkmax': # for k/k_max
                         labeling = r'$k/k_{\mathrm{max}}$'
                     if ave==False:
                         ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.5e0), ylim= (1e-7,3.5e4+y_offset))  #(1e-2,1.7e0+x_offset) 

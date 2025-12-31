@@ -191,7 +191,7 @@ def noise_iterations(iterations, cg_main_sum, cg_sec, lowpassfilter, target, ksn
     the_spectrasnr_ave = np.median(collect_spectra_ave, axis=0)
     the_spectranoise = np.median(collect_spectranoise, axis=0)
 
-    return the_rsmed, the_sigmasmed, the_spectrasnr, the_spectrasnr_ave, the_spectranoise, ks, the_sigmaNmed 
+    return the_rsmed, the_sigmasmed, the_spectrasnr, the_spectrasnr_ave, the_spectranoise, ks, the_sigmaNmed
 
 
 # ===== the following applies in case we are running this in script mode =====
@@ -332,7 +332,7 @@ if __name__ == "__main__":
     sigmas3D = []
 
     # No noise data
-    no_noise = False 
+    no_noise = False
     if no_noise == True:
         target_snr=[1000000]
     typeofnoise = 'half'
@@ -355,10 +355,9 @@ if __name__ == "__main__":
                 continue
 
             # seven SNR
-            for val,target in enumerate(target_snr):
-                lowpassfilter = 'no'  
+            for val, target in enumerate(target_snr):
+                lowpassfilter = 'no'
                 rsqrt_med, sigma_med, collectspec, collectspec_ave, collectnoisespec, kvals2D, sigmaN_med = noise_iterations(noise_samples, cg_main_sum, cg_vol, lowpassfilter, target, correct=cg_main, typeofnoise=typeofnoise)
-                
                 sigmaBrunt.append(sigma_med)
                 sigma2D.append(sigmaN_med)
                 rhalfs.append(rsqrt_med)
@@ -369,7 +368,7 @@ if __name__ == "__main__":
                         collect_spectras[target] = [collectspec]
                         collect_spectras_ave[target] = [collectspec_ave]
                         collect_noisespectras[target] = [collectnoisespec]
-                    else: 
+                    else:
                         collect_spectras[target] = np.append(collect_spectras[target], [collectspec], axis=0)
                         collect_spectras_ave[target] = np.append(collect_spectras_ave[target], [collectspec_ave], axis=0)
                         collect_noisespectras[target] = np.append(collect_noisespectras[target], [collectnoisespec], axis=0)
@@ -377,24 +376,30 @@ if __name__ == "__main__":
                 if target != 1000000:
                     rsqrt_k = []
                     lowpassfilter = 'yes'
-
                     medspec2D = collectspec
                     medspec2D_ave = collectspec_ave
                     medspec3D = 2 * kvals2D * medspec2D
                     medspec3D_ave = 2 * kvals2D * medspec2D_ave
-                    signalonly = collect_spectras[1000000][0]
+                    # interpolation to get accurate intersection k values
+                    from scipy.interpolate import interp1d
+                    k_new = np.linspace(kvals2D.min(), kvals2D.max(), 500)
+                    signalonly = collect_spectras[1000000][-1]
+                    f = interp1d(kvals2D, signalonly, kind='linear')
+                    signalonly_new = f(k_new)
                     meannoisespec = collectnoisespec
-
+                    f = interp1d(kvals2D, meannoisespec, kind='linear')
+                    meannoisespec_new = f(k_new)
+                    # get intersection
                     print('Target SNR = ', target, color='yellow')
-                    kcross = np.argmin(np.abs(signalonly - meannoisespec))
+                    kcross = np.argmin(np.abs(signalonly_new - meannoisespec_new))
+                    collect_p2dsInt[target].append(signalonly_new[kcross])
+                    kcross *= kvals2D[-1] / 500 # scale back to original k grid
                     print ('S-N intersection k value = ', kcross, color='yellow')
-                    crossing_signalnoise = signalonly[:][kcross]
-                    collect_p2dsInt[target].append(crossing_signalnoise)
 
                     if 1:
                         _, sigmaNdenoised, rsqrt_true, sigmadenoised = parsevals.parsevals_th(1, medspec2D, medspec3D, \
                             kvals2D, sigmaN_sq=sigmaN_med, the_k=kcross, p2d_ave=medspec2D_ave, p3d_ave=medspec3D_ave)
-                    rsqrt_ratio = rsqrt_true/rsqrt_med
+                    rsqrt_ratio = rsqrt_true / rsqrt_med
 
                     collect_sigmasNdenoised[target].append(sigmaNdenoised)
                     collect_sigmasdenoised[target].append(sigmadenoised)
