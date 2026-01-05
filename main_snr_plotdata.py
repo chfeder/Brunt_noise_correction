@@ -449,10 +449,8 @@ if __name__ == "__main__":
     #                 FIG 7: sigmasdenoised(subpanel, three); FIG 4: kvals2D(typeofsigma=None for all 3 voids, "free" for 50um, 3 rez)
     numofboxes = 15
     whichfig = 'kvals2D' # 'kvals', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise', 'kvals2D'
-    ave = False  # there's normalized data by the average and non-normalized data
     whichfigtwo = None
     typeofsigma = "free"
-    powerlaw='one'
     target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, np.inf]
     xdata = np.array(target_snr[:-1])
 
@@ -597,123 +595,95 @@ if __name__ == "__main__":
 
                 # POWERSPECTRA PLOTS
                 if whichfig == 'kvals2D':
-                    fig,ax = plt.subplots(1,1)
-                    whichfigtwo = 'thepowspec'
-                    whichfigthree = 'thenoisepowspec'
-                    ps_xdata = Fptr['%s_%s'%(whichfig, void_size)][()]  #returns a numpy array
-                    if k_plot == 'divkmax':  #for k/k_max
-                        for val, kvalues in enumerate(ps_xdata):
-                            ps_xdata[val] = ps_xdata[val] / ps_xdata[-1]
-                    if whichfigtwo:
-                        ydata = Fptr['%s_%s'%(whichfigtwo, void_size)][()]
-                    if whichfigthree:
-                        nydata = Fptr['%s_%s'%(whichfigthree, void_size)][()]
+                    # prep fig and read spectral data
+                    fig, ax = plt.subplots(1,1)
+                    kvals = Fptr['%s_%s'%('kvals2D', void_size)][()] # returns a numpy array
+                    for i in range(len(kvals)):
+                        kvals[i] /= kvals[-1] # k/k_max
+                    P_S = Fptr['%s_%s'%('thepowspec', void_size)][()] # signal spectum
+                    P_N = Fptr['%s_%s'%('thenoisepowspec', void_size)][()] # noise spectrum
 
+                    # define SNR array
                     target_snr = [1000000, 0.01, 0.1, 1, 3, 5, 10, 100]
-                    x_offset = 0.05 #0.08
-                    y_offset = 5500
-                    y_offset100 = 9500
 
-                    # MEDIANS ONLY
-                    if 1:
-                        medians_snr = []
-                        medians_noise = []
-                        the_lowers = []
-                        the_uppers = []
-                        for iii in range(len(ydata)): # loop over SNRs
-                            medians_snr.append(np.median(ydata[iii], axis=0))
-                            medians_noise.append(np.median(nydata[iii], axis=0))
-                            the_lowers.append(np.percentile(ydata[iii], 16, axis=0))
-                            the_uppers.append(np.percentile(ydata[iii], 84, axis=0))
+                    # getting the k intersections (k_crosses) of S and N
+                    def get_k_cross(kvals, P_N, P_S):
+                        from scipy.interpolate import interp1d
+                        k_new = np.linspace(kvals.min(), kvals.max(), 500)
+                        f = interp1d(kvals, P_N, kind='linear'); P_N_interp = f(k_new)
+                        f = interp1d(kvals, P_S, kind='linear'); P_S_interp = f(k_new)
+                        kcross = np.argmin(np.abs(P_S_interp - P_N_interp))
+                        P_at_kcross = P_S_interp[kcross]
+                        kcross *= kvals[-1] / 500 # scale back to original k grid
+                        return kcross, P_at_kcross
+                    k_crosses_50 = []
+                    P_at_kcrosses_50 = []
+                    k_crosses_16 = []
+                    P_at_kcrosses_16 = []
+                    k_crosses_84 = []
+                    P_at_kcrosses_84 = []
+                    P_N_50 = []
+                    P_S_50 = []
+                    P_S_16 = []
+                    P_S_84 = []
+                    for i, snr in enumerate(target_snr):
+                        print(snr)
+                        P_N_50.append(np.nanpercentile(P_N[i], 50, axis=0))
+                        P_S_50.append(np.nanpercentile(P_S[i], 50, axis=0))
+                        P_S_16.append(np.nanpercentile(P_S[i], 16, axis=0))
+                        P_S_84.append(np.nanpercentile(P_S[i], 84, axis=0))
+                        kcross, P_at_kcross = get_k_cross(kvals, P_N_50[-1], P_S_50[0])
+                        k_crosses_50.append(kcross)
+                        P_at_kcrosses_50.append(P_at_kcross)
+                        kcross, P_at_kcross = get_k_cross(kvals, P_N_50[-1], P_S_16[0])
+                        k_crosses_16.append(kcross)
+                        P_at_kcrosses_16.append(P_at_kcross)
+                        kcross, P_at_kcross = get_k_cross(kvals, P_N_50[-1], P_S_84[0])
+                        k_crosses_84.append(kcross)
+                        P_at_kcrosses_84.append(P_at_kcross)
 
-                        for i, a in enumerate(target_snr): # len of 7
-                            if i == 0:
-                                if rez != '512':
-                                    ax.plot(ps_xdata, medians_snr[i], color='r', alpha=1.0, linewidth=0.8)
-                                continue
-                            if i != len(medians_snr):
-                                #if rez == '512':
-                                #    ax.plot(ps_xdata[1:25], medians_snr[i][1:25], color=colors[draw], alpha=1.0, linewidth=0.8)
-                                #    ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
-                                #else:
-                                ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8)
-                                ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed')
-                                if a == 3:
-                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]+0.006, str(a), fontsize=12, ha='left', va='center')
-                                    continue
-                                if a == 5:
-                                    if void_size == '100mu':
-                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.002, str(a), fontsize=12, ha='left', va='center')
-                                    else:
-                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center')
-                                    continue
-                                if a == 10:
-                                    if void_size == '100mu':
-                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0004, str(a), fontsize=12, ha='left', va='center')
-                                    else:
-                                        plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1]-0.0001, str(a), fontsize=12, ha='left', va='center')
-                                else:
-                                    plt.text(ps_xdata[-1] + x_offset, medians_noise[i][-1], str(a), fontsize=12, ha='left', va='center')
+                    # plot S spectrum
+                    ax.plot(kvals[1:], P_S_50[0][1:], color='r', linewidth=0.8, label='S', zorder=9)
+                    ax.fill_between(kvals[1:], P_S_16[0][1:], P_S_84[0][1:], color='r', alpha=0.2, edgecolor='r', zorder=9)
 
-                            if i == len(target_snr[1:]):
-                                ax.plot(ps_xdata[1:], medians_snr[i][1:], color=colors[draw], alpha=1.0, linewidth=0.8, label='S+N')
-                                #if rez == '512':
-                                #    ax.plot(ps_xdata[1:25], medians_noise[i][1:25], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
-                                #else:
-                                ax.plot(ps_xdata[1:], medians_noise[i][1:], color='grey',alpha=1.0, linewidth=0.8, linestyle='dashed', label='N')
-                                ax.plot(ps_xdata[1:], medians_snr[0][1:], color='r', alpha=1.0, linewidth=0.8, label='S')
-                                ax.fill_between(ps_xdata[1:], the_lowers[0][1:], the_uppers[0][1:], color='r', alpha=0.2, edgecolor='none') # red fill
-                            if i == 1:
-                                plt.text(ps_xdata[-1]+x_offset, medians_noise[i][-1]+y_offset100, 'SNR', fontsize=12, ha='left', va='center')
+                    # loop over SNRs
+                    for i, snr in enumerate(target_snr):
+                        if snr <= 100:
+                            # plot N spectra and SNR labels
+                            ax.plot(kvals[1:], P_N_50[i][1:], color='grey', linewidth=0.8, linestyle='dashed')
+                            yoff = 0.0
+                            if snr == 5: yoff = -5e-4
+                            plt.text(kvals[-1]+0.05, P_N_50[i][-1]+yoff, str(snr), fontsize=11, ha='left', va='center')
+                            # plot S+N spectra
+                            label = None
+                            if snr == 0.01: label = 'S+N'
+                            ax.plot(kvals[1:], P_S_50[i][1:], color=colors[draw], linewidth=0.8, alpha=0.7, label=label)
+                        if snr <= 0.01 or snr >= 100: continue # skip SNRs that don't have useful k crossings
+                        ax.plot([k_crosses_50[i],k_crosses_50[i]], [0,P_at_kcrosses_50[i]], color=colors[draw],
+                                    linestyle='dotted', alpha=0.8, zorder=10)
+                        if snr == 10: stop()
+                        ax.fill_between([k_crosses_16[i],max([k_crosses_50[i],k_crosses_84[i]])], [0,0], [P_at_kcrosses_16[i],P_at_kcrosses_84[i]],
+                                            color=colors[draw], alpha=0.1, edgecolor=colors[draw], zorder=10)
 
-                        data = list(Fptr['%s_%s'%('kvals', void_size)]) # returns a list
-                        data_p = list(Fptr['%s_%s'%('powintersects', void_size)])
-                        for val, kvalues in enumerate(data):
-                            data[val] = data[val] / data[-1] # division by kmax
-                        yrange = np.linspace(0, 1, 10000)
-                        for i, an in enumerate(target_snr[2:7]): # len of 7
-                            i = i+1
-                            the_medians = np.nanpercentile(data[i], 50)
-                            the_medians_low = np.nanpercentile(data[i], 16)
-                            the_medians_high = np.nanpercentile(data[i], 84)
-                            the_medians_ints = np.nanpercentile(data_p[i], 50) # intersection y value (50th)
-                            the_medians_intshigh = np.nanpercentile(data_p[i], 84)
-                            ax.plot([the_medians,the_medians], [0,the_medians_ints], color=colors[draw], linestyle='solid', alpha=0.8, zorder=10)
-                            #ax.fill_betweenx(yrange, the_medians_low, the_medians_high, color=colors[draw], alpha=0.1, \
-                            #                    where=(yrange<=the_medians_intshigh), linestyle='dotted') # intersect fill
-
-                    # SAVING!
-                    if k_plot == 'divkmax': # for k/k_max
-                        labeling = r'$k/k_{\mathrm{max}}$'
-                    if ave==False:
-                        ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.5e0), ylim= (1e-7,3.5e4+y_offset))  #(1e-2,1.7e0+x_offset) 
-                    if ave==True:
-                        ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.5e0), ylim= None)  #(1e-2,1.7e0+x_offset) 
-                    ylabel=r'$P_{\mathrm{2D}}$'
-                    ax.set_xlabel(labeling, fontsize=12)
-                    ax.set_ylabel(ylabel, fontsize=12)
-
-                    if void_size == '100mu': 
-                        main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=(0.01, 1.02))
+                    # final plot settings and saving
+                    ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.6), ylim=(1e-7,1e4))
+                    ax.set_xlabel(r'$k/k_{\mathrm{max}}$', fontsize=12)
+                    ax.set_ylabel(r'$P_{\mathrm{2D}}$', fontsize=12)
+                    if void_size == '100mu':
+                        bbox_to_anchor=(0.01, 1.02)
                     else:
-                        main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=(0.01, 1.01))
+                        bbox_to_anchor=(0.01, 1.01)
+                    main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=bbox_to_anchor)
                     ax.add_artist(main_legend)
-                    custom_line = mlines.Line2D([], [], color=colors[draw], linestyle='dotted', alpha= 0.8, label=r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$')
+                    custom_line = mlines.Line2D([], [], color=colors[draw], linestyle='dotted', alpha=0.8, label=r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$')
                     k_legend = ax.legend(handles=[custom_line], loc='upper left', fontsize=12, bbox_to_anchor=(0.23,1.01))
-
-                    filename = '../figs/cubes15_spectra15_i1k_%s_%s_%s_%s.pdf'%(powerlaw, k_plot, void_size, rez)
+                    filename = '../figs/spectra_%s_%s.pdf'%(void_size, rez)
                     plt.savefig(filename)
                     print(filename+' written.', color='magenta')
                     plt.clf()
                     Fptr.close()
 
-                    # A QUICK CHECK TO SEE IF P2D VS K LOG-LOG POWERLAW IS INDEED 1. YES. 
-                    if 0:
-                        quickx = np.log10(ps_xdata)
-                        quicky = np.log10(nydata)
-                        rets = cfp.fit(linfunct, quickx[1:], quicky[-1][1:])
-                        stop()  #fix.
-                Fptr.close() 
+                Fptr.close()
 
             if whichfig != 'kvals2D':
                 plotfig(plotstyle)
