@@ -7,6 +7,8 @@ if python_version == 3:
     from importlib import reload
 
 import yt
+from yt.funcs import mylog
+mylog.setLevel(30)
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
