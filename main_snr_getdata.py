@@ -4,8 +4,9 @@ from startlaser import *
 from collections import defaultdict
 
 # === user changes here ===
-res = '512' # resolution
-void_size = '50mu'
+res = '2048' # resolution
+void_sizes = ['12p5mu', '50mu', '100mu']
+void_sizes = ['50mu']
 noise_samples = 2
 # =========================
 
@@ -197,264 +198,268 @@ def noise_iterations(iterations, cg_main_sum, cg_sec, lowpassfilter, target, ksn
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
 
-    # BOX OPTIONS: 15 total per one void size.
-    # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
-    boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
+    for void_size in void_sizes:
 
-    # 3 different projections
-    projection_axis_list = [0, 1, 2]
+        print("===== NOW WORKING ON VOID SIZE "+void_size+" =====", color='lightred')
 
-    target_snr = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
+        # BOX OPTIONS: 15 total per one void size.
+        # 3 different box locations for the x los: left, center, right. and 2 more for the z los: front & back 
+        boxes = ['l_box', 'c_box', 'r_box', 'b_box', 'f_box']
 
-    # LOAD raw DATA
-    the_ds = yt.load('../turb_foam_gamma_5_3_3d_'+str(res)+'_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
-    # box dimensions
-    delta_a = 0.02
-    edge_mtop = 0.3675
-    edge_mbot = 0.3275
-    edge_mcenter = 0.3475
+        # 3 different projections
+        projection_axis_list = [0, 1, 2]
 
-    # IMAGES
-    if 0:
-        proj_2 = yt.SlicePlot(the_ds, 2, ('gas', 'density'))
+        target_snr = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
 
-        proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (3*delta_a, edge_mtop, 0), coord_system='data')
-        proj_2.annotate_line((-3*delta_a, edge_mbot, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (-3*delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((3*delta_a, edge_mtop, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((-delta_a, edge_mtop, 0), (-delta_a, edge_mbot, 0), coord_system='data')
-        proj_2.annotate_line((delta_a, edge_mtop, 0), (delta_a, edge_mbot, 0), coord_system='data')
+        # LOAD raw DATA
+        the_ds = yt.load('../turb_foam_gamma_5_3_3d_'+str(res)+'_%s_bubbles/NIF_hdf5_plt_cnt_0375'%(void_size))
+        # box dimensions
+        delta_a = 0.02
+        edge_mtop = 0.3675
+        edge_mbot = 0.3275
+        edge_mcenter = 0.3475
 
-        proj_2.set_cmap(('gas','density'), cmap='magma')
-        colorbar_2 = proj_2.plots['density'].cb
-        vmin = 1e-3
-        vmax = 1e1
-        colorbar_2.vmin = vmin
-        colorbar_2.vmax = vmax
-
-        proj_2.set_axes_unit('mm')
-        proj_2.set_font_size(20)
-        proj_2.set_ylabel(r'$y \,\mathrm{(mm)}$')
-        proj_2.set_xlabel('')
-        proj_2.plots['gas', 'density'].axes.get_xaxis().set_tick_params(labelbottom=False)
-
-        proj_2.set_zlim('density', vmin, vmax)
-        proj_2.hide_colorbar()
-        proj_2.save('z_slice.pdf')
-
-    if 0:
-        dx = 3.9062486030E-04
-        projection_length = 2*dx  # try with 1dx
-
-        the_ledge = the_ds.arr([-0.15, edge_mbot, -0.15],'code_length')
-        the_ledge_slice = the_ds.arr([-0.15, edge_mcenter-projection_length/2, -0.15],'code_length')
-        the_redge = the_ds.arr([0.15, edge_mtop, 0.15],'code_length')
-        the_redge_slice = the_ds.arr([0.15, edge_mcenter+projection_length/2, 0.15],'code_length')
-        the_center =0.5*the_ledge + 0.5*the_redge
-        the_region_slice = the_ds.region(the_center, the_ledge_slice, the_redge_slice)  
-        the_region = the_ds.region(the_center, the_ledge, the_redge)  
-
-        proj_1 = yt.ProjectionPlot(the_ds, 1, ('gas','density'), data_source=the_region_slice) # slices don't accept CGS
-
-        proj_1.annotate_line((-delta_a, 0, -3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
-        proj_1.annotate_line((delta_a, 0, -3*delta_a), (delta_a, 0, 3*delta_a), coord_system='data')
-        proj_1.annotate_line((3*delta_a, 0, delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
-        proj_1.annotate_line((3*delta_a, 0, -delta_a), (-3*delta_a, 0, -delta_a), coord_system='data')
-
-        proj_1.annotate_line((-3*delta_a, 0, -delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
-        proj_1.annotate_line((3*delta_a, 0, -delta_a), (3*delta_a, 0, delta_a), coord_system='data')
-
-        proj_1.annotate_line((delta_a, 0, -3*delta_a), (-delta_a, 0, -3*delta_a), coord_system='data')
-        proj_1.annotate_line((delta_a, 0, 3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
-
-        proj_1.set_cmap(('gas','density'), cmap='magma')
-        proj_1.flip_horizontal()
-        proj_1.swap_axes()
-
-        colorbar_1 = proj_1.plots['density'].cb
-        colorbar_1.vmin = vmin * projection_length
-        colorbar_1.vmax = vmax * projection_length
-
-        proj_1.set_axes_unit('mm')
-        proj_1.set_ylabel(r'$x \,\mathrm{(mm)}$')
-        proj_1.set_xlabel(r'$z \,\mathrm{(mm)}$')
-        proj_1.set_font_size(28)
-        proj_1.set_zlim('density', vmin*projection_length, vmax*projection_length)
-
-        proj_1.hide_colorbar()
-
-        proj_1.save('y_slice.pdf')
-
-        label = r'Density ($\mathrm{g\,cm^{-3}}$)'
+        # IMAGES
         if 0:
-            cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='vertical', panels=3, \
-                                save='cb_location.pdf')
-        stop()
+            proj_2 = yt.SlicePlot(the_ds, 2, ('gas', 'density'))
 
-    if 0:
-        noisetype = 'half'
-        target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
-        labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
-        boxing = 'c_box'
-        los = 1
-        cg_main,_, _ = get_box(void_size, boxing, True, los)
-        snr_image,_ = noiseimage.add_noise(cg_main, target_snr[-1],noisetype=noisetype)
-        vmin = snr_image.min()
-        vmax = snr_image.max()
-        for val,target in enumerate(target_snr):
-            snr_image,_ = noiseimage.add_noise(cg_main, target, noisetype=noisetype)
-            cfp.plot_map(snr_image, colorbar=None, vmin=vmin, vmax=vmax)
-            plt.axis('off')
-            cfp.plot(text=labels[val], normalised_coords=True, x=0.35, y=-0.08, fontsize=18)
-            cfp.plot_map(save='./sort_plots/c_box_%d.pdf'%val)
+            proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (3*delta_a, edge_mtop, 0), coord_system='data')
+            proj_2.annotate_line((-3*delta_a, edge_mbot, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
+            proj_2.annotate_line((-3*delta_a, edge_mtop, 0), (-3*delta_a, edge_mbot, 0), coord_system='data')
+            proj_2.annotate_line((3*delta_a, edge_mtop, 0), (3*delta_a, edge_mbot, 0), coord_system='data')
+            proj_2.annotate_line((-delta_a, edge_mtop, 0), (-delta_a, edge_mbot, 0), coord_system='data')
+            proj_2.annotate_line((delta_a, edge_mtop, 0), (delta_a, edge_mbot, 0), coord_system='data')
+
+            proj_2.set_cmap(('gas','density'), cmap='magma')
+            colorbar_2 = proj_2.plots['density'].cb
+            vmin = 1e-3
+            vmax = 1e1
+            colorbar_2.vmin = vmin
+            colorbar_2.vmax = vmax
+
+            proj_2.set_axes_unit('mm')
+            proj_2.set_font_size(20)
+            proj_2.set_ylabel(r'$y \,\mathrm{(mm)}$')
+            proj_2.set_xlabel('')
+            proj_2.plots['gas', 'density'].axes.get_xaxis().set_tick_params(labelbottom=False)
+
+            proj_2.set_zlim('density', vmin, vmax)
+            proj_2.hide_colorbar()
+            proj_2.save('z_slice.pdf')
+
         if 0:
-            label = r'Density ($\mathrm{g\,cm^{-2}}$)'
-            cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='horizontal', panels=2.5, save='cb_snr.pdf')
-    if 0:
-        stop()
-        print('proceed to generate/store data? c to continue')
+            dx = 3.9062486030E-04
+            projection_length = 2*dx  # try with 1dx
 
-    # GETTING THE INFO WE NEED TO STORE
-    collect_sigmas = defaultdict(list)
-    collect_rsqrtsratio = defaultdict(list)
-    collect_rsqrt = defaultdict(list)
-    collect_kvals = defaultdict(list)
-    collect_p2dsInt = defaultdict(list)
-    collect_sigmasNdenoised = defaultdict(list)
-    collect_sigmasdenoised =defaultdict(list)
-    collect_rsqrttrue = defaultdict(list)
-    collect_spectras = defaultdict(list)
-    collect_spectras_ave = defaultdict(list)
-    collect_noisespectras = defaultdict(list)
+            the_ledge = the_ds.arr([-0.15, edge_mbot, -0.15],'code_length')
+            the_ledge_slice = the_ds.arr([-0.15, edge_mcenter-projection_length/2, -0.15],'code_length')
+            the_redge = the_ds.arr([0.15, edge_mtop, 0.15],'code_length')
+            the_redge_slice = the_ds.arr([0.15, edge_mcenter+projection_length/2, 0.15],'code_length')
+            the_center =0.5*the_ledge + 0.5*the_redge
+            the_region_slice = the_ds.region(the_center, the_ledge_slice, the_redge_slice)  
+            the_region = the_ds.region(the_center, the_ledge, the_redge)  
 
-    # 3D data
-    calculate_3dsigmas = False
-    sigmas3D = []
+            proj_1 = yt.ProjectionPlot(the_ds, 1, ('gas','density'), data_source=the_region_slice) # slices don't accept CGS
 
-    # No noise data
-    no_noise = False
-    if no_noise == True:
-        target_snr=[1000000]
-    typeofnoise = 'half'
-    sigmaBrunt = []
-    sigma2D = []
-    rhalfs = []
+            proj_1.annotate_line((-delta_a, 0, -3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
+            proj_1.annotate_line((delta_a, 0, -3*delta_a), (delta_a, 0, 3*delta_a), coord_system='data')
+            proj_1.annotate_line((3*delta_a, 0, delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
+            proj_1.annotate_line((3*delta_a, 0, -delta_a), (-3*delta_a, 0, -delta_a), coord_system='data')
 
-    # three projection axes
-    for eje, los in enumerate(projection_axis_list):
-        # five box locations
-        for num, boxing in enumerate(boxes):
-            cg_main_sum, cg_main, cg_vol = get_box(void_size, boxing, True, los)
+            proj_1.annotate_line((-3*delta_a, 0, -delta_a), (-3*delta_a, 0, delta_a), coord_system='data')
+            proj_1.annotate_line((3*delta_a, 0, -delta_a), (3*delta_a, 0, delta_a), coord_system='data')
 
-            if calculate_3dsigmas == True: 
-                _, sigma3D = calculate.Calculate('density', cg_main_sum, cg_vol)
-                stringing = str(sigma3D)
-                numeric_part = stringing.split()[0]
-                numeric_value = float(numeric_part)
-                sigmas3D.append(numeric_value)
-                continue
+            proj_1.annotate_line((delta_a, 0, -3*delta_a), (-delta_a, 0, -3*delta_a), coord_system='data')
+            proj_1.annotate_line((delta_a, 0, 3*delta_a), (-delta_a, 0, 3*delta_a), coord_system='data')
 
-            # seven SNR
-            for val, target in enumerate(target_snr):
-                lowpassfilter = 'no'
-                rsqrt_med, sigma_med, collectspec, collectspec_ave, collectnoisespec, kvals2D, sigmaN_med = noise_iterations(noise_samples, cg_main_sum, cg_vol, lowpassfilter, target, correct=cg_main, typeofnoise=typeofnoise)
-                sigmaBrunt.append(sigma_med)
-                sigma2D.append(sigmaN_med)
-                rhalfs.append(rsqrt_med)
+            proj_1.set_cmap(('gas','density'), cmap='magma')
+            proj_1.flip_horizontal()
+            proj_1.swap_axes()
 
-                if no_noise == False:
-                    # COLLECT SPECTRAS
-                    if los == projection_axis_list[0] and boxing == boxes[0]:
-                        collect_spectras[target] = [collectspec]
-                        collect_spectras_ave[target] = [collectspec_ave]
-                        collect_noisespectras[target] = [collectnoisespec]
-                    else:
-                        collect_spectras[target] = np.append(collect_spectras[target], [collectspec], axis=0)
-                        collect_spectras_ave[target] = np.append(collect_spectras_ave[target], [collectspec_ave], axis=0)
-                        collect_noisespectras[target] = np.append(collect_noisespectras[target], [collectnoisespec], axis=0)
+            colorbar_1 = proj_1.plots['density'].cb
+            colorbar_1.vmin = vmin * projection_length
+            colorbar_1.vmax = vmax * projection_length
 
-                if target != 1000000:
-                    rsqrt_k = []
-                    lowpassfilter = 'yes'
-                    medspec2D = collectspec
-                    medspec2D_ave = collectspec_ave
-                    medspec3D = 2 * kvals2D * medspec2D
-                    medspec3D_ave = 2 * kvals2D * medspec2D_ave
-                    # interpolation to get accurate intersection k values
-                    from scipy.interpolate import interp1d
-                    k_new = np.linspace(kvals2D.min(), kvals2D.max(), 500)
-                    signalonly = collect_spectras[1000000][-1]
-                    f = interp1d(kvals2D, signalonly, kind='linear')
-                    signalonly_new = f(k_new)
-                    meannoisespec = collectnoisespec
-                    f = interp1d(kvals2D, meannoisespec, kind='linear')
-                    meannoisespec_new = f(k_new)
-                    # get intersection
-                    print('Target SNR = ', target, color='yellow')
-                    kcross = np.argmin(np.abs(signalonly_new - meannoisespec_new))
-                    collect_p2dsInt[target].append(signalonly_new[kcross])
-                    kcross *= kvals2D[-1] / 500 # scale back to original k grid
-                    print ('S-N intersection k value = ', kcross, color='yellow')
+            proj_1.set_axes_unit('mm')
+            proj_1.set_ylabel(r'$x \,\mathrm{(mm)}$')
+            proj_1.set_xlabel(r'$z \,\mathrm{(mm)}$')
+            proj_1.set_font_size(28)
+            proj_1.set_zlim('density', vmin*projection_length, vmax*projection_length)
 
-                    if 1:
-                        _, sigmaNdenoised, rsqrt_true, sigmadenoised = parsevals.parsevals_th(1, medspec2D, medspec3D, \
-                            kvals2D, sigmaN_sq=sigmaN_med, the_k=kcross, p2d_ave=medspec2D_ave, p3d_ave=medspec3D_ave)
-                    rsqrt_ratio = rsqrt_true / rsqrt_med
+            proj_1.hide_colorbar()
 
-                    collect_sigmasNdenoised[target].append(sigmaNdenoised)
-                    collect_sigmasdenoised[target].append(sigmadenoised)
-                    collect_kvals[target].append(kcross)
-                    collect_rsqrttrue[target].append(rsqrt_true)
-                    collect_rsqrtsratio[target].append(rsqrt_ratio)
-                    collect_sigmas[target].append(sigma_med)
-                    collect_rsqrt[target].append(rsqrt_med)
+            proj_1.save('y_slice.pdf')
 
-    # convert the default dict to a vector array 
-    if not no_noise:
-        data_sigmas = [*collect_sigmas.values()]
-        data_rsqrts = [*collect_rsqrt.values()]
-        data_kvals = [*collect_kvals.values()]
-        data_rsqrttrue = [*collect_rsqrttrue.values()]
-        data_rsqrtratio = [*collect_rsqrtsratio.values()]
+            label = r'Density ($\mathrm{g\,cm^{-3}}$)'
+            if 0:
+                cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='vertical', panels=3, \
+                                    save='cb_location.pdf')
+            stop()
 
-        data_spectranoise = [*collect_spectras.values()]
-        data_spectranoise_ave = [*collect_spectras_ave.values()]
-        data_noisespectra = [*collect_noisespectras.values()]
+        if 0:
+            noisetype = 'half'
+            target_snr = [0.01, 0.1, 1, 3, 5, 10, 100]
+            labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
+            boxing = 'c_box'
+            los = 1
+            cg_main,_, _ = get_box(void_size, boxing, True, los)
+            snr_image,_ = noiseimage.add_noise(cg_main, target_snr[-1],noisetype=noisetype)
+            vmin = snr_image.min()
+            vmax = snr_image.max()
+            for val,target in enumerate(target_snr):
+                snr_image,_ = noiseimage.add_noise(cg_main, target, noisetype=noisetype)
+                cfp.plot_map(snr_image, colorbar=None, vmin=vmin, vmax=vmax)
+                plt.axis('off')
+                cfp.plot(text=labels[val], normalised_coords=True, x=0.35, y=-0.08, fontsize=18)
+                cfp.plot_map(save='./sort_plots/c_box_%d.pdf'%val)
+            if 0:
+                label = r'Density ($\mathrm{g\,cm^{-2}}$)'
+                cfp.plot_colorbar(cmap='magma', vmin=vmin, vmax=vmax, label=label, log=True, orientation='horizontal', panels=2.5, save='cb_snr.pdf')
+        if 0:
+            stop()
+            print('proceed to generate/store data? c to continue')
 
-        data_powintersects = [*collect_p2dsInt.values()]
-        data_sigmascolumndenoise = [*collect_sigmasNdenoised.values()]
-        data_sigmasdenoised = [*collect_sigmasdenoised.values()]
+        # GETTING THE INFO WE NEED TO STORE
+        collect_sigmas = defaultdict(list)
+        collect_rsqrtsratio = defaultdict(list)
+        collect_rsqrt = defaultdict(list)
+        collect_kvals = defaultdict(list)
+        collect_p2dsInt = defaultdict(list)
+        collect_sigmasNdenoised = defaultdict(list)
+        collect_sigmasdenoised =defaultdict(list)
+        collect_rsqrttrue = defaultdict(list)
+        collect_spectras = defaultdict(list)
+        collect_spectras_ave = defaultdict(list)
+        collect_noisespectras = defaultdict(list)
 
-    # and store the information
-    if 1:
-        h5file = '../h5files/15cubes15spectra_i1k_1p0_'+void_size+'_'+str(res)+'.h5'
-        Fptr = h5py.File(h5file, 'w')
-        Fptr['sigmas_%s'%void_size] = data_sigmas
-        Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
-        Fptr['kvals_%s'%void_size] = data_kvals
-        Fptr['rsqrttrue_%s'%void_size] = data_rsqrttrue
-        Fptr['ratios_%s'%void_size] = data_rsqrtratio
-        Fptr['kvals2D_%s'%void_size] = kvals2D
+        # 3D data
+        calculate_3dsigmas = False
+        sigmas3D = []
 
-        Fptr['powintersects_%s'%void_size] = data_powintersects
-        Fptr['columnddenoise_%s'%void_size] = data_sigmascolumndenoise
-        Fptr['sigmasdenoised_%s'%void_size] = data_sigmasdenoised
+        # No noise data
+        no_noise = False
+        if no_noise == True:
+            target_snr=[1000000]
+        typeofnoise = 'half'
+        sigmaBrunt = []
+        sigma2D = []
+        rhalfs = []
 
-        Fptr['thepowspec_%s'%void_size] = data_spectranoise
-        Fptr['thepowspec_ave_%s'%void_size] = data_spectranoise_ave
-        Fptr['thenoisepowspec_%s'%void_size] = data_noisespectra
-        Fptr.close()
-        print(h5file+' written.', color='magenta')
+        # three projection axes
+        for eje, los in enumerate(projection_axis_list):
+            # five box locations
+            for num, boxing in enumerate(boxes):
+                cg_main_sum, cg_main, cg_vol = get_box(void_size, boxing, True, los)
 
-    if 0:
-        Fptr['sigma_3Ds_%s'%void_size] = sigmas3D
+                if calculate_3dsigmas == True: 
+                    _, sigma3D = calculate.Calculate('density', cg_main_sum, cg_vol)
+                    stringing = str(sigma3D)
+                    numeric_part = stringing.split()[0]
+                    numeric_value = float(numeric_part)
+                    sigmas3D.append(numeric_value)
+                    continue
 
-    if no_noise:
-        h5file = '../h5files/15nonoise_%s.h5'%void_size
-        Fptr = h5py.File(h5file,'w') 
-        Fptr['sigma_brunts_%s'%void_size] = sigmaBrunt
-        Fptr['sigma_2Ds_%s'%void_size] = sigma2D
-        Fptr['sigma_rhalfs_%s'%void_size] = rhalfs
-        Fptr.close()
-        print('finished. check h5 file')
-        stop()
+                # seven SNR
+                for val, target in enumerate(target_snr):
+                    lowpassfilter = 'no'
+                    rsqrt_med, sigma_med, collectspec, collectspec_ave, collectnoisespec, kvals2D, sigmaN_med = noise_iterations(noise_samples, cg_main_sum, cg_vol, lowpassfilter, target, correct=cg_main, typeofnoise=typeofnoise)
+                    sigmaBrunt.append(sigma_med)
+                    sigma2D.append(sigmaN_med)
+                    rhalfs.append(rsqrt_med)
+
+                    if no_noise == False:
+                        # COLLECT SPECTRAS
+                        if los == projection_axis_list[0] and boxing == boxes[0]:
+                            collect_spectras[target] = [collectspec]
+                            collect_spectras_ave[target] = [collectspec_ave]
+                            collect_noisespectras[target] = [collectnoisespec]
+                        else:
+                            collect_spectras[target] = np.append(collect_spectras[target], [collectspec], axis=0)
+                            collect_spectras_ave[target] = np.append(collect_spectras_ave[target], [collectspec_ave], axis=0)
+                            collect_noisespectras[target] = np.append(collect_noisespectras[target], [collectnoisespec], axis=0)
+
+                    if target != 1000000:
+                        rsqrt_k = []
+                        lowpassfilter = 'yes'
+                        medspec2D = collectspec
+                        medspec2D_ave = collectspec_ave
+                        medspec3D = 2 * kvals2D * medspec2D
+                        medspec3D_ave = 2 * kvals2D * medspec2D_ave
+                        # interpolation to get accurate intersection k values
+                        from scipy.interpolate import interp1d
+                        k_new = np.linspace(kvals2D.min(), kvals2D.max(), 500)
+                        signalonly = collect_spectras[1000000][-1]
+                        f = interp1d(kvals2D, signalonly, kind='linear')
+                        signalonly_new = f(k_new)
+                        meannoisespec = collectnoisespec
+                        f = interp1d(kvals2D, meannoisespec, kind='linear')
+                        meannoisespec_new = f(k_new)
+                        # get intersection
+                        # print('Target SNR = ', target, color='yellow')
+                        kcross = np.argmin(np.abs(signalonly_new - meannoisespec_new))
+                        collect_p2dsInt[target].append(signalonly_new[kcross])
+                        kcross *= kvals2D[-1] / 500 # scale back to original k grid
+                        # print ('S-N intersection k value = ', kcross, color='yellow')
+
+                        if 1:
+                            _, sigmaNdenoised, rsqrt_true, sigmadenoised = parsevals.parsevals_th(1, medspec2D, medspec3D, \
+                                kvals2D, sigmaN_sq=sigmaN_med, the_k=kcross, p2d_ave=medspec2D_ave, p3d_ave=medspec3D_ave)
+                        rsqrt_ratio = rsqrt_true / rsqrt_med
+
+                        collect_sigmasNdenoised[target].append(sigmaNdenoised)
+                        collect_sigmasdenoised[target].append(sigmadenoised)
+                        collect_kvals[target].append(kcross)
+                        collect_rsqrttrue[target].append(rsqrt_true)
+                        collect_rsqrtsratio[target].append(rsqrt_ratio)
+                        collect_sigmas[target].append(sigma_med)
+                        collect_rsqrt[target].append(rsqrt_med)
+
+        # convert the default dict to a vector array 
+        if not no_noise:
+            data_sigmas = [*collect_sigmas.values()]
+            data_rsqrts = [*collect_rsqrt.values()]
+            data_kvals = [*collect_kvals.values()]
+            data_rsqrttrue = [*collect_rsqrttrue.values()]
+            data_rsqrtratio = [*collect_rsqrtsratio.values()]
+
+            data_spectranoise = [*collect_spectras.values()]
+            data_spectranoise_ave = [*collect_spectras_ave.values()]
+            data_noisespectra = [*collect_noisespectras.values()]
+
+            data_powintersects = [*collect_p2dsInt.values()]
+            data_sigmascolumndenoise = [*collect_sigmasNdenoised.values()]
+            data_sigmasdenoised = [*collect_sigmasdenoised.values()]
+
+        # and store the information
+        if 1:
+            h5file = '../h5files/15cubes15spectra_i1k_1p0_'+void_size+'_'+str(res)+'.h5'
+            Fptr = h5py.File(h5file, 'w')
+            Fptr['sigmas_%s'%void_size] = data_sigmas
+            Fptr['rsqrtfull_%s'%void_size] = data_rsqrts
+            Fptr['kvals_%s'%void_size] = data_kvals
+            Fptr['rsqrttrue_%s'%void_size] = data_rsqrttrue
+            Fptr['ratios_%s'%void_size] = data_rsqrtratio
+            Fptr['kvals2D_%s'%void_size] = kvals2D
+
+            Fptr['powintersects_%s'%void_size] = data_powintersects
+            Fptr['columnddenoise_%s'%void_size] = data_sigmascolumndenoise
+            Fptr['sigmasdenoised_%s'%void_size] = data_sigmasdenoised
+
+            Fptr['thepowspec_%s'%void_size] = data_spectranoise
+            Fptr['thepowspec_ave_%s'%void_size] = data_spectranoise_ave
+            Fptr['thenoisepowspec_%s'%void_size] = data_noisespectra
+            Fptr.close()
+            print(h5file+' written.', color='magenta')
+
+        if 0:
+            Fptr['sigma_3Ds_%s'%void_size] = sigmas3D
+
+        if no_noise:
+            h5file = '../h5files/15nonoise_%s.h5'%void_size
+            Fptr = h5py.File(h5file,'w') 
+            Fptr['sigma_brunts_%s'%void_size] = sigmaBrunt
+            Fptr['sigma_2Ds_%s'%void_size] = sigma2D
+            Fptr['sigma_rhalfs_%s'%void_size] = rhalfs
+            Fptr.close()
+            print('finished. check h5 file')
+            stop()
