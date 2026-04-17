@@ -428,7 +428,7 @@ def plotfig(plotstyle):
             ax2.set_xlabel('SNR', fontsize=21)
 
         if panels=='three':
-            ax3.set(xscale='log', yscale='log') 
+            ax3.set(xscale='log', yscale='log')
             y3label = r'Noise correction $C\mathrm{(SNR)}$'
             ax3.set_ylabel(y3label, fontsize=21)
             ax3.tick_params(axis='both', which='major', labelsize=21)
