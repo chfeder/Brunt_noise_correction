@@ -55,8 +55,8 @@ def fitthebox(whichfigure, eldata, secondparam=0):
     param_b = []
     param_c = []
     param_d = [] 
-    for j in range(numofboxes):  
-        xdata = [0.1, 1, 3, 5, 10, 100] 
+    for j in range(15):
+        xdata = [0.1, 1, 3, 5, 10, 100]
         oneboxproj = []
         for k in range(len(xdata)):
             prexdata = eldata[k][j]
@@ -445,12 +445,14 @@ def plotfig(plotstyle):
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
 
-    # figure options: FIG 3: sigmas(typeofsigma='free',singular), FIG 5: kvals(singular,typeofsigma=None), FIG 6: rsqrtfull (subpanel, two),
-    #                 FIG 7: sigmasdenoised(subpanel, three); FIG 4: kvals2D(typeofsigma=None for all 3 voids, "free" for 50um, 3 rez)
-    numofboxes = 15
-    whichfig = 'kvals2D' # 'kvals', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise', 'kvals2D'
+    # figure options:   FIG 3: sigmas (typeofsigma='free', singular)
+    #                   FIG 4: kvals2D (typeofsigma=None for all 3 voids, "free" for 50um, 3 rez)
+    #                   FIG 5: kvals (singular, typeofsigma=None)
+    #                   FIG 6: rsqrtfull (subpanel, two)
+    #                   FIG 7: sigmasdenoised (subpanel, three)
+    whichfig = 'kvals' # 'kvals', 'kvals2D', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise'
     whichfigtwo = None
-    typeofsigma = None #"free"
+    typeofsigma = None # "free"
     target_snr = [0.01, 0.1, 1, 3, 5, 10, 100, np.inf]
     xdata = np.array(target_snr[:-1])
 
@@ -511,7 +513,7 @@ if __name__ == "__main__":
                     k_new = np.linspace(kvals.min(), kvals.max(), 500)
                     f = interp1d(kvals, P_N, kind='linear'); P_N_interp = f(k_new)
                     f = interp1d(kvals, P_S, kind='linear'); P_S_interp = f(k_new)
-                    kcross = np.argmin(np.abs(P_S_interp - P_N_interp))
+                    kcross = np.argmin(np.abs(np.log10(P_S_interp/P_N_interp)))
                     P_at_kcross = P_S_interp[kcross]
                     kcross *= kvals[-1] / 500 # scale back to original k grid
                     return kcross, P_at_kcross
@@ -560,7 +562,7 @@ if __name__ == "__main__":
                             ax.set(xscale='log', yscale= 'log', xlim=None, ylim=(1.5e-2,1.5e0))
                             ax.set_xlabel(r'SNR', fontsize=12)
                             ax.set_ylabel(r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$', fontsize=12)
-                            ax.legend(loc='lower right', fontsize=12, labelspacing=0.2)
+                            leg = ax.legend(loc='lower right', fontsize=12, labelspacing=0.2)
                             filename = '../figs/k_noise_%s.pdf'%(rez)
                             plt.savefig(filename)
                             print(filename+' written.', color='magenta')
@@ -660,7 +662,7 @@ if __name__ == "__main__":
                     fig, ax = plt.subplots(1,1)
                     # plot S spectrum
                     ax.plot(kvals[1:], P_S_50[0][1:], color='r', linewidth=0.8, label='S', zorder=9)
-                    ax.fill_between(kvals[1:], P_S_16[0][1:], P_S_84[0][1:], color='r', alpha=0.2, edgecolor='r', zorder=9)
+                    ax.fill_between(kvals[1:], P_S_16[0][1:], P_S_84[0][1:], color='red', alpha=0.2, edgecolor='none', zorder=9)
                     # loop over SNRs
                     for i, snr in enumerate(target_snr):
                         if snr <= 100:
@@ -676,9 +678,10 @@ if __name__ == "__main__":
                             ax.plot(kvals[1:], P_S_50[i][1:], color=colors[i_void], linewidth=0.8, alpha=0.7, label=label)
                         if snr <= 0.01 or snr >= 100: continue # skip SNRs that don't have useful k crossings
                         ax.plot([k_crosses_50[i],k_crosses_50[i]], [0,P_at_kcrosses_50[i]], color=colors[i_void],
-                                    linestyle='dotted', alpha=0.8, zorder=10)
-                        ax.fill_between([k_crosses_16[i],max([k_crosses_50[i],k_crosses_84[i]])], [0,0], [P_at_kcrosses_16[i],P_at_kcrosses_84[i]],
-                                            color=colors[i_void], alpha=0.1, edgecolor=colors[i_void], zorder=10)
+                                    linestyle=(0, (1, 1)), alpha=0.8, zorder=10)
+                        ax.fill_between([k_crosses_16[i], max([k_crosses_50[i], k_crosses_84[i]])], [0, 0],
+                                            [P_at_kcrosses_50[i], P_at_kcrosses_50[i]],
+                                            color=colors[i_void], alpha=0.1, edgecolor='none', zorder=10)
                     # final plot settings and saving
                     ax.text(0.905, 0.94, 'SNR', transform=ax.transAxes)
                     ax.set(xscale='log', yscale= 'log', xlim=(2e-2,1.6), ylim=(1e-7,2e4))
@@ -690,7 +693,7 @@ if __name__ == "__main__":
                         bbox_to_anchor=(0.01, 1.01)
                     main_legend = ax.legend(loc='upper left', ncol=1, fontsize=12, labelspacing=0.1, bbox_to_anchor=bbox_to_anchor)
                     ax.add_artist(main_legend)
-                    custom_line = mlines.Line2D([], [], color=colors[i_void], linestyle='dotted', alpha=0.8, label=r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$')
+                    custom_line = mlines.Line2D([], [], color=colors[i_void], linestyle=(0, (1, 1)), alpha=0.8, label=r'$k_{\mathrm{noise}}/k_{\mathrm{max}}$')
                     k_legend = ax.legend(handles=[custom_line], loc='upper left', fontsize=12, bbox_to_anchor=(0.23,1.01))
                     filename = '../figs/spectra_%s_%s.pdf'%(void_size, rez)
                     plt.savefig(filename)
