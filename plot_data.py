@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 
-from startlaser import *
-from collections import defaultdict
-import matplotlib.ticker as ticker
-import matplotlib.lines as mlines
+from imports import *
 
 # POSSIBLE FIT FUNCTIONS
 # discovery fit functions

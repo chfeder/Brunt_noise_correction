@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-from startlaser import *
-from collections import defaultdict
+from imports import *
 
 # === user changes here ===
 res = '1024' # resolution
 void_sizes = ['12p5mu', '50mu', '100mu']
 void_sizes = ['50mu']
-noise_samples = 10
+noise_samples = 2
 print('Number of noise samples: '+str(noise_samples), color='lightred')
 
 # box dimensions
@@ -18,6 +17,8 @@ edge_mbot = 0.35-delta_a # 0.3275
 
 # ===================================================================
 def get_box(filename, box):
+    import yt
+    yt.funcs.mylog.setLevel("ERROR")
     # read FLASH file and extract box region via yt
     ds = yt.load(filename)
     if box == 'c_box':
@@ -84,7 +85,6 @@ def get_noise(N, noise_exp=0.0, kmin=None, kmax=None, std=1.0, random_phases=Tru
     noise = np.fft.irfftn(Ahat, s=Ahat.shape)
     noise /= noise.std() # normalise to target STD
     noise *= std # normalise to target STD
-    stop()
     return noise
 
 # ===================================================================
@@ -102,19 +102,22 @@ def get_Brunt_data(k, P, k_noise):
     ind = (k > 0) & (k <= k_noise)
     P2D = P[ind].sum()
     P3D = (2*k[ind]*P[ind]).sum()
-    R_to_half = np.sqrt(P2D/P3D)
-    Brunt_sigma_3D = np.sqrt(P2D) / R_to_half
+    Brunt_R_to_half = np.sqrt(P2D/P3D)
+    Brunt_sigma_2D = np.sqrt(P2D/P[0]) # normalised by the mean (np.sqrt(P[0]))
+    Brunt_sigma_3D = Brunt_sigma_2D / Brunt_R_to_half
     return Brunt_sigma_3D, Brunt_R_to_half
 
 # ===================================================================
 def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
     # prepare output lists
     sigma_2D_list = []
+    PS_SpN_list = []
+    PS_N_list = []
     k_noise_list = []
     Brunt_sigma_3D_list = []
     Brunt_R_to_half_list = []
     # signal spectrum
-    spect_S = cfp.get_spectrum(signal)
+    spect_S = cfp.get_spectrum(signal, verbose=0)
     k = spect_S['k']
     PS_S = spect_S['P_tot']
     # loop over noise iterations
@@ -125,44 +128,29 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
         sigma_2D = (noisy_data/noisy_data.mean()).std()
         sigma_2D_list.append(sigma_2D)
         # compute spectra
-        PS_SpN = cfp.get_spectrum(noisy_data)['P_tot']
-        PS_N   = cfp.get_spectrum(noise)['P_tot']
+        PS_SpN = cfp.get_spectrum(noisy_data, verbose=0)['P_tot']
+        PS_SpN_list.append(PS_SpN)
+        PS_N = cfp.get_spectrum(noise, verbose=0)['P_tot']
+        PS_N_list.append(PS_N)
         # k_noise
-        k_noise = np.argmin(np.abs(np.log10(PS_S/PS_N)))
+        k_noise_ind = np.argmin(np.abs(np.log10(PS_S[1:]/PS_N[1:])))
+        k_noise = k[1:][k_noise_ind]
         k_noise_list.append(k_noise)
         # Brunt sigma_3D and R^(1/2)
         Brunt_sigma_3D, Brunt_R_to_half = get_Brunt_data(k, PS_SpN, k_noise)
         Brunt_sigma_3D_list.append(Brunt_sigma_3D)
         Brunt_R_to_half_list.append(Brunt_R_to_half)
-
-        stop()
-
-        # COLLECT SPECTRA
-        # SNR
-        if iteration == 0:
-            collect_spectra = [powspec2D]
-        if iteration > 0:
-            collect_spectra = np.append(collect_spectra, [powspec2D], axis=0)
-        # SNR_AVE
-        if iteration == 0:
-            collect_spectra_ave = [powspec2D_ave]
-        if iteration > 0:
-            collect_spectra_ave = np.append(collect_spectra_ave, [powspec2D_ave], axis=0)
-        # NOISE
-        if iteration == 0:
-            collect_spectranoise = [powspec2D_noise]
-        if iteration > 0:
-            collect_spectranoise = np.append(collect_spectranoise, [powspec2D_noise], axis=0)
-
-    the_sigmaNmed = np.median(collect_sigmaN)
-    the_rsmed = np.median(collect_rsq)
-    the_sigmasmed = np.median(collect_sigma)
-
-    the_spectrasnr = np.median(collect_spectra, axis=0)
-    the_spectrasnr_ave = np.median(collect_spectra_ave, axis=0)
-    the_spectranoise = np.median(collect_spectranoise, axis=0)
-
-    return the_rsmed, the_sigmasmed, the_spectrasnr, the_spectrasnr_ave, the_spectranoise, ks, the_sigmaNmed
+    class ret:
+        def __init__(self, k_, PS_S_, PS_N_list_, PS_SpN_list_, k_noise_list_, Brunt_sigma_3D_list_, Brunt_R_to_half_list_, sigma_2D_list_):
+            self.k = k_
+            self.PS_S = PS_S_
+            self.PS_N_list = np.array(PS_N_list_)
+            self.PS_SpN_list = np.array(PS_SpN_list_)
+            self.k_noise_list = np.array(k_noise_list_)
+            self.Brunt_sigma_3D_list = np.array(Brunt_sigma_3D_list_)
+            self.Brunt_R_to_half_list = np.array(Brunt_R_to_half_list_)
+            self.sigma_2D_list = np.array(sigma_2D_list_)
+    return ret(k, PS_S, PS_N_list, PS_SpN_list, k_noise_list, Brunt_sigma_3D_list, Brunt_R_to_half_list, sigma_2D_list)
 
 
 # ===== the following applies in case we are running this in script mode =====
@@ -183,25 +171,9 @@ if __name__ == "__main__":
 
         SNR_list = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
 
-        # GETTING THE INFO WE NEED TO STORE
-        collect_sigmas = defaultdict(list)
-        collect_rsqrtsratio = defaultdict(list)
-        collect_rsqrt = defaultdict(list)
-        collect_kvals = defaultdict(list)
-        collect_p2dsInt = defaultdict(list)
-        collect_sigmasNdenoised = defaultdict(list)
-        collect_sigmasdenoised =defaultdict(list)
-        collect_rsqrttrue = defaultdict(list)
-        collect_spectras = defaultdict(list)
-        collect_spectras_ave = defaultdict(list)
-        collect_noisespectras = defaultdict(list)
-
         # data collection per box and/or LOS
         sigma_3D = []
-        sigma_2D = []
-        sigma_Brunt = []
-        typeofnoise = 'half'
-        R_half = []
+        data = [[] for _ in range(len(SNR_list))]
 
         # 5 boxes
         for box in boxes:
@@ -218,64 +190,78 @@ if __name__ == "__main__":
                 proj = dens.sum(axis=LOS) / dens.shape[LOS] * 2*delta_a
 
                 # 7 SNR
-                for SNR in SNR_list:
+                for iSNR, SNR in enumerate(SNR_list):
 
-                    noise_iterations(noise_samples, proj, SNR)
-                    stop()
+                    ret = noise_iterations(noise_samples, proj, SNR)
+                    data[iSNR].append(ret)
 
 
-                    rsqrt_med, sigma_med, collectspec, collectspec_ave, collectnoisespec, kvals2D, sigmaN_med = \
-                        noise_iterations(noise_samples, proj, SNR, correct=cg_main, typeofnoise=typeofnoise)
-                    sigmaBrunt.append(sigma_med)
-                    sigma2D.append(sigmaN_med)
-                    rhalfs.append(rsqrt_med)
+                    if 0:
+                        if no_noise == False:
+                            # COLLECT SPECTRAS
+                            if los == projection_axis_list[0] and box == boxes[0]:
+                                collect_spectras[target] = [collectspec]
+                                collect_spectras_ave[target] = [collectspec_ave]
+                                collect_noisespectras[target] = [collectnoisespec]
+                            else:
+                                collect_spectras[target] = np.append(collect_spectras[target], [collectspec], axis=0)
+                                collect_spectras_ave[target] = np.append(collect_spectras_ave[target], [collectspec_ave], axis=0)
+                                collect_noisespectras[target] = np.append(collect_noisespectras[target], [collectnoisespec], axis=0)
 
-                    if no_noise == False:
-                        # COLLECT SPECTRAS
-                        if los == projection_axis_list[0] and box == boxes[0]:
-                            collect_spectras[target] = [collectspec]
-                            collect_spectras_ave[target] = [collectspec_ave]
-                            collect_noisespectras[target] = [collectnoisespec]
-                        else:
-                            collect_spectras[target] = np.append(collect_spectras[target], [collectspec], axis=0)
-                            collect_spectras_ave[target] = np.append(collect_spectras_ave[target], [collectspec_ave], axis=0)
-                            collect_noisespectras[target] = np.append(collect_noisespectras[target], [collectnoisespec], axis=0)
+                        if target != 1000000:
+                            rsqrt_k = []
+                            medspec2D = collectspec
+                            medspec2D_ave = collectspec_ave
+                            medspec3D = 2 * kvals2D * medspec2D
+                            medspec3D_ave = 2 * kvals2D * medspec2D_ave
+                            # interpolation to get accurate intersection k values
+                            signalonly = collect_spectras[1000000][-1]
+                            meannoisespec = collectnoisespec
+                            #kcross, P_at_kcross = get_k_cross(kvals, meannoisespec, signalonly)
+                            # get intersection
+                            # print('Target SNR = ', target, color='yellow')
+                            #kcross = np.argmin(np.abs(signalonly_new - meannoisespec_new))
+                            #collect_p2dsInt[target].append(signalonly_new[kcross])
+                            #kcross *= kvals2D[-1] / 500 # scale back to original k grid
+                            # print ('S-N intersection k value = ', kcross, color='yellow')
+                            #if kcross > 1: stop()
 
-                    if target != 1000000:
-                        rsqrt_k = []
-                        medspec2D = collectspec
-                        medspec2D_ave = collectspec_ave
-                        medspec3D = 2 * kvals2D * medspec2D
-                        medspec3D_ave = 2 * kvals2D * medspec2D_ave
-                        # interpolation to get accurate intersection k values
-                        signalonly = collect_spectras[1000000][-1]
-                        meannoisespec = collectnoisespec
-                        #kcross, P_at_kcross = get_k_cross(kvals, meannoisespec, signalonly)
-                        # get intersection
-                        # print('Target SNR = ', target, color='yellow')
-                        #kcross = np.argmin(np.abs(signalonly_new - meannoisespec_new))
-                        #collect_p2dsInt[target].append(signalonly_new[kcross])
-                        #kcross *= kvals2D[-1] / 500 # scale back to original k grid
-                        # print ('S-N intersection k value = ', kcross, color='yellow')
-                        #if kcross > 1: stop()
+                            #if 1:
+                            #    _, sigmaNdenoised, rsqrt_true, sigmadenoised = parsevals.parsevals_th(1, medspec2D, medspec3D, \
+                            #        kvals2D, sigmaN_sq=sigmaN_med, the_k=kcross, p2d_ave=medspec2D_ave, p3d_ave=medspec3D_ave)
+                            #rsqrt_ratio = rsqrt_true / rsqrt_med
+                            kcross = 66
+                            rsqrt_true = 66
+                            rsqrt_ratio = 66
+                            sigmaNdenoised = 66
+                            sigmadenoised = 66
 
-                        #if 1:
-                        #    _, sigmaNdenoised, rsqrt_true, sigmadenoised = parsevals.parsevals_th(1, medspec2D, medspec3D, \
-                        #        kvals2D, sigmaN_sq=sigmaN_med, the_k=kcross, p2d_ave=medspec2D_ave, p3d_ave=medspec3D_ave)
-                        #rsqrt_ratio = rsqrt_true / rsqrt_med
-                        kcross = 66
-                        rsqrt_true = 66
-                        rsqrt_ratio = 66
-                        sigmaNdenoised = 66
-                        sigmadenoised = 66
+                            collect_sigmasNdenoised[target].append(sigmaNdenoised)
+                            collect_sigmasdenoised[target].append(sigmadenoised)
+                            collect_kvals[target].append(kcross)
+                            collect_rsqrttrue[target].append(rsqrt_true)
+                            collect_rsqrtsratio[target].append(rsqrt_ratio)
+                            collect_sigmas[target].append(sigma_med)
+                            collect_rsqrt[target].append(rsqrt_med)
 
-                        collect_sigmasNdenoised[target].append(sigmaNdenoised)
-                        collect_sigmasdenoised[target].append(sigmadenoised)
-                        collect_kvals[target].append(kcross)
-                        collect_rsqrttrue[target].append(rsqrt_true)
-                        collect_rsqrtsratio[target].append(rsqrt_ratio)
-                        collect_sigmas[target].append(sigma_med)
-                        collect_rsqrt[target].append(rsqrt_med)
+        def stats_object(objs):
+            cls = type(objs[0]) # same class as input objects
+            out = cls.__new__(cls)  # create empty instance (no __init__)
+            for k, v in vars(objs[0]).items():
+                vals = [getattr(o, k) for o in objs]
+                if isinstance(v, np.ndarray):
+                    setattr(out, k, np.median(vals, axis=0))
+                elif np.isscalar(v):
+                    setattr(out, k, np.median(vals))
+                else:
+                    # keep as-is (or handle case-by-case if needed)
+                    setattr(out, k, v)
+            return out
+
+        mean_data = stats_object(data[0])
+
+        stop()
+
 
         # convert the default dict to a vector array
         if not no_noise:
