@@ -141,15 +141,15 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
         Brunt_sigma_3D_list.append(Brunt_sigma_3D)
         Brunt_R_to_half_list.append(Brunt_R_to_half)
     class ret:
-        def __init__(self, k_, PS_S_, PS_N_list_, PS_SpN_list_, k_noise_list_, Brunt_sigma_3D_list_, Brunt_R_to_half_list_, sigma_2D_list_):
-            self.k = k_
-            self.PS_S = PS_S_
-            self.PS_N_list = np.array(PS_N_list_)
-            self.PS_SpN_list = np.array(PS_SpN_list_)
-            self.k_noise_list = np.array(k_noise_list_)
-            self.Brunt_sigma_3D_list = np.array(Brunt_sigma_3D_list_)
-            self.Brunt_R_to_half_list = np.array(Brunt_R_to_half_list_)
-            self.sigma_2D_list = np.array(sigma_2D_list_)
+        def __init__(self, k_, PS_S_, PS_N_, PS_SpN_, k_noise_, Brunt_sigma_3D_, Brunt_R_to_half_, sigma_2D_):
+            self.k = np.array([k_]) # add extra ghost dim to allow simple stats function below
+            self.PS_S = np.array([PS_S_]) # add extra ghost dim to allow simple stats function below
+            self.PS_N = np.array(PS_N_)
+            self.PS_SpN = np.array(PS_SpN_)
+            self.k_noise = np.array(k_noise_)
+            self.Brunt_sigma_3D = np.array(Brunt_sigma_3D_)
+            self.R_to_half = np.array(Brunt_R_to_half_)
+            self.sigma_2D = np.array(sigma_2D_)
     return ret(k, PS_S, PS_N_list, PS_SpN_list, k_noise_list, Brunt_sigma_3D_list, Brunt_R_to_half_list, sigma_2D_list)
 
 
@@ -181,7 +181,7 @@ if __name__ == "__main__":
             filename = '../turb_foam_gamma_5_3_3d_'+str(res)+'_'+str(void_size)+'_bubbles/NIF_hdf5_plt_cnt_0375'
             print("=== Reading "+box+" from file "+filename, color='lightblue')
             dens = get_box(filename, box)
-            sigma_3D.append((dens/dens.mean()).std())
+            sigma_3D = (dens/dens.mean()).std()
 
             # 3 projection axes
             for LOS in LOS_list:
@@ -193,20 +193,10 @@ if __name__ == "__main__":
                 for iSNR, SNR in enumerate(SNR_list):
 
                     ret = noise_iterations(noise_samples, proj, SNR)
+                    ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
                     data[iSNR].append(ret)
 
-
                     if 0:
-                        if no_noise == False:
-                            # COLLECT SPECTRAS
-                            if los == projection_axis_list[0] and box == boxes[0]:
-                                collect_spectras[target] = [collectspec]
-                                collect_spectras_ave[target] = [collectspec_ave]
-                                collect_noisespectras[target] = [collectnoisespec]
-                            else:
-                                collect_spectras[target] = np.append(collect_spectras[target], [collectspec], axis=0)
-                                collect_spectras_ave[target] = np.append(collect_spectras_ave[target], [collectspec_ave], axis=0)
-                                collect_noisespectras[target] = np.append(collect_noisespectras[target], [collectnoisespec], axis=0)
 
                         if target != 1000000:
                             rsqrt_k = []
@@ -244,21 +234,35 @@ if __name__ == "__main__":
                             collect_sigmas[target].append(sigma_med)
                             collect_rsqrt[target].append(rsqrt_med)
 
-        def stats_object(objs):
+        def stats_object1(objs):
             cls = type(objs[0]) # same class as input objects
             out = cls.__new__(cls)  # create empty instance (no __init__)
             for k, v in vars(objs[0]).items():
                 vals = [getattr(o, k) for o in objs]
-                if isinstance(v, np.ndarray):
-                    setattr(out, k, np.median(vals, axis=0))
-                elif np.isscalar(v):
-                    setattr(out, k, np.median(vals))
-                else:
-                    # keep as-is (or handle case-by-case if needed)
-                    setattr(out, k, v)
+                if k == 'k': continue
+                setattr(out, k, 10**np.mean(np.log10(vals), axis=(0, 1))) # statistics over boxes and noise realisations
             return out
 
-        mean_data = stats_object(data[0])
+        def stats_object(objs):
+            cls = type(objs[0])
+            avg_obj = cls.__new__(cls)
+            std_obj = cls.__new__(cls)
+            p16_obj = cls.__new__(cls)
+            p84_obj = cls.__new__(cls)
+            for k, v in vars(objs[0]).items():
+                vals = [getattr(o, k) for o in objs]
+                arr = np.asarray(vals)
+                # statistics over axes 0 and 1 = boxes and noise realisations
+                logarr = np.log10(arr)
+                setattr(avg_obj, k, 10**np.mean(logarr, axis=(0, 1)))
+                setattr(std_obj, k, 10**np.std(logarr, axis=(0, 1)))
+                setattr(p16_obj,  k, 10**np.percentile(logarr, 16, axis=(0, 1)))
+                setattr(p84_obj,  k, 10**np.percentile(logarr, 84, axis=(0, 1)))
+            return avg_obj, std_obj, p16_obj, p84_obj
+
+        avg, std, p16, p84 = stats_object(data[0])
+
+        
 
         stop()
 
