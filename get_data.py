@@ -141,8 +141,15 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
         Brunt_sigma_3D_list.append(Brunt_sigma_3D)
         Brunt_R_to_half_list.append(Brunt_R_to_half)
     class ret:
-        def __init__(self, k_, PS_S_, PS_N_, PS_SpN_, k_noise_, Brunt_sigma_3D_, Brunt_R_to_half_, sigma_2D_):
-            self.k = np.array([k_]) # add extra ghost dim to allow simple stats function below
+        def __init__(self, SNR_, noise_exp_, signal_, noise_, noisy_data_,
+                        k_, PS_S_, PS_N_, PS_SpN_, k_noise_,
+                        Brunt_sigma_3D_, Brunt_R_to_half_, sigma_2D_):
+            self.SNR = np.array([SNR_]) # add extra ghost dim to allow simple stats function below
+            self.noise_exp = np.array([noise_exp_])
+            self.signal = np.array([signal_])
+            self.noise = np.array([noise_])
+            self.noisy_data = np.array([noisy_data_])
+            self.k = np.array([k_]) 
             self.PS_S = np.array([PS_S_]) # add extra ghost dim to allow simple stats function below
             self.PS_N = np.array(PS_N_)
             self.PS_SpN = np.array(PS_SpN_)
@@ -150,7 +157,9 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
             self.Brunt_sigma_3D = np.array(Brunt_sigma_3D_)
             self.R_to_half = np.array(Brunt_R_to_half_)
             self.sigma_2D = np.array(sigma_2D_)
-    return ret(k, PS_S, PS_N_list, PS_SpN_list, k_noise_list, Brunt_sigma_3D_list, Brunt_R_to_half_list, sigma_2D_list)
+    return ret(SNR, noise_exp, signal, noise, noisy_data,
+                k, PS_S, PS_N_list, PS_SpN_list, k_noise_list,
+                Brunt_sigma_3D_list, Brunt_R_to_half_list, sigma_2D_list)
 
 
 # ===== the following applies in case we are running this in script mode =====
@@ -167,7 +176,7 @@ if __name__ == "__main__":
         boxes = ['c_box', 'l_box', 'r_box', 'b_box', 'f_box']
 
         # 3 different projections (LOS)
-        LOS_list = [0, 1, 2]
+        LOS_list = [0, 1, 2] # x, y, z
 
         SNR_list = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
 
@@ -234,36 +243,46 @@ if __name__ == "__main__":
                             collect_sigmas[target].append(sigma_med)
                             collect_rsqrt[target].append(rsqrt_med)
 
-        def stats_object1(objs):
-            cls = type(objs[0]) # same class as input objects
-            out = cls.__new__(cls)  # create empty instance (no __init__)
-            for k, v in vars(objs[0]).items():
-                vals = [getattr(o, k) for o in objs]
-                if k == 'k': continue
-                setattr(out, k, 10**np.mean(np.log10(vals), axis=(0, 1))) # statistics over boxes and noise realisations
-            return out
-
+        # -----------------------------------------------------------
         def stats_object(objs):
+            # -----------------------------------------------------------
+            def get_stats(arr, log_stats=True):
+                if log_stats: data_arr = np.log10(arr) # log statistics
+                else: data_arr = arr # linear statistics
+                stats = [np.nan, np.nan, np.nan, np.nan] # avg, std, 16th, 84th
+                # statistics over axes 0 and 1 = boxes and noise realisations
+                stats[0] = np.mean      (data_arr,     axis=(0, 1)) # avg
+                stats[1] = np.std       (data_arr,     axis=(0, 1)) # std
+                stats[2] = np.percentile(data_arr, 16, axis=(0, 1)) # 16th
+                stats[3] = np.percentile(data_arr, 84, axis=(0, 1)) # 84th
+                if log_stats: # log statistics
+                    for i in range(len(stats)):
+                        stats[i] = 10**stats[i]
+                return stats
+            # -----------------------------------------------------------
             cls = type(objs[0])
-            avg_obj = cls.__new__(cls)
-            std_obj = cls.__new__(cls)
-            p16_obj = cls.__new__(cls)
-            p84_obj = cls.__new__(cls)
-            for k, v in vars(objs[0]).items():
+            ret_stats_data = [cls.__new__(cls)]*4 # avg, std, 16th, 84th
+            for k, v in vars(objs[0]).items(): # loop over all keys
+                print('Computing statistics on '+k)
                 vals = [getattr(o, k) for o in objs]
                 arr = np.asarray(vals)
-                # statistics over axes 0 and 1 = boxes and noise realisations
-                logarr = np.log10(arr)
-                setattr(avg_obj, k, 10**np.mean(logarr, axis=(0, 1)))
-                setattr(std_obj, k, 10**np.std(logarr, axis=(0, 1)))
-                setattr(p16_obj,  k, 10**np.percentile(logarr, 16, axis=(0, 1)))
-                setattr(p84_obj,  k, 10**np.percentile(logarr, 84, axis=(0, 1)))
-            return avg_obj, std_obj, p16_obj, p84_obj
+                if k in ['noise_exp', 'noise', 'k']: log_stats = False
+                else: log_stats = True
+                stats = get_stats(arr, log_stats)
+                for i in range(len(stats)):
+                    setattr(ret_stats_data[i], k, stats[i])
+            return ret_stats_data
+        # -----------------------------------------------------------
 
         avg, std, p16, p84 = stats_object(data[0])
 
-        
-
+    # plot example maps
+    for isnr in [2,3,4,6]:
+        # check SNR match
+        LOS = 1 # y axis
+        dat = data[isnr][LOS]
+        if dat.SNR[0] != SNR_list[isnr]: stop()
+        cfp.plot_map(dat.noisy_data[0], axes_format=["", ""], vmin=5e-3, vmax=1e-2, show=True)
         stop()
 
 
