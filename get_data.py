@@ -98,7 +98,7 @@ def add_noise(signal, SNR, noise_exp=0.0):
     return noisy_data, noise
 
 # ===================================================================
-def get_Brunt_data(k, P, k_noise):
+def get_Brunt_data(k, P, k_noise=np.inf): # k_noise achieves denoising
     ind = (k > 0) & (k <= k_noise)
     P2D = P[ind].sum()
     P3D = (2*k[ind]*P[ind]).sum()
@@ -116,6 +116,8 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
     k_noise_list = []
     Brunt_sigma_3D_list = []
     Brunt_R_to_half_list = []
+    Brunt_sigma_3D_denoised_list = []
+    Brunt_R_to_half_denoised_list = []
     # signal spectrum
     spect_S = cfp.get_spectrum(signal, verbose=0)
     k = spect_S['k']
@@ -136,14 +138,20 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
         k_noise_ind = np.argmin(np.abs(np.log10(PS_S[1:]/PS_N[1:])))
         k_noise = k[1:][k_noise_ind]
         k_noise_list.append(k_noise)
-        # Brunt sigma_3D and R^(1/2)
-        Brunt_sigma_3D, Brunt_R_to_half = get_Brunt_data(k, PS_SpN, k_noise)
+        # Brunt sigma_3D and R^(1/2) without noise correction
+        Brunt_sigma_3D, Brunt_R_to_half = get_Brunt_data(k, PS_SpN, k_noise=np.inf)
         Brunt_sigma_3D_list.append(Brunt_sigma_3D)
         Brunt_R_to_half_list.append(Brunt_R_to_half)
+        # Brunt sigma_3D and R^(1/2) denoised
+        Brunt_sigma_3D_denoised, Brunt_R_to_half_denoised = get_Brunt_data(k, PS_SpN, k_noise)
+        Brunt_sigma_3D_denoised_list.append(Brunt_sigma_3D_denoised)
+        Brunt_R_to_half_denoised_list.append(Brunt_R_to_half_denoised)
     class ret:
         def __init__(self, SNR_, noise_exp_, signal_, noise_, noisy_data_,
                         k_, PS_S_, PS_N_, PS_SpN_, k_noise_,
-                        Brunt_sigma_3D_, Brunt_R_to_half_, sigma_2D_):
+                        Brunt_sigma_3D_, Brunt_R_to_half_,
+                        Brunt_sigma_3D_denoised_, Brunt_R_to_half_denoised_,
+                        sigma_2D_):
             self.SNR = np.array([SNR_]) # add extra ghost dim to allow simple stats function below
             self.noise_exp = np.array([noise_exp_])
             self.signal = np.array([signal_])
@@ -156,10 +164,14 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
             self.k_noise = np.array(k_noise_)
             self.Brunt_sigma_3D = np.array(Brunt_sigma_3D_)
             self.R_to_half = np.array(Brunt_R_to_half_)
+            self.Brunt_sigma_3D_denoised = np.array(Brunt_sigma_3D_denoised_)
+            self.R_to_half_denoised = np.array(Brunt_R_to_half_denoised_)
             self.sigma_2D = np.array(sigma_2D_)
     return ret(SNR, noise_exp, signal, noise, noisy_data,
                 k, PS_S, PS_N_list, PS_SpN_list, k_noise_list,
-                Brunt_sigma_3D_list, Brunt_R_to_half_list, sigma_2D_list)
+                Brunt_sigma_3D_list, Brunt_R_to_half_list,
+                Brunt_sigma_3D_denoised_list, Brunt_R_to_half_denoised_list,
+                sigma_2D_list)
 
 # ===================================================================
 # --- function that computes statistics over the noise samples ---
@@ -180,7 +192,7 @@ def get_stats_object(objs):
         return stats
     # -----------------------------------------------------------
     cls = type(objs[0])
-    ret_stats_data = [cls.__new__(cls)]*4 # avg, std, 16th, 84th
+    ret_stats_data = [cls.__new__(cls) for _ in range(4)]  # avg, std, p16, p84
     for k, v in vars(objs[0]).items(): # loop over all keys
         print('Computing statistics on '+k)
         vals = [getattr(o, k) for o in objs]

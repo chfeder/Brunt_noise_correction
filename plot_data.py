@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
 from globals import *
+import matplotlib as mpl
+mpl.rcParams.update({
+    'errorbar.capsize': 4,
+    'lines.markersize': 4
+})
 
 # POSSIBLE FIT FUNCTIONS
 # discovery fit functions
@@ -869,12 +874,31 @@ def plot_noisy_map_examples(turb_data):
         save = figpath+'noisy_data_map_SNR_'+cfp.eform(SNR,prec=1)+'_'+void_size+'.pdf'
         po = cfp.plot_map(dat.noisy_data[0], axes_format=["", ""], axes_ticks=[[],[]],
                             vmin=vmin, vmax=vmax, cmap=cmap, colorbar=False)
-        po.plt().text(0.5, 0.5, "SNR", ha='center', va='center', transform=po.plt().gca().transAxes,
-                        bbox=dict(boxstyle="round", fc="white", alpha=0.5))
+        po.plt().text(0.5, 0.95, r"$\mathrm{SNR} = "+str(SNR)+r"$", ha='center', va='center', transform=po.plt().gca().transAxes,
+                        bbox=dict(boxstyle="round", fc="white", alpha=0.8))
         cfp.show_or_save_plot(save=save)
     # plot colorbar
     cfp.plot_colorbar(vmin=vmin, vmax=vmax, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
                         panels=3, orientation="horizontal", save=figpath+'noisy_data_map_cbar_'+void_size+'.pdf')
+
+
+def plot_sigrho_Brunt_vs_SNR(turb_data):
+    # figure 3 (Brunt sigma_rho as function of SNR without noise correction)
+    for isnr, SNR in enumerate(SNR_list):
+        x = SNR
+        y = turb_data['stats'][isnr].avg.Brunt_sigma_3D
+        yerr = [y-turb_data['stats'][isnr].p16.Brunt_sigma_3D, turb_data['stats'][isnr].p84.Brunt_sigma_3D-y]
+        cfp.plot(x=x, y=y, yerr=np.array([yerr]).T, color=color, marker='o', alpha=0.8)
+    # draw true sigma_rho
+    xlim = [5e-3,2e2]
+    y = turb_data['stats'][0].avg.sigma_3D
+    yerr = [y-turb_data['stats'][0].p16.sigma_3D, turb_data['stats'][0].p84.sigma_3D-y]
+    cfp.plot(x=xlim, y=[y,y], yerr=np.array([yerr,yerr]).T, shaded_err=True,
+                linestyle='--', color=color, label=r'True $\sigma_{\rho/\rho_0}$')
+    # generate final plot and save
+    cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt}}$",
+                xlog=True, ylog=True, xlim=xlim, ylim=[1e-1,2e2], legend_loc='upper right',
+                save=figpath+'Brunt_sigrho_vs_SNR_'+void_size+'.pdf')
 
 
 # ===== the following applies in case we are running this in script mode =====
@@ -884,6 +908,7 @@ if __name__ == "__main__":
     void_sizes = ['12p5mu', '50mu', '100mu']
     void_sizes = ['50mu']
     void_size = void_sizes[0]
+    color = 'tab:blue'
 
     # load data
     dillfile = get_filename(res, void_size, dill=True)
@@ -891,11 +916,11 @@ if __name__ == "__main__":
         turb_data = dill.load(f)
     print("Read '"+dillfile+"'.", color='green')
 
-    # figure 2
+    # figure 3 (Brunt sigma_rho as function of SNR without noise correction)
+    plot_sigrho_Brunt_vs_SNR(turb_data)
+
+    # figure 2 (noisy map examples)
     plot_noisy_map_examples(turb_data)
-
-    # figure 3
-
 
     stop()
 
