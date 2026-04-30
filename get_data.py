@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-from imports import *
+from globals import *
 
 # === user changes here ===
-res = '1024' # resolution
+res = 1024 # resolution
 void_sizes = ['12p5mu', '50mu', '100mu']
 void_sizes = ['50mu']
 noise_samples = 2
@@ -16,7 +16,7 @@ edge_mbot = 0.35-delta_a # 0.3275
 
 
 # ===================================================================
-def get_box(filename, box):
+def get_turb_box(filename, box):
     import yt
     yt.funcs.mylog.setLevel("ERROR")
     # read FLASH file and extract box region via yt
@@ -161,6 +161,38 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
                 k, PS_S, PS_N_list, PS_SpN_list, k_noise_list,
                 Brunt_sigma_3D_list, Brunt_R_to_half_list, sigma_2D_list)
 
+# ===================================================================
+# --- function that computes statistics over the noise samples ---
+def get_stats_object(objs):
+    # -----------------------------------------------------------
+    def get_stats(arr, log_stats=True):
+        if log_stats: data_arr = np.log10(arr) # log statistics
+        else: data_arr = arr # linear statistics
+        stats = [np.nan, np.nan, np.nan, np.nan] # avg, std, 16th, 84th
+        # statistics over axes 0 and 1 = boxes and noise realisations
+        stats[0] = np.mean      (data_arr,     axis=(0, 1)) # avg
+        stats[1] = np.std       (data_arr,     axis=(0, 1)) # std
+        stats[2] = np.percentile(data_arr, 16, axis=(0, 1)) # 16th
+        stats[3] = np.percentile(data_arr, 84, axis=(0, 1)) # 84th
+        if log_stats: # log statistics
+            for i in range(len(stats)):
+                stats[i] = 10**stats[i]
+        return stats
+    # -----------------------------------------------------------
+    cls = type(objs[0])
+    ret_stats_data = [cls.__new__(cls)]*4 # avg, std, 16th, 84th
+    for k, v in vars(objs[0]).items(): # loop over all keys
+        print('Computing statistics on '+k)
+        vals = [getattr(o, k) for o in objs]
+        arr = np.asarray(vals)
+        if k in ['noise_exp', 'noise', 'k']: log_stats = False
+        else: log_stats = True
+        stats = get_stats(arr, log_stats)
+        for i in range(len(stats)):
+            setattr(ret_stats_data[i], k, stats[i])
+    return ret_stats_data
+# -----------------------------------------------------------
+
 
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
@@ -171,119 +203,66 @@ if __name__ == "__main__":
 
         print("===== NOW WORKING ON VOID SIZE "+void_size+" =====", color='lightred')
 
-        # BOX OPTIONS: 15 boxes per void size.
-        # 3 different box locations for the x LOS: left, center, right. and 2 more for the z LOS: front & back
-        boxes = ['c_box', 'l_box', 'r_box', 'b_box', 'f_box']
-
-        # 3 different projections (LOS)
-        LOS_list = [0, 1, 2] # x, y, z
-
-        SNR_list = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
-
         # data collection per box and/or LOS
         sigma_3D = []
         data = [[] for _ in range(len(SNR_list))]
 
-        # 5 boxes
-        for box in boxes:
+        filename = get_filename(res, void_size)
 
-            filename = '../turb_foam_gamma_5_3_3d_'+str(res)+'_'+str(void_size)+'_bubbles/NIF_hdf5_plt_cnt_0375'
+        # loop over the 5 boxes
+        for box in BOX_list:
+
             print("=== Reading "+box+" from file "+filename, color='lightblue')
-            dens = get_box(filename, box)
+            dens = get_turb_box(filename, box)
             sigma_3D = (dens/dens.mean()).std()
 
-            # 3 projection axes
+            # loop over the 3 projection axes (x,y,z)
             for LOS in LOS_list:
                 print("computing projection along axis "+str(LOS), color='lightblue')
                 # five box locations
                 proj = dens.sum(axis=LOS) / dens.shape[LOS] * 2*delta_a
 
-                # 7 SNR
+                # loop over the 7 SNRs
                 for iSNR, SNR in enumerate(SNR_list):
 
                     ret = noise_iterations(noise_samples, proj, SNR)
                     ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
                     data[iSNR].append(ret)
 
-                    if 0:
+        # compute statistics over noise samples, boxes and LOS'
+        stats = []
+        for isnr in range(len(SNR_list)):
+            avg, std, p16, p84 = get_stats_object(data[isnr])
+            stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
 
-                        if target != 1000000:
-                            rsqrt_k = []
-                            medspec2D = collectspec
-                            medspec2D_ave = collectspec_ave
-                            medspec3D = 2 * kvals2D * medspec2D
-                            medspec3D_ave = 2 * kvals2D * medspec2D_ave
-                            # interpolation to get accurate intersection k values
-                            signalonly = collect_spectras[1000000][-1]
-                            meannoisespec = collectnoisespec
-                            #kcross, P_at_kcross = get_k_cross(kvals, meannoisespec, signalonly)
-                            # get intersection
-                            # print('Target SNR = ', target, color='yellow')
-                            #kcross = np.argmin(np.abs(signalonly_new - meannoisespec_new))
-                            #collect_p2dsInt[target].append(signalonly_new[kcross])
-                            #kcross *= kvals2D[-1] / 500 # scale back to original k grid
-                            # print ('S-N intersection k value = ', kcross, color='yellow')
-                            #if kcross > 1: stop()
+        # pakage and save (dill) all data
+        turb_data = {"data": data, "stats": stats}
+        dillfile = get_filename(res, void_size, dill=True)
+        with open(dillfile, "wb") as f:
+            dill.dump(turb_data, f)
+        print("Wrote '"+dillfile+"'.", color='magenta')
 
-                            #if 1:
-                            #    _, sigmaNdenoised, rsqrt_true, sigmadenoised = parsevals.parsevals_th(1, medspec2D, medspec3D, \
-                            #        kvals2D, sigmaN_sq=sigmaN_med, the_k=kcross, p2d_ave=medspec2D_ave, p3d_ave=medspec3D_ave)
-                            #rsqrt_ratio = rsqrt_true / rsqrt_med
-                            kcross = 66
-                            rsqrt_true = 66
-                            rsqrt_ratio = 66
-                            sigmaNdenoised = 66
-                            sigmadenoised = 66
-
-                            collect_sigmasNdenoised[target].append(sigmaNdenoised)
-                            collect_sigmasdenoised[target].append(sigmadenoised)
-                            collect_kvals[target].append(kcross)
-                            collect_rsqrttrue[target].append(rsqrt_true)
-                            collect_rsqrtsratio[target].append(rsqrt_ratio)
-                            collect_sigmas[target].append(sigma_med)
-                            collect_rsqrt[target].append(rsqrt_med)
-
-        # -----------------------------------------------------------
-        def stats_object(objs):
-            # -----------------------------------------------------------
-            def get_stats(arr, log_stats=True):
-                if log_stats: data_arr = np.log10(arr) # log statistics
-                else: data_arr = arr # linear statistics
-                stats = [np.nan, np.nan, np.nan, np.nan] # avg, std, 16th, 84th
-                # statistics over axes 0 and 1 = boxes and noise realisations
-                stats[0] = np.mean      (data_arr,     axis=(0, 1)) # avg
-                stats[1] = np.std       (data_arr,     axis=(0, 1)) # std
-                stats[2] = np.percentile(data_arr, 16, axis=(0, 1)) # 16th
-                stats[3] = np.percentile(data_arr, 84, axis=(0, 1)) # 84th
-                if log_stats: # log statistics
-                    for i in range(len(stats)):
-                        stats[i] = 10**stats[i]
-                return stats
-            # -----------------------------------------------------------
-            cls = type(objs[0])
-            ret_stats_data = [cls.__new__(cls)]*4 # avg, std, 16th, 84th
-            for k, v in vars(objs[0]).items(): # loop over all keys
-                print('Computing statistics on '+k)
-                vals = [getattr(o, k) for o in objs]
-                arr = np.asarray(vals)
-                if k in ['noise_exp', 'noise', 'k']: log_stats = False
-                else: log_stats = True
-                stats = get_stats(arr, log_stats)
-                for i in range(len(stats)):
-                    setattr(ret_stats_data[i], k, stats[i])
-            return ret_stats_data
-        # -----------------------------------------------------------
-
-        avg, std, p16, p84 = stats_object(data[0])
-
-    # plot example maps
-    for isnr in [2,3,4,6]:
-        # check SNR match
-        LOS = 1 # y axis
-        dat = data[isnr][LOS]
-        if dat.SNR[0] != SNR_list[isnr]: stop()
-        cfp.plot_map(dat.noisy_data[0], axes_format=["", ""], vmin=5e-3, vmax=1e-2, show=True)
         stop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         # convert the default dict to a vector array
@@ -393,7 +372,7 @@ if __name__ == "__main__":
             labels = ['SNR = 0.01', 'SNR = 0.1', 'SNR = 1', 'SNR = 3', 'SNR = 5', 'SNR = 10', 'SNR = 100']
             box = 'c_box'
             los = 1
-            cg_main,_, _ = get_box(void_size, box, True, los)
+            cg_main,_, _ = get_turb_box(void_size, box, True, los)
             snr_image,_ = noiseimage.add_noise(cg_main, target_snr[-1],noisetype=noisetype)
             vmin = snr_image.min()
             vmax = snr_image.max()

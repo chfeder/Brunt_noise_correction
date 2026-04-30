@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from imports import *
+from globals import *
 
 # POSSIBLE FIT FUNCTIONS
 # discovery fit functions
@@ -856,8 +856,48 @@ def plot_fig(whichfig, whichfigtwo=None, typeofsigma=None, plotstyle='singular',
         plotfig(plotstyle)
 
 
+
+def plot_noisy_map_examples(turb_data):
+    # plot example maps of noisy data
+    for isnr in [2,3,4,6]:
+        # check SNR match
+        dat = turb_data['data'][isnr][1] # extract target SNR data for centre box and y LOS (index 1)
+        vmin, vmax = 5e-3, 1e-2
+        cmap = 'magma'
+        SNR = SNR_list[isnr]
+        if dat.SNR[0] != SNR: stop()
+        save = figpath+'noisy_data_map_SNR_'+cfp.eform(SNR,prec=1)+'_'+void_size+'.pdf'
+        po = cfp.plot_map(dat.noisy_data[0], axes_format=["", ""], axes_ticks=[[],[]],
+                            vmin=vmin, vmax=vmax, cmap=cmap, colorbar=False)
+        po.plt().text(0.5, 0.5, "SNR", ha='center', va='center', transform=po.plt().gca().transAxes,
+                        bbox=dict(boxstyle="round", fc="white", alpha=0.5))
+        cfp.show_or_save_plot(save=save)
+    # plot colorbar
+    cfp.plot_colorbar(vmin=vmin, vmax=vmax, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
+                        panels=3, orientation="horizontal", save=figpath+'noisy_data_map_cbar_'+void_size+'.pdf')
+
+
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
+
+    res = 1024 # resolution
+    void_sizes = ['12p5mu', '50mu', '100mu']
+    void_sizes = ['50mu']
+    void_size = void_sizes[0]
+
+    # load data
+    dillfile = get_filename(res, void_size, dill=True)
+    with open(dillfile, "rb") as f:
+        turb_data = dill.load(f)
+    print("Read '"+dillfile+"'.", color='green')
+
+    # figure 2
+    plot_noisy_map_examples(turb_data)
+
+    # figure 3
+
+
+    stop()
 
     # figure options:   FIG 3: sigmas (typeofsigma='free', singular)
     #                   FIG 4: kvals2D (typeofsigma=None for all 3 voids, "free" for 50um, 3 rez)
