@@ -888,13 +888,13 @@ def plot_noisy_map_examples(turb_data, void_size):
 # ===================================================================
 def plot_sigrho_Brunt_vs_SNR(turb_data, void_size):
     # figure 3 (Brunt sigma_rho as function of SNR without noise correction)
+    xlim = [5e-3, 2e2]
     for isnr, SNR in enumerate(SNR_list):
         x = SNR
         y = turb_data['stats'][isnr].avg.Brunt_sigma_3D
         yerr = [y-turb_data['stats'][isnr].p16.Brunt_sigma_3D, turb_data['stats'][isnr].p84.Brunt_sigma_3D-y]
         cfp.plot(x=x, y=y, yerr=np.array([yerr]).T, color=void_colors[void_size], marker=void_markers[void_size], alpha=0.9)
     # draw true sigma_rho
-    xlim = [5e-3,2e2]
     y = turb_data['stats'][0].avg.sigma_3D
     yerr = [y-turb_data['stats'][0].p16.sigma_3D, turb_data['stats'][0].p84.sigma_3D-y]
     cfp.plot(x=xlim, y=[y,y], yerr=np.array([yerr,yerr]).T, shaded_err=True,
@@ -940,7 +940,7 @@ def plot_spectra(turb_data, void_size):
             y_cross = turb_data['stats'][isnr].avg.PS_S_at_k_noise # intersection with signal spectrum
             po.plt().vlines(k_noise, ylim[0], y_cross, color=void_colors[void_size], linestyle=(0, (1, 1)))
             po.plt().fill_between([k_noise_min, k_noise_max], ylim[0], y_cross,
-                                    color=void_colors[void_size], alpha=0.3, edgecolor='none')
+                                    color=void_colors[void_size], alpha=0.2, edgecolor='none')
             # fake line to get legend formatter to work
             if SNR == 1: lf = cfp.legend_formatter().add(pos=(legend_xpos+0.2,legend_ypos), textpad=legend_textpad, length=legend_length)
             else: lf = None
@@ -1018,11 +1018,210 @@ def plot_R_vs_SNR(turb_data):
                         linewidth=1.0, linestyle='dashed', alpha=0.8)
         # generate final plot and save
         if pt == "R_to_half_denoised": # fake line for R^(1/2) at SNR->infinity legend
-            cfp.plot(x=[0,0.1], y=[0,0.1], color='grey', linewidth=1.0, linestyle='dashed', alpha=0.8,
+            cfp.plot(x=[0.0,0.1], y=[0.0,0.0], color='grey', linewidth=1.0, linestyle='dashed', alpha=0.8,
                         label=r"$R^{1/2}(\mathrm{SNR}\to\infty)$",
                         legend_formatter=cfp.legend_formatter().add(pos=(0.5,0.90-0.25), textpad=0.3, length=1.7))
         cfp.plot(xlabel=xlabel, ylabel=ylabel, xlog=True, axes_format=axes_format,
                     xlim=xlim, ylim=ylim, save=figpath+pt+'_vs_SNR.pdf')
+
+# ===================================================================
+def plot_sigrho_Brunt_denoised_and_noise_corrections_vs_SNR(turb_data):
+    # figure 7 (denoised Brunt sigma_rho and noise correctoions as function of SNR)
+    xlim = [5e-2, 2e2]
+    plot_types = ["Brunt_sigrho_denoised", "C1_C2", "C"]
+    for ipt, pt in enumerate(plot_types):
+        if pt == "Brunt_sigrho_denoised":
+            ylim = [0.0, 1.0]
+            ylog = False
+            xlabel = ""
+            ylabel = r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}$"
+            axes_format = ["", None]
+        if pt == "C1_C2":
+            ylim = [5e-3, 5.0]
+            ylog = True
+            xlabel = ""
+            ylabel = r"Noise correction parts $C_1$, $C2$"
+            axes_format = ["", None]
+        if pt == "C":
+            ylim = [1e-2, 2.0]
+            ylog = True
+            xlabel = r"$\mathrm{SNR}$"
+            ylabel = r"Combined noise correction $C$"
+            axes_format = [None, None]
+        # --- gather data for each void size and SNR ---
+        x = []
+        sigrho_Brunt_denoised = []
+        sigrho_Brunt_denoised_err = []
+        sigrho_Brunt_denoised_std = []
+        sigrho_Brunt = []
+        sigrho_Brunt_err = []
+        sigrho_Brunt_std = []
+        sigrho_Brunt_denoised_at_SNR_inf = []
+        sigrho_Brunt_denoised_at_SNR_inf_err = []
+        sigrho_Brunt_denoised_at_SNR_inf_std = []
+        C1 = []
+        C1_std = []
+        C2 = []
+        C2_std = []
+        C = []
+        C_std = []
+        for ivs, void_size in enumerate(void_sizes):
+            # get sigma_rho Brunt denoised at SNR -> infinity
+            dat = turb_data[void_size]['stats'][0].avg.Brunt_sigma_3D_denoised
+            sigrho_Brunt_denoised_at_SNR_inf.append(dat)
+            err = [dat-turb_data[void_size]['stats'][0].p16.Brunt_sigma_3D_denoised,
+                    turb_data[void_size]['stats'][0].p84.Brunt_sigma_3D_denoised-dat]
+            sigrho_Brunt_denoised_at_SNR_inf_err.append(err)
+            ind_snr = 0
+            for isnr, SNR in enumerate(SNR_list):
+                if isnr < 2: continue # skip SNR -> infinity and SNR = 0.01
+                x.append(SNR)
+                # get sigma_rho Brunt denoised and its error
+                dat = turb_data[void_size]['stats'][isnr].avg.Brunt_sigma_3D_denoised
+                sigrho_Brunt_denoised.append(dat)
+                err = [dat-turb_data[void_size]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
+                        turb_data[void_size]['stats'][isnr].p84.Brunt_sigma_3D_denoised-dat]
+                sigrho_Brunt_denoised_err.append(err)
+                # get sigma_rho Brunt and its error
+                dat = turb_data[void_size]['stats'][isnr].avg.Brunt_sigma_3D
+                sigrho_Brunt.append(dat)
+                err = [dat-turb_data[void_size]['stats'][isnr].p16.Brunt_sigma_3D,
+                        turb_data[void_size]['stats'][isnr].p84.Brunt_sigma_3D-dat]
+                sigrho_Brunt_err.append(err)
+                if pt == "C1_C2":
+                    # C1 and error propagation
+                    dat = sigrho_Brunt_denoised_at_SNR_inf[ivs] / sigrho_Brunt_denoised[ivs*6+ind_snr]
+                    C1.append(dat)
+                    std = np.mean(sigrho_Brunt_denoised_err[ivs*6+ind_snr])
+                    sigrho_Brunt_denoised_std.append(std)
+                    std_at_SNR_inf = np.mean(sigrho_Brunt_denoised_at_SNR_inf_err[ivs])
+                    sigrho_Brunt_denoised_at_SNR_inf_std.append(std_at_SNR_inf)
+                    C1std = dat * np.sqrt((std/sigrho_Brunt_denoised[ivs*6+ind_snr])**2 +
+                                          (std_at_SNR_inf/sigrho_Brunt_denoised_at_SNR_inf[ivs])**2)
+                    C1_std.append(C1std)
+                    # C2 and error propagation
+                    dat = sigrho_Brunt_denoised[ivs*6+ind_snr] / sigrho_Brunt[ivs*6+ind_snr]
+                    C2.append(dat)
+                    std = np.mean(sigrho_Brunt_denoised_err[ivs*6+ind_snr])
+                    std_sigrho_Brunt = np.mean(sigrho_Brunt_err[ivs*6+ind_snr])
+                    sigrho_Brunt_std.append(std_sigrho_Brunt)
+                    C2std = dat * np.sqrt((std/sigrho_Brunt_denoised[ivs*6+ind_snr])**2 +
+                                          (std_sigrho_Brunt/sigrho_Brunt[ivs*6+ind_snr])**2)
+                    C2_std.append(C2std)
+                if pt == "C":
+                    dat = sigrho_Brunt_denoised_at_SNR_inf[ivs] / sigrho_Brunt[ivs*6+ind_snr]
+                    C.append(dat)
+                    std_at_SNR_inf = np.mean(sigrho_Brunt_denoised_at_SNR_inf_err[ivs])
+                    std_sigrho_Brunt = np.mean(sigrho_Brunt_err[ivs*6+ind_snr])
+                    Cstd = dat * np.sqrt((std_at_SNR_inf/sigrho_Brunt_denoised_at_SNR_inf[ivs])**2 +
+                                         (std_sigrho_Brunt/sigrho_Brunt[ivs*6+ind_snr])**2)
+                    C_std.append(Cstd)
+                ind_snr += 1 # increase SNR index
+        x = np.array(x)
+        sigrho_Brunt_denoised = np.array(sigrho_Brunt_denoised)
+        sigrho_Brunt_denoised_err = np.array(sigrho_Brunt_denoised_err)
+        sigrho_Brunt_denoised_std = np.array(sigrho_Brunt_denoised_std)
+        sigrho_Brunt = np.array(sigrho_Brunt)
+        sigrho_Brunt_err = np.array(sigrho_Brunt_err)
+        sigrho_Brunt_std = np.array(sigrho_Brunt_std)
+        sigrho_Brunt_denoised_at_SNR_inf = np.array(sigrho_Brunt_denoised_at_SNR_inf)
+        sigrho_Brunt_denoised_at_SNR_inf_err = np.array(sigrho_Brunt_denoised_at_SNR_inf_err)
+        sigrho_Brunt_denoised_at_SNR_inf_std = np.array(sigrho_Brunt_denoised_at_SNR_inf_std)
+        C1 = np.array(C1)
+        C1_std = np.array(C1_std)
+        C2 = np.array(C2)
+        C2_std = np.array(C2_std)
+        C = np.array(C)
+        C_std = np.array(C_std)
+        # --- end of getting data ---
+        # plot data points
+        for ivs, void_size in enumerate(void_sizes):
+            if pt == "Brunt_sigrho_denoised":
+                y = sigrho_Brunt_denoised[ivs*6:(ivs+1)*6]
+                yerr = sigrho_Brunt_denoised_err[ivs*6:(ivs+1)*6].T
+                legpos = [0.02, 0.90]
+            if pt == "C1_C2":
+                y = C1[ivs*6:(ivs+1)*6]
+                yerr = np.array([C1_std[ivs*6:(ivs+1)*6], C1_std[ivs*6:(ivs+1)*6]])
+                legpos = [0.6, 0.5]
+            if pt == "C":
+                y = C[ivs*6:(ivs+1)*6]
+                yerr = np.array([C_std[ivs*6:(ivs+1)*6], C_std[ivs*6:(ivs+1)*6]])
+                legpos = [0.6, 0.5]
+            # plot data points
+            cfp.plot(x=x[ivs*6:(ivs+1)*6], y=y, yerr=yerr, color=void_colors[void_size], linestyle='none',
+                        marker=void_markers[void_size], alpha=0.8, label=void_size_labels[void_size],
+                        legend_formatter=cfp.legend_formatter().add(pos=(legpos[0],legpos[1]-ivs*0.08)))
+            # add C2 data points
+            if pt == "C1_C2":
+                y = C2[ivs*6:(ivs+1)*6]
+                yerr = np.array([C2_std[ivs*6:(ivs+1)*6], C2_std[ivs*6:(ivs+1)*6]])
+                cfp.plot(x=x[ivs*6:(ivs+1)*6], y=y, yerr=yerr, color=void_colors[void_size], linestyle='none',
+                            marker=void_markers[void_size], alpha=0.8)
+            # plot additional lines on Brunt_sigrho_denoised panel
+            if pt == "Brunt_sigrho_denoised":
+                # draw sigma_rho Brunt denoised at SNR -> infinity
+                cfp.plot(x=xlim, y=[sigrho_Brunt_denoised_at_SNR_inf[ivs],sigrho_Brunt_denoised_at_SNR_inf[ivs]],
+                            linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8, color=void_colors[void_size])
+        # --- Fit functions for C1, C2, and C ---
+        def C1_func(SNR, a, b):
+            y = (SNR**a + b) / SNR**a
+            return np.log(y)
+        def C2_func(SNR, c, d):
+            y = SNR**c / (SNR**c + d)
+            return np.log(y)
+        def C_func(SNR, a, b, c, d):
+            y = C1_func(SNR,a,b) + C2_func(SNR,c,d)
+            return y
+        def get_fit_err_range(func, fitdat):
+            from itertools import product
+            xfit = cfp.logspace(xlim[0], xlim[1], 200)
+            yfit = np.exp(func(xfit, *fitdat.popt)) # best-fit line
+            # determine min/max fit range by looping over all parameters and error directions
+            npar = len(fitdat.popt)
+            yfit_tmp = []
+            # loops over all combinations like (0,0), (0,1), (1,0), (1,1), ...
+            for err_idx in product([0, 1], repeat=npar):
+                pars = [fitdat.popt[i] + fitdat.perr[i][err_idx[i]] for i in range(npar)]
+                yfit_tmp.append(func(xfit, *pars))
+            yfit_tmp = np.exp(np.array(yfit_tmp))
+            yfit_err = np.array([yfit-np.min(yfit_tmp,axis=0), np.max(yfit_tmp,axis=0)-yfit])
+            return xfit, yfit, yfit_err
+        # ---------------------------------------
+        # fits to C1 and C2 on all voids combined
+        if pt == "C1_C2":
+            # C1
+            y = np.log(C1)
+            yerr = C1_std / C1
+            params = {'a':[0.30,0.75,1.20], 'b':[0.01,0.10,0.30]}
+            fitdat_C1 = cfp.fit(C1_func, x, y, yerr=yerr, params=params)
+            xfit, yfit, yfit_err = get_fit_err_range(C1_func, fitdat_C1)
+            cfp.plot(x=xfit, y=yfit, yerr=yfit_err, shaded_err=True, color='grey', linestyle='dotted', linewidth=1.0, alpha=0.8,
+            label=r"$C_1(\mathrm{SNR})$ fit", legend_formatter=cfp.legend_formatter().add(pos=(legpos[0],legpos[1]-(ivs+1)*0.08-0.02)))
+            # C2
+            y = np.log(C2)
+            yerr = C2_std / C2
+            params = {'c':[1.0,1.5,2.0], 'd':[2.0,3.0,4.0]}
+            fitdat_C2 = cfp.fit(C2_func, x, y, yerr=yerr, params=params)
+            xfit, yfit, yfit_err = get_fit_err_range(C2_func, fitdat_C2)
+            cfp.plot(x=xfit, y=yfit, yerr=yfit_err, shaded_err=True, color='grey', linestyle='dashed', linewidth=1.0, alpha=0.8,
+            label=r"$C_2(\mathrm{SNR})$ fit", legend_formatter=cfp.legend_formatter().add(pos=(legpos[0],legpos[1]-(ivs+2)*0.08-0.02)))
+        if pt == "C":
+            # C
+            fitdat_C = SimpleNamespace() # create fitdat_C obj and fill popt and perr for C
+            fitdat_C.popt = [*fitdat_C1.popt, *fitdat_C2.popt]
+            fitdat_C.perr = [*fitdat_C1.perr, *fitdat_C2.perr]
+            xfit, yfit, yfit_err = get_fit_err_range(C_func, fitdat_C)
+            cfp.plot(x=xfit, y=yfit, yerr=yfit_err, shaded_err=True, color='red', linestyle='solid', linewidth=1.0, alpha=0.8,
+            label=r"$C(\mathrm{SNR})$", legend_formatter=cfp.legend_formatter().add(pos=(legpos[0],legpos[1]-(ivs+1)*0.08-0.02)))
+        # generate final plot and save
+        if pt == "Brunt_sigrho_denoised": # fake line for SNR->infinity legend
+            cfp.plot(x=[0.0,0.1], y=[0.0,0.0], color='grey', linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8,
+                        label=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}(\mathrm{SNR}\to\infty)$",
+                        legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-0.25)))
+        cfp.plot(xlabel=xlabel, ylabel=ylabel,
+                    xlog=True, ylog=ylog, xlim=xlim, ylim=ylim, axes_format=["", None],
+                    save=figpath+pt+'_vs_SNR.pdf')
 
 
 # ===== the following applies in case we are running this in script mode =====
@@ -1037,6 +1236,9 @@ if __name__ == "__main__":
         with open(dillfile, "rb") as f:
             turb_data[void_size] = dill.load(f)
         print("Read '"+dillfile+"'.", color='green')
+
+    # figure 7 (sigma_rho Brunt denoised and noise correction factors vs SNR)
+    plot_sigrho_Brunt_denoised_and_noise_corrections_vs_SNR(turb_data)
 
     # figure 6 (R vs SNR)
     plot_R_vs_SNR(turb_data)
@@ -1053,18 +1255,3 @@ if __name__ == "__main__":
     # figure 4 (spectra)
     plot_spectra(turb_data['50mu'], '50mu')
 
-
-
-    stop()
-
-    # figure options:   FIG 3: sigmas (typeofsigma='free', singular)
-    #                   FIG 4: kvals2D (typeofsigma=None for all 3 voids, "free" for 50um, 3 rez)
-    #                   FIG 5: kvals (singular, typeofsigma=None)
-    #                   FIG 6: rsqrtfull (subpanel, two)
-    #                   FIG 7: sigmasdenoised (subpanel, three)
-
-    # args: 'kvals', 'kvals2D', 'rsqrtfull', 'rsqrttrue', 'ratios', 'sigmas', 'sigmasdenoised', 'columnddenoise'
-
-    plot_fig('rsqrtfull', plotstyle='subpanel', panels='two') # Fig. 6
-    plot_fig('kvals2D')
-    plot_fig('kvals') # Fig. 5
