@@ -24,13 +24,18 @@ SNR_list = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
 void_sizes = ['12p5mu', '50mu', '100mu']
 void_colors = {'12p5mu':'magenta', '50mu':'blue', '100mu':'green'}
 void_markers = {'12p5mu':'s', '50mu':'o', '100mu':'D'}
-void_size_labels = {'12p5mu':r'$12.5\,\mu\mathrm{m}$', '50mu':r'$50\,\mu\mathrm{m}$', '100mu':r'$100\,\mu\mathrm{m}$'}
+void_size_labels = {'12p5mu':r'$12.5\,\mu\mathrm{m}$',
+                    '50mu':r'$50\,\mu\mathrm{m}$',
+                    '100mu':r'$100\,\mu\mathrm{m}$'}
 
 # function to get simulation and dill filename(s)
-def get_filename(res, void_size, dill=False):
+def get_filename(res, void_size, noise_exp=1.0, dill=False):
     simpath = '../turb_foam_gamma_5_3_3d_'+str(res)+'_'+str(void_size)+'_bubbles/'
     filename = simpath+'NIF_hdf5_plt_cnt_0375'
-    if dill: filename += "_turb_data.dill"
+    if dill:
+        noise_str = ""
+        if noise_exp != 1.0: noise_str = "_noise_exp_"+str(noise_exp)
+        filename += "_turb_data"+noise_str+".dill"
     return filename
 
 # figure output path

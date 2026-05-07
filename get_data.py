@@ -5,14 +5,14 @@ from globals import *
 # === user changes here ===
 res = 1024 # resolution
 void_sizes = ['12p5mu', '50mu', '100mu']
-#void_sizes = ['50mu']
-noise_samples = 10
+# convergence was checked also with 1000 noise samples, which yields practically the same
+noise_samples = 100
 print('Number of noise samples: '+str(noise_samples), color='lightred')
 
 # box dimensions
 delta_a = 0.02
-edge_mtop = 0.35+delta_a # 0.3675
-edge_mbot = 0.35-delta_a # 0.3275
+edge_mtop = 0.35+delta_a
+edge_mbot = 0.35-delta_a
 
 
 # ===================================================================
@@ -51,9 +51,11 @@ def get_turb_box(filename, box):
     return dens # density on uniform grid
 
 # ===================================================================
-def get_noise(N, noise_exp=0.0, kmin=None, kmax=None, std=1.0, random_phases=True, random_amplitudes=True, random_seed=None):
-    # noise_exp = 0.0 creates a white-noise spectrum.
-    # The 1D azimuthally-integrated spectrum scales as k^(noise_exp+1) for 2D fields.
+def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=True, random_amplitudes=True, random_seed=None):
+    # noise_exp = 1 creates a white-noise spectrum. The noise_exp is called 'alpha' in the paper (cf. Sec. 4.1).
+    # Note that alpha = beta + 1, and hence, beta = alpha - 1. With alpha = 1, we have beta = 0, which is white noise.
+    # The 1D azimuthally-integrated spectrum scales as k^noise_exp for 2D fields, and since we plot it as such,
+    # we use alpha=noise_exp to denote the noise exponent in the paper.
     isovec=[1,1,1]
     kI = np.fft.fftfreq(N)
     kx, ky = np.meshgrid(kI, kI, indexing='ij') # 2D
@@ -66,7 +68,8 @@ def get_noise(N, noise_exp=0.0, kmin=None, kmax=None, std=1.0, random_phases=Tru
     rmax = k[kmax]
     ok = (rrr>rmin)*(rrr<=rmax)
     ok_r = ok
-    betaprime = noise_exp / 2
+    beta = noise_exp - 1.0 # beta in Eq. (10) in Sec. 4.1
+    betaprime = beta / 2
     Ahat[ok] = rrr[ok]**betaprime
     if random_seed:
         print('Setting random seed ', random_seed)
@@ -88,7 +91,7 @@ def get_noise(N, noise_exp=0.0, kmin=None, kmax=None, std=1.0, random_phases=Tru
     return noise
 
 # ===================================================================
-def add_noise(signal, SNR, noise_exp=0.0):
+def add_noise(signal, SNR, noise_exp=1.0):
     N = signal.shape[0]
     noise = get_noise(N, noise_exp)
     scale = np.std(signal) / SNR
@@ -108,7 +111,7 @@ def get_Brunt_data(k, P, k_noise=np.inf): # k_noise achieves denoising
     return Brunt_sigma_3D, Brunt_R_to_half
 
 # ===================================================================
-def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
+def noise_iterations(iterations, signal, SNR, noise_exp=1.0):
     # prepare output lists
     sigma_2D_list = []
     PS_SpN_list = []
@@ -126,7 +129,7 @@ def noise_iterations(iterations, signal, SNR, noise_exp=0.0):
     # loop over noise iterations
     for iteration in range(iterations):
         # add noise
-        noisy_data, noise = add_noise(signal, SNR)
+        noisy_data, noise = add_noise(signal, SNR, noise_exp)
         # noisy sigma_2D
         sigma_2D = (noisy_data/noisy_data.mean()).std()
         sigma_2D_list.append(sigma_2D)
@@ -212,47 +215,58 @@ if __name__ == "__main__":
 
     timer = cfp.timer("MAIN")
 
+    # loop over foam void sizes
     for void_size in void_sizes:
 
         print("===== NOW WORKING ON VOID SIZE "+void_size+" =====", color='lightred')
 
-        # data collection per box and/or LOS
-        sigma_3D = []
-        data = [[] for _ in range(len(SNR_list))]
+        # loop over noise exponents
+        for noise_exp in [1.0, 0.0, 2.0, 0.5, 1.5]:
 
-        filename = get_filename(res, void_size)
+            # skip noise exponents other than 1 (white noise) for foam sizes 12.5mu and 100mu
+            if noise_exp != 1.0 and void_size != '50mu': continue
 
-        # loop over the 5 boxes
-        for box in BOX_list:
+            noise_exp_info = str(noise_exp)
+            if noise_exp == 1.0: noise_exp_info += ' (white noise)'
+            print("===== NOISE EXPONENT = "+noise_exp_info+" =====", color='cyan')
 
-            print("=== Reading "+box+" from file "+filename, color='lightblue')
-            dens = get_turb_box(filename, box)
-            sigma_3D = (dens/dens.mean()).std()
+            # data collection per box and/or LOS
+            sigma_3D = []
+            data = [[] for _ in range(len(SNR_list))]
 
-            # loop over the 3 projection axes (x,y,z)
-            for LOS in LOS_list:
-                print("computing projection along axis "+str(LOS), color='lightblue')
-                # five box locations
-                proj = dens.sum(axis=LOS) / dens.shape[LOS] * 2*delta_a
+            filename = get_filename(res, void_size)
 
-                # loop over the 7 SNRs
-                for iSNR, SNR in enumerate(SNR_list):
+            # loop over the 5 boxes
+            for box in BOX_list:
 
-                    ret = noise_iterations(noise_samples, proj, SNR)
-                    ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
-                    data[iSNR].append(ret)
+                print("=== Reading "+box+" from file "+filename, color='lightblue')
+                dens = get_turb_box(filename, box)
+                sigma_3D = (dens/dens.mean()).std()
 
-        # compute statistics over noise samples, boxes and LOS'
-        stats = []
-        for isnr in range(len(SNR_list)):
-            avg, std, p16, p84 = get_stats_object(data[isnr])
-            stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
+                # loop over the 3 projection axes (x,y,z)
+                for LOS in LOS_list:
+                    print("computing projection along axis "+str(LOS), color='lightblue')
+                    # five box locations
+                    proj = dens.sum(axis=LOS) / dens.shape[LOS] * 2*delta_a
 
-        # package and save (dill) all data
-        turb_data = {"data": data, "stats": stats}
-        dillfile = get_filename(res, void_size, dill=True)
-        with open(dillfile, "wb") as f:
-            dill.dump(turb_data, f)
-        print("Wrote '"+dillfile+"'.", color='magenta')
+                    # loop over the 7 SNRs
+                    for iSNR, SNR in enumerate(SNR_list):
+
+                        ret = noise_iterations(noise_samples, proj, SNR, noise_exp=noise_exp)
+                        ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
+                        data[iSNR].append(ret)
+
+            # compute statistics over noise samples, boxes and LOS'
+            stats = []
+            for isnr in range(len(SNR_list)):
+                avg, std, p16, p84 = get_stats_object(data[isnr])
+                stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
+
+            # package and save (dill) all data
+            turb_data = {"data": data, "stats": stats}
+            dillfile = get_filename(res, void_size, noise_exp=noise_exp, dill=True)
+            with open(dillfile, "wb") as f:
+                dill.dump(turb_data, f)
+            print("Wrote '"+dillfile+"'.", color='magenta')
 
     timer.report()
