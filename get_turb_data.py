@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from globals import *
+from globals_turb_data import *
 
 # === user changes here ===
 res = 1024 # resolution

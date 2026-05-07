@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from globals import *
+from globals_turb_data import *
 
 # ===================================================================
 def load_default_plotstyle():
