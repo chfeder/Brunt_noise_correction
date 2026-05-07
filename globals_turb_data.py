@@ -29,13 +29,17 @@ void_size_labels = {'12p5mu':r'$12.5\,\mu\mathrm{m}$',
                     '100mu':r'$100\,\mu\mathrm{m}$'}
 
 # function to get simulation and dill filename(s)
-def get_filename(res, void_size, noise_exp=1.0, dill=False):
+def get_filename(res, void_size, noise_exp=1.0, res_resample=1.0, dill=False):
     simpath = '../turb_foam_gamma_5_3_3d_'+str(res)+'_'+str(void_size)+'_bubbles/'
     filename = simpath+'NIF_hdf5_plt_cnt_0375'
     if dill:
         noise_str = ""
-        if noise_exp != 1.0: noise_str = "_noise_exp_"+str(noise_exp)
-        filename += "_turb_data"+noise_str+".dill"
+        if noise_exp != 1.0:
+            noise_str = "_noise_exp_"+str(noise_exp)
+        res_resample_str = ""
+        if res_resample != 1.0:
+            res_resample_str = "_res_resample_"+str(res_resample)
+        filename += "_turb_data"+noise_str+res_resample_str+".dill"
     return filename
 
 # figure output path

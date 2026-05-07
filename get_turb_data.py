@@ -2,23 +2,14 @@
 
 from globals_turb_data import *
 
-# === user changes here ===
-res = 1024 # resolution
-void_sizes = ['12p5mu', '50mu', '100mu']
-# convergence was checked also with 1000 noise samples, which yields practically the same
-noise_samples = 100
-print('Number of noise samples: '+str(noise_samples), color='lightred')
-
-# box dimensions
-delta_a = 0.02
-edge_mtop = 0.35+delta_a
-edge_mbot = 0.35-delta_a
-
-
 # ===================================================================
-def get_turb_box(filename, box):
+def get_turb_box(filename, box, res_resample=1.0):
     import yt
     yt.funcs.mylog.setLevel("ERROR")
+    # box dimensions
+    delta_a = 0.02
+    edge_mtop = 0.35+delta_a
+    edge_mbot = 0.35-delta_a
     # read FLASH file and extract box region via yt
     ds = yt.load(filename)
     if box == 'c_box':
@@ -41,10 +32,19 @@ def get_turb_box(filename, box):
     level = 0
     section = ds.covering_grid(level, ledge, size)
     dens = section['density'].value
+    # requested resolution resampling by res_resample factor
+    if res_resample != 1.0:
+        stop()
+        new_shape = tuple(np.round(np.array(dens.shape)*res_resample).astype(int))
+        print('Requested -- reshaping ', dens.shape, ' -> ', new_shape, warn=True)
+        total = dens.sum()
+        dens = cfp.congrid(dens, new_shape)
+        dens *= total/dens.sum()
+        stop()
     # treat odd shape by interpolation
     if (np.array(dens.shape)%2)[0] != 0:
         new_shape = tuple(np.array(dens.shape)-1)
-        print('odd shape -- reshaping from -> to: ', dens.shape, ' -> ', new_shape, warn=True)
+        print('Odd shape -- reshaping ', dens.shape, ' -> ', new_shape, warn=True)
         total = dens.sum()
         dens = cfp.congrid(dens, new_shape)
         dens *= total/dens.sum()
@@ -182,7 +182,9 @@ def noise_iterations(iterations, signal, SNR, noise_exp=1.0):
 def get_stats_object(objs):
     # -----------------------------------------------------------
     def get_stats(arr, log_stats=True):
-        if log_stats: data_arr = np.log10(arr) # log statistics
+        if log_stats:
+            arr[arr==0] = 1e-99 # fix 0 values in log statistics
+            data_arr = np.log10(arr) # log statistics
         else: data_arr = arr # linear statistics
         stats = [np.nan, np.nan, np.nan, np.nan] # avg, std, 16th, 84th
         # statistics over axes 0 and 1 = boxes and noise realisations
@@ -201,7 +203,7 @@ def get_stats_object(objs):
         # print('Computing statistics on '+k)
         vals = [getattr(o, k) for o in objs]
         arr = np.asarray(vals)
-        if k in ['noise_exp', 'noise', 'noisy_data', 'k', 'PS_N']: log_stats = False
+        if k in ['noise_exp', 'noise', 'noisy_data', 'k']: log_stats = False
         else: log_stats = True
         stats = get_stats(arr, log_stats)
         for i in range(len(stats)):
@@ -213,60 +215,79 @@ def get_stats_object(objs):
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
 
+    # user changes here
+    resolutions = [1024, 512, 2048] # simulation resolution (default first)
+    void_sizes = ['50mu', '12p5mu', '100mu'] # foam void sizes (default first)
+    noise_samples = 100 # convergence was checked also with 1000 noise samples, which yields practically the same
+    print('Number of noise samples: '+str(noise_samples), color='lightred')
+
     timer = cfp.timer("MAIN")
 
-    # loop over foam void sizes
-    for void_size in void_sizes:
+    # loop over simulation resolutions
+    for res in resolutions:
 
-        print("===== NOW WORKING ON VOID SIZE "+void_size+" =====", color='lightred')
+        # loop over foam void sizes
+        for void_size in void_sizes:
+            if res != 1024 and void_size != '50mu': continue # skip 512 and 2048 resolutions for 12.5 and 100 mu
+            print("===== SIMULATION RESOLUTION AND VOID SIZE = "+str(res)+", "+void_size+" =====", color='lightred')
 
-        # loop over noise exponents
-        for noise_exp in [1.0, 0.0, 2.0, 0.5, 1.5]:
+            # loop over noise exponents
+            for noise_exp in [1.0, 0.0, 2.0, 0.5, 1.5]:
 
-            # skip noise exponents other than 1 (white noise) for foam sizes 12.5mu and 100mu
-            if noise_exp != 1.0 and void_size != '50mu': continue
+                # skip noise exponents other than 1 (white noise) for foam sizes 12.5mu and 100mu
+                if noise_exp != 1.0 and (void_size != '50mu' or res != 1024): continue
 
-            noise_exp_info = str(noise_exp)
-            if noise_exp == 1.0: noise_exp_info += ' (white noise)'
-            print("===== NOISE EXPONENT = "+noise_exp_info+" =====", color='cyan')
+                noise_exp_info = str(noise_exp)
+                if noise_exp == 1.0: noise_exp_info += ' (white noise)'
+                print("===== NOISE EXPONENT = "+noise_exp_info+" =====", color='cyan')
 
-            # data collection per box and/or LOS
-            sigma_3D = []
-            data = [[] for _ in range(len(SNR_list))]
+                # loop over resolution resampling cases
+                for res_resample in [1.0, 0.25, 0.5, 2.0, 4.0]:
+                    if res_resample != 1.0 and (noise_exp != 1.0 or void_size != '50mu' or res != 1024): continue
 
-            filename = get_filename(res, void_size)
+                    if res_resample != 1.0:
+                        print("===== RESOLUTION RESAMPLING FACTOR = "+str(res_resample)+" =====", color='yellow')
 
-            # loop over the 5 boxes
-            for box in BOX_list:
+                    # data collection per box and/or LOS
+                    sigma_3D = []
+                    data = [[] for _ in range(len(SNR_list))]
 
-                print("=== Reading "+box+" from file "+filename, color='lightblue')
-                dens = get_turb_box(filename, box)
-                sigma_3D = (dens/dens.mean()).std()
+                    filename = get_filename(res, void_size)
 
-                # loop over the 3 projection axes (x,y,z)
-                for LOS in LOS_list:
-                    print("computing projection along axis "+str(LOS), color='lightblue')
-                    # five box locations
-                    proj = dens.sum(axis=LOS) / dens.shape[LOS] * 2*delta_a
+                    # loop over the 5 boxes
+                    for box in BOX_list:
 
-                    # loop over the 7 SNRs
-                    for iSNR, SNR in enumerate(SNR_list):
+                        dens = get_turb_box(filename, box, res_resample=res_resample)
+                        print("=== Read "+box+" with dims "+str(dens.shape)+" from file "+filename, color='lightblue')
 
-                        ret = noise_iterations(noise_samples, proj, SNR, noise_exp=noise_exp)
-                        ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
-                        data[iSNR].append(ret)
+                        sigma_3D = (dens/dens.mean()).std()
 
-            # compute statistics over noise samples, boxes and LOS'
-            stats = []
-            for isnr in range(len(SNR_list)):
-                avg, std, p16, p84 = get_stats_object(data[isnr])
-                stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
+                        # loop over the 3 projection axes (x,y,z)
+                        for LOS in LOS_list:
+                            print("computing projection along axis "+str(LOS), color='lightblue')
+                            # five box locations
+                            delta_a = 0.02
+                            proj = dens.sum(axis=LOS) / dens.shape[LOS] * 2*delta_a
 
-            # package and save (dill) all data
-            turb_data = {"data": data, "stats": stats}
-            dillfile = get_filename(res, void_size, noise_exp=noise_exp, dill=True)
-            with open(dillfile, "wb") as f:
-                dill.dump(turb_data, f)
-            print("Wrote '"+dillfile+"'.", color='magenta')
+                            # loop over the 7 SNRs
+                            for iSNR, SNR in enumerate(SNR_list):
+
+                                ret = noise_iterations(noise_samples, proj, SNR, noise_exp=noise_exp)
+                                ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
+                                data[iSNR].append(ret)
+
+                    # compute statistics over noise samples, boxes and LOS'
+                    stats = []
+                    for isnr in range(len(SNR_list)):
+                        avg, std, p16, p84 = get_stats_object(data[isnr])
+                        stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
+
+                    # package and save (dill) all data
+                    turb_data = {"data": data, "stats": stats}
+                    dillfile = get_filename(res, void_size, noise_exp=noise_exp,
+                                            res_resample=res_resample, dill=True)
+                    with open(dillfile, "wb") as f:
+                        dill.dump(turb_data, f)
+                    print("Wrote '"+dillfile+"'.", color='magenta')
 
     timer.report()
