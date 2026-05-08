@@ -34,20 +34,18 @@ def get_turb_box(filename, box, res_resample=1.0):
     dens = section['density'].value
     # requested resolution resampling by res_resample factor
     if res_resample != 1.0:
-        stop()
         new_shape = tuple(np.round(np.array(dens.shape)*res_resample).astype(int))
         print('Requested -- reshaping ', dens.shape, ' -> ', new_shape, warn=True)
-        total = dens.sum()
+        mean, std = dens.mean(), dens.std()
         dens = cfp.congrid(dens, new_shape)
-        dens *= total/dens.sum()
-        stop()
+        dens = (dens - dens.mean())/dens.std()*std + mean # correct to get exact previous mean and std
     # treat odd shape by interpolation
     if (np.array(dens.shape)%2)[0] != 0:
         new_shape = tuple(np.array(dens.shape)-1)
         print('Odd shape -- reshaping ', dens.shape, ' -> ', new_shape, warn=True)
-        total = dens.sum()
+        mean, std = dens.mean(), dens.std()
         dens = cfp.congrid(dens, new_shape)
-        dens *= total/dens.sum()
+        dens = (dens - dens.mean())/dens.std()*std + mean # correct to get exact previous mean and std
     return dens # density on uniform grid
 
 # ===================================================================
@@ -56,7 +54,7 @@ def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=Tru
     # Note that alpha = beta + 1, and hence, beta = alpha - 1. With alpha = 1, we have beta = 0, which is white noise.
     # The 1D azimuthally-integrated spectrum scales as k^noise_exp for 2D fields, and since we plot it as such,
     # we use alpha=noise_exp to denote the noise exponent in the paper.
-    isovec=[1,1,1]
+    isovec = [1,1,1]
     kI = np.fft.fftfreq(N)
     kx, ky = np.meshgrid(kI, kI, indexing='ij') # 2D
     rrr = np.sqrt(isovec[0]*kx**2+isovec[1]*ky**2) # 2D
@@ -86,6 +84,7 @@ def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=Tru
         Ahat = Ahatmag*np.cos(phi)+Ahatmag*np.sin(phi)*1j
         Ahat[0,0] = np.abs(Ahat[0,0]) # 2D
     noise = np.fft.irfftn(Ahat, s=Ahat.shape)
+    noise -= noise.mean() # correct tiny deviations from 0 mean
     noise /= noise.std() # normalise to target STD
     noise *= std # normalise to target STD
     return noise
@@ -93,9 +92,8 @@ def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=Tru
 # ===================================================================
 def add_noise(signal, SNR, noise_exp=1.0):
     N = signal.shape[0]
-    noise = get_noise(N, noise_exp)
+    noise = get_noise(N, noise_exp) # return noise with 0 mean and std of 1
     scale = np.std(signal) / SNR
-    scale /= noise.std()
     noise *= scale
     noisy_data = signal + noise
     return noisy_data, noise
