@@ -23,6 +23,7 @@ SNR_list = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
 # global void size strings and formats
 void_sizes = ['12p5mu', '50mu', '100mu']
 void_colors = {'12p5mu':'magenta', '50mu':'blue', '100mu':'green'}
+void_linestyles = {'12p5mu':'dotted', '50mu':'solid', '100mu':'dashed'}
 void_markers = {'12p5mu':'s', '50mu':'o', '100mu':'D'}
 void_size_labels = {'12p5mu':r'$12.5\,\mu\mathrm{m}$',
                     '50mu':r'$50\,\mu\mathrm{m}$',

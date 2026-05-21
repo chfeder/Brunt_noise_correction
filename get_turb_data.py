@@ -240,8 +240,9 @@ if __name__ == "__main__":
                 print("===== NOISE EXPONENT = "+noise_exp_info+" =====", color='cyan')
 
                 # loop over resolution resampling cases
-                for res_resample in [1.0, 0.5, 2.0]:
-                    if res_resample != 1.0 and (noise_exp != 1.0 or void_size != '50mu' or res != 1024): continue
+                for res_resample in [1.0, 0.5, 2.0, 0.25, 4.0]:
+                    #if res_resample != 1.0 and (noise_exp != 1.0 or void_size != '50mu' or res != 1024): continue
+                    if res_resample != 1.0 and res != 1024: continue
 
                     if res_resample != 1.0:
                         print("===== RESOLUTION RESAMPLING FACTOR = "+str(res_resample)+" =====", color='yellow')
