@@ -642,13 +642,21 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
     # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
     xlim = [5e-2, 2e2]
     res_resample = [0.25, 0.5, 1.0, 2.0, 4.0]
-    res_colors = ['green', 'grey', 'blue', 'magenta', 'red']
+    from matplotlib.colors import LinearSegmentedColormap
+    cmap = LinearSegmentedColormap.from_list('magenta_scale', ['#f7d6f7', '#ff00ff', '#4b004b'])
+    res_colors_magenta = cmap(np.linspace(0, 1, 5))
+    res_colors_blue = plt.cm.Blues(np.linspace(0.3, 1.0, 5))
+    res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
     res_markers = ['d', 'v', 'o', '^', 'D']
     kmax_list = []
     SNR_crit = []
     SNR_crit_err = []
-    for ivs, void_size in enumerate(void_sizes):
+    for ivs, void_size in reversed(list(enumerate(void_sizes))):
         print('void size = '+void_size, color='cyan')
+        match ivs:
+            case 0: res_colors = res_colors_magenta
+            case 1: res_colors = res_colors_blue
+            case 2: res_colors = res_colors_green
         for ires, res in enumerate(res_resample):
             kmax = turb_data[void_size][str(res)]['stats'][0].avg.k.max()
             kmax_list.append(kmax)
@@ -666,7 +674,8 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
                 k_noise_err.append(np.mean(yerr))
                 if SNR == 1:
                     label = r"$k_\mathrm{max}="+str(int(kmax))+r"$"
-                    lf = cfp.legend_formatter().add(pos=(0.64,0.45-ires*0.09))
+                    if ivs in [0,1]: label = " "
+                    lf = cfp.legend_formatter().add(pos=(0.64-(2-ivs)*0.05,0.45-ires*0.085))
                 else:
                     label = None
                     lf = None
@@ -682,7 +691,14 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
             SNR_crit_err.append(fitdat.perr[0])
             xfit = cfp.logspace(xlim[0], xlim[1], 200)
             yfit = np.exp(k_noise_func(xfit, *fitdat.popt)) # best-fit line
-            cfp.plot(x=xfit, y=yfit, linewidth=1.0, color=res_colors[ires], linestyle=void_linestyles[void_size])
+            if res == 1.0:
+                label = 'fit for '+void_size_labels[void_size]
+                lf = cfp.legend_formatter().add(pos=(0.01,0.92-ivs*0.075))
+            else:
+                label = None
+                lf = None
+            cfp.plot(x=xfit, y=yfit, linewidth=1.0, color=res_colors[ires], linestyle=void_linestyles[void_size],
+                        label=label, legend_formatter=lf)
     kmax_list = np.array(kmax_list)
     SNR_crit = np.array(SNR_crit)
     SNR_crit_err = np.array(SNR_crit_err)
