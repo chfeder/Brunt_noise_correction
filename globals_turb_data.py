@@ -29,6 +29,15 @@ void_size_labels = {'12p5mu':r'$12.5\,\mu\mathrm{m}$',
                     '50mu':r'$50\,\mu\mathrm{m}$',
                     '100mu':r'$100\,\mu\mathrm{m}$'}
 
+# global resolution resampling (k_max) variables
+res_resample = [0.25, 0.5, 1.0, 2.0, 4.0]
+from matplotlib.colors import LinearSegmentedColormap
+cmap = LinearSegmentedColormap.from_list('magenta_scale', ['#f7d6f7', '#ff00ff', '#4b004b'])
+res_colors_magenta = cmap(np.linspace(0, 1, 5))
+res_colors_blue = plt.cm.Blues(np.linspace(0.3, 1.0, 5))
+res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
+
+
 # function to get simulation and dill filename(s)
 def get_filename(res, void_size, noise_exp=1.0, res_resample=1.0, dill=False):
     simpath = '../turb_foam_gamma_5_3_3d_'+str(res)+'_'+str(void_size)+'_bubbles/'

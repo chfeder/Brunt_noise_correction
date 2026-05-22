@@ -641,13 +641,6 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
     # ----------------------------------------------------
     # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
     xlim = [5e-2, 2e2]
-    res_resample = [0.25, 0.5, 1.0, 2.0, 4.0]
-    from matplotlib.colors import LinearSegmentedColormap
-    cmap = LinearSegmentedColormap.from_list('magenta_scale', ['#f7d6f7', '#ff00ff', '#4b004b'])
-    res_colors_magenta = cmap(np.linspace(0, 1, 5))
-    res_colors_blue = plt.cm.Blues(np.linspace(0.3, 1.0, 5))
-    res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
-    res_markers = ['d', 'v', 'o', '^', 'D']
     kmax_list = []
     SNR_crit = []
     SNR_crit_err = []
@@ -723,15 +716,17 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
                 xlim=[10, 2.5e2], save=figpath+'SNR_crit_vs_kmax.pdf')
 
 # ===================================================================
-def plot_sigrho_Brunt_denoised(turb_data):
+def plot_sigrho_Brunt_denoised_res_resample(turb_data):
     # denoised Brunt sigma_rho vs SNR
     xlim = [5e-2, 2e2]
     ylim = [0.0, 1.0]
-    res_resample = [0.25, 0.5, 1.0, 2.0, 4.0]
-    #res_colors = ['green', 'grey', 'blue', 'magenta', 'red']
-    #res_markers = ['d', 'v', 'o', '^', 'D']
-    for ivs, void_size in enumerate(void_sizes):
+    for ivs, void_size in reversed(list(enumerate(void_sizes))):
+        match ivs:
+            case 0: res_colors = res_colors_magenta
+            case 1: res_colors = res_colors_blue
+            case 2: res_colors = res_colors_green
         for ires, res in enumerate(res_resample):
+            kmax = turb_data[void_size][str(res)]['stats'][0].avg.k.max()
             x = []
             y = []
             yerr = []
@@ -743,13 +738,52 @@ def plot_sigrho_Brunt_denoised(turb_data):
                 err = [dat-turb_data[void_size][str(res)]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
                         turb_data[void_size][str(res)]['stats'][isnr].p84.Brunt_sigma_3D_denoised-dat]
                 yerr.append(err)
-            cfp.plot(x=x, y=y, yerr=np.array(yerr).T, color=void_colors[void_size], linestyle='none',
-                        marker=void_markers[void_size], alpha=0.8)
-                        #, label=void_size_labels[void_size],
-                        #legend_formatter=cfp.legend_formatter().add(pos=(legpos[0],legpos[1]-ivs*0.08)))
+            label = r"$k_\mathrm{max}="+str(int(kmax))+r"$"
+            if ivs in [0,1]: label = " "
+            lf = cfp.legend_formatter().add(pos=(0.64-(2-ivs)*0.05,0.90-ires*0.085))
+            cfp.plot(x=x, y=y, yerr=np.array(yerr).T, color=res_colors[ires], linestyle='none',
+                        marker=void_markers[void_size], alpha=0.8, label=label,
+                        legend_formatter=lf)
     cfp.plot(xlabel="SNR", ylabel=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}$",
                 xlog=True, xlim=xlim, ylim=ylim, save=figpath+'Brunt_sigrho_denoised_all.pdf')
 
+# ===================================================================
+def plot_sigrho_Brunt_denoised(turb_data):
+    # denoised Brunt sigma_rho vs SNR
+    xlim = [5e-2, 2e2]
+    ylim = [0.0, 1.0]
+    for ivs, void_size in reversed(list(enumerate(void_sizes))):
+        x = []
+        y = []
+        yerr = []
+        for isnr, SNR in enumerate(SNR_list):
+            if isnr < 2: continue # skip SNR -> infinity and SNR = 0.01
+            x.append(SNR)
+            sigrho = []
+            sigrho_err = []
+            for ires, res in enumerate(res_resample):
+                dat = turb_data[void_size][str(res)]['stats'][isnr].avg.Brunt_sigma_3D_denoised
+                sigrho.append(dat)
+                err = [dat-turb_data[void_size][str(res)]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
+                        turb_data[void_size][str(res)]['stats'][isnr].p84.Brunt_sigma_3D_denoised-dat]
+                sigrho_err.append(err)
+            y.append(np.mean(sigrho)) # average over all k_max cases
+            yerr.append(np.mean(sigrho_err,axis=0))
+        # draw data points
+        cfp.plot(x=x, y=y, yerr=np.array(yerr).T, color=void_colors[void_size], linestyle='none',
+                    marker=void_markers[void_size], alpha=0.8, label=void_size_labels[void_size],
+                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.9-ivs*0.08)))
+        # draw sigma_rho Brunt denoised at SNR -> infinity
+        sigrho_Brunt_denoised_at_SNR_inf = turb_data[void_size]['1.0']['stats'][0].avg.Brunt_sigma_3D_denoised
+        cfp.plot(x=xlim, y=[sigrho_Brunt_denoised_at_SNR_inf,sigrho_Brunt_denoised_at_SNR_inf],
+                    linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8, color=void_colors[void_size])
+    # fake line for SNR->infinity legend
+    cfp.plot(x=[0.0,0.1], y=[0.0,0.0], color='grey', linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8,
+                label=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}(\mathrm{SNR}\to\infty)$",
+                legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-0.25), length=1.4))
+    # generate final plot and save
+    cfp.plot(xlabel="SNR", ylabel=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}$",
+                xlog=True, xlim=xlim, ylim=ylim, save=figpath+'Brunt_sigrho_denoised_k_max_averaged.pdf')
 
 
 # ===== the following applies in case we are running this in script mode =====
@@ -761,10 +795,10 @@ if __name__ == "__main__":
     turb_data_void_res = {}
     for void_size in void_sizes:
         turb_data_res = {}
-        for res_resample in [1.0, 0.5, 2.0, 0.25, 4.0]:
-            dillfile = get_filename(1024, void_size, res_resample=res_resample, dill=True)
+        for res in res_resample:
+            dillfile = get_filename(1024, void_size, res_resample=res, dill=True)
             with open(dillfile, "rb") as f:
-                turb_data_res[str(res_resample)] = dill.load(f)
+                turb_data_res[str(res)] = dill.load(f)
             print("Read '"+dillfile+"'.", color='green')
         turb_data_void_res[void_size] = turb_data_res
 
@@ -803,10 +837,10 @@ if __name__ == "__main__":
 
     # load resolution resampling data
     turb_data_res_resample = {}
-    for res_resample in [1.0, 0.5, 2.0, 0.25, 4.0]:
-        dillfile = get_filename(1024, '50mu', res_resample=res_resample, dill=True)
+    for res in res_resample:
+        dillfile = get_filename(1024, '50mu', res_resample=res, dill=True)
         with open(dillfile, "rb") as f:
-            turb_data_res_resample[str(res_resample)] = dill.load(f)
+            turb_data_res_resample[str(res)] = dill.load(f)
         print("Read '"+dillfile+"'.", color='green')
 
     # k_noise vs SNR and spectra for different resolution resampling factors (0.5, 1.0, 2.0)
