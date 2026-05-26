@@ -241,7 +241,6 @@ if __name__ == "__main__":
 
                 # loop over resolution resampling cases
                 for res in res_resample:
-                    #if res != 1.0 and (noise_exp != 1.0 or void_size != '50mu' or res != 1024): continue
                     if res != 1.0 and res != 1024: continue
 
                     if res != 1.0:
