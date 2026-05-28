@@ -240,11 +240,11 @@ if __name__ == "__main__":
                 print("===== NOISE EXPONENT = "+noise_exp_info+" =====", color='cyan')
 
                 # loop over resolution resampling cases
-                for res in res_resample:
-                    if res != 1.0 and res != 1024: continue
+                for res_resample in res_resample_list:
+                    if res_resample != 1.0 and res != 1024: continue
 
-                    if res != 1.0:
-                        print("===== RESOLUTION RESAMPLING FACTOR = "+str(res)+" =====", color='yellow')
+                    if res_resample != 1.0:
+                        print("===== RESOLUTION RESAMPLING FACTOR = "+str(res_resample)+" =====", color='yellow')
 
                     # data collection per box and/or LOS
                     sigma_3D = []
@@ -255,7 +255,7 @@ if __name__ == "__main__":
                     # loop over the 5 boxes
                     for box in BOX_list:
 
-                        dens = get_turb_box(filename, box, res_resample=res)
+                        dens = get_turb_box(filename, box, res_resample=res_resample)
                         print("=== Read "+box+" with dims "+str(dens.shape)+" from file "+filename, color='lightblue')
 
                         sigma_3D = (dens/dens.mean()).std()
@@ -283,7 +283,7 @@ if __name__ == "__main__":
                     # package and save (dill) all data
                     turb_data = {"data": data, "stats": stats}
                     dillfile = get_filename(res, void_size, noise_exp=noise_exp,
-                                            res_resample=res, dill=True)
+                                            res_resample=res_resample, dill=True)
                     with open(dillfile, "wb") as f:
                         dill.dump(turb_data, f)
                     print("Wrote '"+dillfile+"'.", color='magenta')

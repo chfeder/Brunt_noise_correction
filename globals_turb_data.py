@@ -30,7 +30,7 @@ void_size_labels = {'12p5mu':r'$12.5\,\mu\mathrm{m}$',
                     '100mu':r'$100\,\mu\mathrm{m}$'}
 
 # global resolution resampling (k_max) variables
-res_resample = [0.25, 0.5, 1.0, 2.0, 4.0]
+res_resample_list = [0.25, 0.5, 1.0, 2.0, 4.0]
 from matplotlib.colors import LinearSegmentedColormap
 cmap = LinearSegmentedColormap.from_list('magenta_scale', ['#f7d6f7', '#ff00ff', '#4b004b'])
 res_colors_magenta = cmap(np.linspace(0, 1, 5))

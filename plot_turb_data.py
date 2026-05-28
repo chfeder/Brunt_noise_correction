@@ -634,9 +634,7 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
     def k_noise_func(SNR, SNR_crit=1.0):
         PL_exp = 2.0 / 3.0
         sharpness = 4.0
-        exp = PL_exp * sharpness
-        k_noise = (SNR**exp / (SNR**exp + SNR_crit**exp))**(1/sharpness)
-        k_noise = (1 / (1 + (SNR_crit/SNR)**exp))**(1/sharpness)
+        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
         return np.log(k_noise)
     # ----------------------------------------------------
     # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
@@ -650,7 +648,7 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
             case 0: res_colors = res_colors_magenta
             case 1: res_colors = res_colors_blue
             case 2: res_colors = res_colors_green
-        for ires, res in enumerate(res_resample):
+        for ires, res in enumerate(res_resample_list):
             kmax = turb_data[void_size][str(res)]['stats'][0].avg.k.max()
             kmax_list.append(kmax)
             snr = []
@@ -700,7 +698,7 @@ def plot_k_noise_vs_SNR_res_resample(turb_data):
                 xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0], save=figpath+'k_noise_vs_SNR_res_resample.pdf')
     # modelling of SNR_crit
     for ivs, void_size in enumerate(void_sizes):
-        ib, ie = ivs * len(res_resample), (ivs + 1) * len(res_resample)
+        ib, ie = ivs * len(res_resample_list), (ivs + 1) * len(res_resample_list)
         cfp.plot(x=kmax_list[ib:ie], y=SNR_crit[ib:ie], yerr=SNR_crit_err[ib:ie].T, marker=void_markers[void_size],
                     linestyle='none', color=void_colors[void_size], label=void_size_labels[void_size],
                     legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-ivs*0.09)))
@@ -725,7 +723,7 @@ def plot_sigrho_Brunt_denoised_res_resample(turb_data):
             case 0: res_colors = res_colors_magenta
             case 1: res_colors = res_colors_blue
             case 2: res_colors = res_colors_green
-        for ires, res in enumerate(res_resample):
+        for ires, res in enumerate(res_resample_list):
             kmax = turb_data[void_size][str(res)]['stats'][0].avg.k.max()
             x = []
             y = []
@@ -761,7 +759,7 @@ def plot_sigrho_Brunt_denoised(turb_data):
             x.append(SNR)
             sigrho = []
             sigrho_err = []
-            for ires, res in enumerate(res_resample):
+            for ires, res in enumerate(res_resample_list):
                 dat = turb_data[void_size][str(res)]['stats'][isnr].avg.Brunt_sigma_3D_denoised
                 sigrho.append(dat)
                 err = [dat-turb_data[void_size][str(res)]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
@@ -795,10 +793,10 @@ if __name__ == "__main__":
     turb_data_void_res = {}
     for void_size in void_sizes:
         turb_data_res = {}
-        for res in res_resample:
-            dillfile = get_filename(1024, void_size, res_resample=res, dill=True)
+        for res_resample in res_resample_list:
+            dillfile = get_filename(1024, void_size, res_resample=res_resample, dill=True)
             with open(dillfile, "rb") as f:
-                turb_data_res[str(res)] = dill.load(f)
+                turb_data_res[str(res_resample)] = dill.load(f)
             print("Read '"+dillfile+"'.", color='green')
         turb_data_void_res[void_size] = turb_data_res
 
@@ -837,10 +835,10 @@ if __name__ == "__main__":
 
     # load resolution resampling data
     turb_data_res_resample = {}
-    for res in res_resample:
-        dillfile = get_filename(1024, '50mu', res_resample=res, dill=True)
+    for res_resample in res_resample_list:
+        dillfile = get_filename(1024, '50mu', res_resample=res_resample, dill=True)
         with open(dillfile, "rb") as f:
-            turb_data_res_resample[str(res)] = dill.load(f)
+            turb_data_res_resample[str(res_resample)] = dill.load(f)
         print("Read '"+dillfile+"'.", color='green')
 
     # k_noise vs SNR and spectra for different resolution resampling factors (0.5, 1.0, 2.0)
