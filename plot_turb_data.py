@@ -833,10 +833,11 @@ def get_noise_subtracted_spectra_and_sigma_rho_Brunt(turb_data):
         PS_N = np.array([objs[ibl].PS_N[ins] for ibl in range(len(objs)) for ins in range(len(objs[ibl].PS_N))])
         # subtract noise spectrum from signal+noise spectrum
         PS_SpN_minus_N = PS_SpN - PS_N
+        PS_SpN_minus_N[PS_SpN_minus_N<=0] = 1e-99 # fix bad values
         # compute Brunt sigma_rho
         sigrB_SpN_minus_N = np.sqrt((PS_SpN_minus_N[:,1:] / PS_SpN_minus_N[:,0:1] * 2 * k[1:]).sum(axis=1))
         # compute percentiles and attach to return container
-        PS_SpN_minus_N_stats.append(np.percentile(PS_SpN_minus_N, [16,50,84], axis=0))
+        PS_SpN_minus_N_stats.append(10**(np.percentile(np.log10(PS_SpN_minus_N), [16,50,84], axis=0)))
         sigrB_SpN_minus_N_stats.append(np.percentile(sigrB_SpN_minus_N, [16,50,84]))
     PS_SpN_minus_N_stats = np.array(PS_SpN_minus_N_stats)
     sigrB_SpN_minus_N_stats = np.array(sigrB_SpN_minus_N_stats)
