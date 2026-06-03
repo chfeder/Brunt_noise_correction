@@ -821,6 +821,27 @@ def plot_spectra_subtract_noise(turb_data, void_size, noise_exp=1.0, res=1024, r
     save = figpath+'PS_'+void_size+noise_str+res_str+res_resample_str+'_noise_subtracted.pdf'
     cfp.plot(xlabel=r"$k/k_\mathrm{max}$", ylabel=r"$P$", xlog=True, ylog=True, xlim=xlim, ylim=ylim, save=save)
 
+# ===================================================================
+def get_noise_subtracted_spectra_and_sigma_rho_Brunt(turb_data):
+    PS_SpN_minus_N_stats = []
+    sigrB_SpN_minus_N_stats = []
+    for isnr, SNR in enumerate(SNR_list):
+        k = turb_data['data'][isnr][0].k[0]
+        # extract all PS_SpN and PS_N over ibl = 5 box locations and 3 projection axes and ins = 100 noise samples
+        objs = np.array(turb_data['data'][isnr])
+        PS_SpN = np.array([objs[ibl].PS_SpN[ins] for ibl in range(len(objs)) for ins in range(len(objs[ibl].PS_SpN))])
+        PS_N = np.array([objs[ibl].PS_N[ins] for ibl in range(len(objs)) for ins in range(len(objs[ibl].PS_N))])
+        # subtract noise spectrum from signal+noise spectrum
+        PS_SpN_minus_N = PS_SpN - PS_N
+        # compute Brunt sigma_rho
+        sigrB_SpN_minus_N = np.sqrt((PS_SpN_minus_N[:,1:] / PS_SpN_minus_N[:,0:1] * 2 * k[1:]).sum(axis=1))
+        # compute percentiles and attach to return container
+        PS_SpN_minus_N_stats.append(np.percentile(PS_SpN_minus_N, [16,50,84], axis=0))
+        sigrB_SpN_minus_N_stats.append(np.percentile(sigrB_SpN_minus_N, [16,50,84]))
+    PS_SpN_minus_N_stats = np.array(PS_SpN_minus_N_stats)
+    sigrB_SpN_minus_N_stats = np.array(sigrB_SpN_minus_N_stats)
+    return PS_SpN_minus_N_stats, sigrB_SpN_minus_N_stats
+
 
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
@@ -834,12 +855,11 @@ if __name__ == "__main__":
             turb_data[void_size] = dill.load(f)
         print("Read '"+dillfile+"'.", color='green')
 
-    plot_spectra_subtract_noise(turb_data['50mu'], '50mu')
-
+    PS_SpN_minus_N_stats, sigrB_SpN_minus_N_stats = \
+        get_noise_subtracted_spectra_and_sigma_rho_Brunt(turb_data['50mu'])
     stop()
-
-
-
+    plot_spectra_subtract_noise(turb_data['50mu'], '50mu')
+    stop()
 
 
     # load void size and resolution resampling (kmax dependence) data
