@@ -13,6 +13,51 @@ def load_default_plotstyle():
     })
 
 # ===================================================================
+def report_tabs_1_2_values(turb_data):
+    def print_values_and_get_sigrho_Brunt(box_ind, proj_ind):
+        td = turb_data['50mu']['data'][0][box_ind*3+proj_ind]
+        print('pos, LOS, sigrho, sigN, R^(1/2), sigrho_Brunt = ',
+                BOX_list[box_ind], LOSs[proj_ind],
+                cfp.round(td.sigma_3D[0],2,True)+' & '+cfp.round(td.sigma_2D[0],2,True)+' & '+
+                cfp.round(td.R_to_half[0],2,True)+' & '+cfp.round(td.Brunt_sigma_3D[0],2,True))
+        return td.Brunt_sigma_3D[0]
+    LOSs = ['x', 'y', 'z']
+    box_inds_at_LOS_x = [1, 2, 0, 3, 4]
+    # 5 boxes at LOS x
+    sigrho_boxes = []
+    for box_ind in box_inds_at_LOS_x:
+        proj_ind = 0
+        sigrho_boxes.append(print_values_and_get_sigrho_Brunt(box_ind, proj_ind))
+    sigrho_boxes = np.array(sigrho_boxes)
+    p50, p16, p84 = np.percentile(sigrho_boxes, [50, 16, 84])
+    print("sigrho for the 5 boxes at LOS x = "+
+            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True))
+    mean, std = sigrho_boxes.mean(), sigrho_boxes.std()
+    print("sigrho for the 5 boxes at LOS x = "+
+            cfp.round(mean,3,True)+' +/- '+cfp.round(std,2,True))
+    # 3 LOS at center box
+    sigrho_LOSs = []
+    for proj_ind in LOS_list:
+        box_ind = 0
+        sigrho_LOSs.append(print_values_and_get_sigrho_Brunt(box_ind, proj_ind))
+    sigrho_LOSs = np.array(sigrho_LOSs)
+    p50, p16, p84 = np.percentile(sigrho_LOSs, [50, 16, 84])
+    print("sigrho for the 3 LOS at the centre box = "+
+            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True))
+    mean, std = sigrho_LOSs.mean(), sigrho_LOSs.std()
+    print("sigrho for the 3 LOS at the centre box = "+
+            cfp.round(mean,3,True)+' +/- '+cfp.round(std,3,True))
+    # void size dependence
+    for void_size in void_sizes:
+        td = turb_data[void_size]['stats'][0]
+        quantities = ['sigma_3D', 'sigma_2D', 'R_to_half', 'Brunt_sigma_3D']
+        line_str = void_size+": "+", ".join(quantities)+" = "
+        for q in quantities:
+            p16, p50, p84 = getattr(td.p16, q), getattr(td.avg, q), getattr(td.p84, q)
+            line_str += " & $"+cfp.round(p50,2,True)+"^{+"+cfp.round(p84-p50,1,True)+"}_{"+cfp.round(p16-p50,1,True)+"}$"
+        print(line_str)
+
+# ===================================================================
 def plot_noisy_map_examples(turb_data, void_size):
     # plot example maps of noisy data
     cfp.load_plot_style(fontsize=20)
@@ -54,6 +99,51 @@ def plot_sigrho_Brunt_vs_SNR(turb_data, void_size):
     cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt}}$",
                 xlog=True, ylog=True, xlim=xlim, ylim=[1e-1,2e2],
                 save=figpath+'Brunt_sigrho_vs_SNR_'+void_size+'.pdf')
+
+# ===================================================================
+def get_noise_subtracted_spectra_and_sigma_rho_Brunt(turb_data):
+    PS_SpN_minus_N_stats = []
+    sigrB_SpN_minus_N_stats = []
+    for isnr, SNR in enumerate(SNR_list):
+        k = turb_data['data'][isnr][0].k[0]
+        # extract all PS_SpN and PS_N over ibl = 5 box locations and 3 projection axes and ins = 100 noise samples
+        objs = np.array(turb_data['data'][isnr])
+        PS_SpN = np.array([objs[ibl].PS_SpN[ins] for ibl in range(len(objs)) for ins in range(len(objs[ibl].PS_SpN))])
+        PS_N = np.array([objs[ibl].PS_N[ins] for ibl in range(len(objs)) for ins in range(len(objs[ibl].PS_N))])
+        # subtract noise spectrum from signal+noise spectrum
+        PS_SpN_minus_N = PS_SpN - PS_N
+        PS_SpN_minus_N[PS_SpN_minus_N<=0] = 1e-99 # fix bad values
+        # compute Brunt sigma_rho
+        sigrB_SpN_minus_N = np.sqrt((PS_SpN_minus_N[:,1:] / PS_SpN_minus_N[:,0:1] * 2 * k[1:]).sum(axis=1))
+        # compute percentiles and attach to return container
+        PS_SpN_minus_N_stats.append(10**(np.percentile(np.log10(PS_SpN_minus_N), [16,50,84], axis=0)))
+        sigrB_SpN_minus_N_stats.append(np.percentile(sigrB_SpN_minus_N, [16,50,84]))
+    PS_SpN_minus_N_stats = np.array(PS_SpN_minus_N_stats)
+    sigrB_SpN_minus_N_stats = np.array(sigrB_SpN_minus_N_stats)
+    return PS_SpN_minus_N_stats, sigrB_SpN_minus_N_stats
+
+# ===================================================================
+def plot_sigrho_Brunt_denoised_SpN_minus_N(sigrB_SpN_minus_N_stats):
+    # denoised Brunt sigma_rho vs SNR
+    xlim = [5e-2, 2e2]
+    ylim = [0.0, 1.0]
+    # get data
+    x = SNR_list[1:] # skip SNR -> infinity
+    y = sigrB_SpN_minus_N_stats[1:,1]
+    yerr = sigrB_SpN_minus_N_stats[1:,0::2] # 16th and 84th
+    yerr = np.abs(yerr - y[:,None])
+    # draw data points
+    cfp.plot(x=x, y=y, yerr=yerr.T, color=void_colors["50mu"], linestyle='none',
+                marker=void_markers["50mu"], alpha=0.8)
+    # draw sigma_rho Brunt denoised at SNR -> infinity
+    sigrho_Brunt_denoised_at_SNR_inf = sigrB_SpN_minus_N_stats[0,1]
+    cfp.plot(x=xlim, y=[sigrho_Brunt_denoised_at_SNR_inf,sigrho_Brunt_denoised_at_SNR_inf],
+                linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8, color=void_colors["50mu"],
+                label=r"Noise-subtracted $\sigma_{\rho/\rho_0,\mathrm{Brunt}}(\mathrm{SNR}\to\infty)$",
+                legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90), length=1.4))
+    # generate final plot and save
+    cfp.plot(xlabel="SNR", ylabel=r"Noise-subtracted $\sigma_{\rho/\rho_0,\mathrm{Brunt}}$",
+                xlog=True, xlim=xlim, ylim=ylim, save=figpath+'Brunt_sigrho_denoised_noise_subtracted.pdf')
 
 # ===================================================================
 def plot_spectra(turb_data, void_size, noise_exp=1.0, res=1024, res_resample=1.0, normalize=False):
@@ -140,31 +230,171 @@ def plot_k_noise_vs_SNR(turb_data):
                 xlog=True, ylog=True, xlim=[5e-2,2e2], ylim=[2e-2,2e0], save=figpath+'k_noise_vs_SNR.pdf')
 
 # ===================================================================
-def plot_k_noise_vs_SNR_res(turb_data):
-    # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolutions 512, 1024, 2048
-    resolutions = [512, 1024, 2048]
-    res_colors = ['grey', 'blue', 'magenta']
-    res_markers = ['v', 'o', '^']
-    for ires, res in enumerate(resolutions):
-        kmax = turb_data[str(res)]['stats'][0].avg.k.max()
-        for isnr, SNR in enumerate(SNR_list):
-            x = SNR
-            y = turb_data[str(res)]['stats'][isnr].avg.k_noise/kmax
-            yerr = [y-turb_data[str(res)]['stats'][isnr].p16.k_noise/kmax,
-                    turb_data[str(res)]['stats'][isnr].p84.k_noise/kmax-y]
-            if SNR == 1:
-                label = r"$"+str(res)+r"$"
-                lf = cfp.legend_formatter().add(pos=(0.02,0.89-ires*0.09))
+def plot_k_noise_vs_SNR_res_resample(turb_data):
+    # ----------------------------------------------------
+    def k_noise_func(SNR, SNR_crit=1.0):
+        PL_exp = 2.0 / 3.0
+        sharpness = 4.0
+        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
+        return np.log(k_noise)
+    # ----------------------------------------------------
+    # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
+    xlim = [5e-2, 2e2]
+    kmax_list = []
+    SNR_crit = []
+    SNR_crit_err = []
+    for ivs, void_size in reversed(list(enumerate(void_sizes))):
+        print('void size = '+void_size, color='cyan')
+        match ivs:
+            case 0: res_colors = res_colors_magenta
+            case 1: res_colors = res_colors_blue
+            case 2: res_colors = res_colors_green
+        for ires, res in enumerate(res_resample_list):
+            kmax = turb_data[void_size][str(res)]['stats'][0].avg.k.max()
+            kmax_list.append(kmax)
+            snr = []
+            k_noise = []
+            k_noise_err = []
+            for isnr, SNR in enumerate(SNR_list):
+                if SNR > 100 or SNR < 1e-1: continue
+                x = SNR
+                snr.append(x)
+                y = turb_data[void_size][str(res)]['stats'][isnr].avg.k_noise/kmax
+                k_noise.append(y)
+                yerr = [y-turb_data[void_size][str(res)]['stats'][isnr].p16.k_noise/kmax,
+                        turb_data[void_size][str(res)]['stats'][isnr].p84.k_noise/kmax-y]
+                k_noise_err.append(np.mean(yerr))
+                if SNR == 1:
+                    label = r"$k_\mathrm{max}="+str(int(kmax))+r"$"
+                    if ivs in [0,1]: label = " "
+                    lf = cfp.legend_formatter().add(pos=(0.64-(2-ivs)*0.05,0.45-ires*0.085))
+                else:
+                    label = None
+                    lf = None
+                cfp.plot(x=x, y=y, yerr=np.array([yerr]).T, color=res_colors[ires], linestyle='none',
+                            marker=void_markers[void_size], alpha=0.8, label=label, legend_formatter=lf)
+            snr = np.array(snr)
+            k_noise = np.array(k_noise)
+            k_noise_err = np.array(k_noise_err)
+            params = {'SNR_crit':[0.1,1.0,50]}
+            fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
+                                params=params, n_random_draws=100)
+            SNR_crit.append(fitdat.popt[0])
+            SNR_crit_err.append(fitdat.perr[0])
+            xfit = cfp.logspace(xlim[0], xlim[1], 200)
+            yfit = np.exp(k_noise_func(xfit, *fitdat.popt)) # best-fit line
+            if res == 1.0:
+                label = 'fit for '+void_size_labels[void_size]
+                lf = cfp.legend_formatter().add(pos=(0.01,0.92-ivs*0.075))
             else:
                 label = None
                 lf = None
-            cfp.plot(x=x, y=y, yerr=np.array([yerr]).T, color=res_colors[ires], linestyle='none',
-                        marker=res_markers[ires], alpha=0.8, label=label, legend_formatter=lf)
+            cfp.plot(x=xfit, y=yfit, linewidth=1.0, color=res_colors[ires], linestyle=void_linestyles[void_size],
+                        label=label, legend_formatter=lf)
+    kmax_list = np.array(kmax_list)
+    SNR_crit = np.array(SNR_crit)
+    SNR_crit_err = np.array(SNR_crit_err)
     # generate final plot and save
     cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=r"$k_\mathrm{noise}/k_\mathrm{max}$",
-                xlog=True, ylog=True, xlim=[5e-2,2e2], ylim=[2e-2,2e0], save=figpath+'k_noise_vs_SNR_res.pdf')
+                xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0], save=figpath+'k_noise_vs_SNR_res_resample.pdf')
+    # modelling of SNR_crit
+    for ivs, void_size in enumerate(void_sizes):
+        ib, ie = ivs * len(res_resample_list), (ivs + 1) * len(res_resample_list)
+        cfp.plot(x=kmax_list[ib:ie], y=SNR_crit[ib:ie], yerr=SNR_crit_err[ib:ie].T, marker=void_markers[void_size],
+                    linestyle='none', color=void_colors[void_size], label=void_size_labels[void_size],
+                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-ivs*0.09)))
+    def PL(x, a):
+        return a*x**(2.0/3.0)
+    fitdat = cfp.fit(PL, kmax_list, SNR_crit, yerr=np.abs(SNR_crit_err.T).mean(axis=0))
+    xfit = cfp.logspace(kmax_list.min(), kmax_list.max(), 200)
+    yfit = PL(xfit, *fitdat.popt) # best-fit line
+    label = r'$\mathrm{SNR_{crit}}=('+cfp.round(fitdat.popt[0],2,True)+r'\pm'+cfp.round(fitdat.pstd[0],1,True)+r')\,k_\mathrm{max}^{2/3}$'
+    cfp.plot(x=xfit, y=yfit, linewidth=1.0, color='black', label=label,
+                legend_formatter=cfp.legend_formatter().add(pos=(0.25,0.15)))
+    cfp.plot(xlog=True, ylog=True, xlabel=r'$k_\mathrm{max}$', ylabel=r'$\mathrm{SNR_{crit}}$',
+                xlim=[10, 2.5e2], save=figpath+'SNR_crit_vs_kmax.pdf')
 
 # ===================================================================
+def plot_sigrho_Brunt_denoised(turb_data):
+    # denoised Brunt sigma_rho vs SNR
+    xlim = [5e-2, 2e2]
+    ylim = [0.0, 1.0]
+    for ivs, void_size in reversed(list(enumerate(void_sizes))):
+        x = []
+        y = []
+        yerr = []
+        for isnr, SNR in enumerate(SNR_list):
+            if isnr < 2: continue # skip SNR -> infinity and SNR = 0.01
+            x.append(SNR)
+            sigrho = []
+            sigrho_err = []
+            for ires, res in enumerate(res_resample_list):
+                dat = turb_data[void_size][str(res)]['stats'][isnr].avg.Brunt_sigma_3D_denoised
+                sigrho.append(dat)
+                err = [dat-turb_data[void_size][str(res)]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
+                        turb_data[void_size][str(res)]['stats'][isnr].p84.Brunt_sigma_3D_denoised-dat]
+                sigrho_err.append(err)
+            y.append(np.mean(sigrho)) # average over all k_max cases
+            yerr.append(np.mean(sigrho_err,axis=0))
+        # draw data points
+        cfp.plot(x=x, y=y, yerr=np.array(yerr).T, color=void_colors[void_size], linestyle='none',
+                    marker=void_markers[void_size], alpha=0.8, label=void_size_labels[void_size],
+                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.9-ivs*0.08)))
+        # draw sigma_rho Brunt denoised at SNR -> infinity
+        sigrho_Brunt_denoised_at_SNR_inf = turb_data[void_size]['1.0']['stats'][0].avg.Brunt_sigma_3D_denoised
+        cfp.plot(x=xlim, y=[sigrho_Brunt_denoised_at_SNR_inf,sigrho_Brunt_denoised_at_SNR_inf],
+                    linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8, color=void_colors[void_size])
+    # fake line for SNR->infinity legend
+    cfp.plot(x=[0.0,0.1], y=[0.0,0.0], color='grey', linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8,
+                label=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}(\mathrm{SNR}\to\infty)$",
+                legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-0.25), length=1.4))
+    # generate final plot and save
+    cfp.plot(xlabel="SNR", ylabel=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}$",
+                xlog=True, xlim=xlim, ylim=ylim, save=figpath+'Brunt_sigrho_denoised_k_max_averaged.pdf')
+
+# ===================================================================
+def plot_noise_exponent_influence(turb_data_noise_exp):
+    plot_types = ["k_noise", "Brunt_sigrho_denoised"]
+    for pt in plot_types:
+        if pt == "k_noise":
+            xlabel = ""
+            ylabel = r"$k_\mathrm{noise}/k_\mathrm{max}$"
+            ylim = [-0.1, 1.15]
+            axes_format = ["", None]
+        if pt == "Brunt_sigrho_denoised":
+            xlabel = r"Noise exponent $\alpha$"
+            ylabel = r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}$"
+            ylim = [0.08, 0.39]
+            axes_format = [None, None]
+        SNR_colors = ['grey', 'black', 'blue', 'green', 'orange', 'red']
+        i_snr = 0
+        for isnr, SNR in enumerate(SNR_list):
+            if SNR < 0.1 or SNR > 100: continue
+            noise_exponents = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
+            y = []
+            yerr = []
+            for noise_exp in noise_exponents:
+                if pt == "k_noise":
+                    kmax = turb_data_noise_exp[str(noise_exp)]['stats'][isnr].avg.k.max()
+                    dat = turb_data_noise_exp[str(noise_exp)]['stats'][isnr].avg.k_noise/kmax
+                    err = [dat-turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p16.k_noise/kmax,
+                            turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p84.k_noise/kmax-dat]
+                if pt == "Brunt_sigrho_denoised":
+                    dat = turb_data_noise_exp[str(noise_exp)]['stats'][isnr].avg.Brunt_sigma_3D_denoised
+                    err = [dat-turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
+                            turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p84.Brunt_sigma_3D_denoised-dat]
+                y.append(dat)
+                yerr.append(err)
+            cfp.plot(x=noise_exponents, y=y, yerr=np.array(yerr).T, color=SNR_colors[i_snr],
+                        linestyle='solid', marker='o', alpha=0.8)
+            if pt == "k_noise": cfp.plot(x=2.05, y=y[-1]-0.03, color=SNR_colors[i_snr], text=str(SNR))
+            i_snr += 1
+        # generate final plot and save
+        if pt == "k_noise": cfp.plot(x=0.886, y=0.92, text='SNR', normalised_coords=True)
+        cfp.plot(xlabel=xlabel, ylabel=ylabel, axes_format=axes_format,
+                    xlim=[-0.2,2.3], ylim=ylim, save=figpath+pt+'_vs_noise_exp.pdf')
+
+# OLD ===================================================================
 def plot_R_vs_SNR(turb_data):
     # figure 6 (R vs SNR, and R_denoised vs SNR)
     xlim = [5e-2, 2e2]
@@ -209,7 +439,7 @@ def plot_R_vs_SNR(turb_data):
         cfp.plot(xlabel=xlabel, ylabel=ylabel, xlog=True, axes_format=axes_format,
                     xlim=xlim, ylim=ylim, save=figpath+pt+'_vs_SNR.pdf')
 
-# ===================================================================
+# OLD ===================================================================
 def plot_sigrho_Brunt_denoised_and_noise_corrections_vs_SNR(turb_data):
     # figure 7 (denoised Brunt sigma_rho and noise correctoions as function of SNR)
     xlim = [5e-2, 2e2]
@@ -411,391 +641,6 @@ def plot_sigrho_Brunt_denoised_and_noise_corrections_vs_SNR(turb_data):
                     xlog=True, ylog=ylog, xlim=xlim, ylim=ylim, axes_format=axes_format,
                     save=figpath+pt+'_vs_SNR.pdf')
 
-# ===================================================================
-def plot_noise_exponent_influence(turb_data_noise_exp):
-    plot_types = ["k_noise", "Brunt_sigrho_denoised"]
-    for pt in plot_types:
-        if pt == "k_noise":
-            xlabel = ""
-            ylabel = r"$k_\mathrm{noise}/k_\mathrm{max}$"
-            ylim = [-0.1, 1.15]
-            axes_format = ["", None]
-        if pt == "Brunt_sigrho_denoised":
-            xlabel = r"Noise exponent $\alpha$"
-            ylabel = r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}$"
-            ylim = [0.08, 0.39]
-            axes_format = [None, None]
-        SNR_colors = ['grey', 'black', 'blue', 'green', 'orange', 'red']
-        i_snr = 0
-        for isnr, SNR in enumerate(SNR_list):
-            if SNR < 0.1 or SNR > 100: continue
-            noise_exponents = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
-            y = []
-            yerr = []
-            for noise_exp in noise_exponents:
-                if pt == "k_noise":
-                    kmax = turb_data_noise_exp[str(noise_exp)]['stats'][isnr].avg.k.max()
-                    dat = turb_data_noise_exp[str(noise_exp)]['stats'][isnr].avg.k_noise/kmax
-                    err = [dat-turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p16.k_noise/kmax,
-                            turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p84.k_noise/kmax-dat]
-                if pt == "Brunt_sigrho_denoised":
-                    dat = turb_data_noise_exp[str(noise_exp)]['stats'][isnr].avg.Brunt_sigma_3D_denoised
-                    err = [dat-turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
-                            turb_data_noise_exp[str(noise_exp)]['stats'][isnr].p84.Brunt_sigma_3D_denoised-dat]
-                y.append(dat)
-                yerr.append(err)
-            cfp.plot(x=noise_exponents, y=y, yerr=np.array(yerr).T, color=SNR_colors[i_snr],
-                        linestyle='solid', marker='o', alpha=0.8)
-            if pt == "k_noise": cfp.plot(x=2.05, y=y[-1]-0.03, color=SNR_colors[i_snr], text=str(SNR))
-            i_snr += 1
-        # generate final plot and save
-        if pt == "k_noise": cfp.plot(x=0.886, y=0.92, text='SNR', normalised_coords=True)
-        cfp.plot(xlabel=xlabel, ylabel=ylabel, axes_format=axes_format,
-                    xlim=[-0.2,2.3], ylim=ylim, save=figpath+pt+'_vs_noise_exp.pdf')
-
-# ===================================================================
-def plot_spectra_res(turb_data, noise_exp=1.0, res=1024, res_resample=1.0, normalize=False, relative_to_kmax=True):
-    xlim = [0.5, 2e2]
-    if relative_to_kmax:
-        xlim = [1e-2, 2]
-    ylim = [1e-14, 2e-2]
-    if normalize:
-        ylim = [1e-8, 3e4]
-    colors = ['grey', 'blue', 'magenta']
-    for ires, res in enumerate(['512', '1024', '2048']):
-        kmax = 1.0
-        if relative_to_kmax:
-            kmax = turb_data[res]['stats'][0].avg.k.max()
-        x = turb_data[res]['stats'][0].avg.k[1:-1]/kmax
-        for isnr, SNR in enumerate(SNR_list):
-            pos_correct = -0.2
-            if SNR not in [0.1, 1.0, 10]: continue
-            # print('SNR = ', SNR)
-            if SNR ==  3: pos_correct = +0.02
-            if SNR ==  5: pos_correct = -0.32
-            if SNR == 10: pos_correct = -0.50
-            legend_xpos, legend_ypos = 0.015, 0.925
-            legend_length = 1.35
-            if SNR == 1: labels = ['N', 'S+N', r'$k_\mathrm{noise}/k_\mathrm{max}$']
-            else: labels = [None, None, None]
-            norm = 1.0
-            if normalize:
-                norm = turb_data[res]['stats'][isnr].avg.PS_S[1:].sum()
-            # print('Norm (total signal): ', norm)
-            # draw the noise spectra
-            y = kmax**(-1)*turb_data[res]['stats'][isnr].avg.PS_N[1:-1]/norm
-            # print('Total noise: ', y.sum())
-            if SNR == 1: lf = cfp.legend_formatter().add(pos=(legend_xpos,legend_ypos-0.07), length=legend_length)
-            else: lf = None
-            cfp.plot(x=x, y=y, color=colors[ires], linestyle=(0, (2, 2)), linewidth=1.0, label=labels[0], legend_formatter=lf)
-            cfp.plot(x=1.1, y=10**(np.log10(y[-1])+pos_correct), text=str(SNR))
-            # draw the noisy data spectra
-            y = turb_data[res]['stats'][isnr].avg.PS_SpN[1:-1]/norm
-            if SNR == 1: lf = cfp.legend_formatter().add(pos=(legend_xpos,legend_ypos), length=legend_length)
-            else: lf = None
-            po = cfp.plot(x=x, y=y, color=colors[ires], linestyle='dashed', label=labels[1], legend_formatter=lf)
-            # draw k_noise
-            k_noise = turb_data[res]['stats'][isnr].avg.k_noise/kmax
-            k_noise_min = turb_data[res]['stats'][isnr].p16.k_noise/kmax
-            k_noise_max = turb_data[res]['stats'][isnr].p84.k_noise/kmax
-            if SNR > 1e-2 and k_noise_min >= 2.5e-2 and k_noise_max <= 0.98: # exclude drawing very high SNR cases, as k_noise is effectively 1
-                y_cross = turb_data[res]['stats'][isnr].avg.PS_S_at_k_noise/norm # intersection with signal spectrum
-                po.plt().vlines(k_noise, ylim[0], y_cross, color=colors[ires], linestyle=(0, (1, 1)))
-                po.plt().fill_between([k_noise_min, k_noise_max], ylim[0], y_cross,
-                                        color=colors[ires], alpha=0.2, edgecolor='none')
-                # fake line to get legend formatter to work
-                if SNR == 1: lf = cfp.legend_formatter().add(pos=(legend_xpos+0.25,legend_ypos), length=legend_length)
-                else: lf = None
-                cfp.plot(x=0, y=1, color=colors[ires], linestyle=(0, (1, 1)),
-                            label=labels[2], legend_formatter=lf)
-        # plot signal spectrum
-        y = turb_data[res]['stats'][0].avg.PS_S[1:-1]/norm
-        yerr = [y-turb_data[res]['stats'][0].p16.PS_S[1:-1]/norm, turb_data[res]['stats'][0].p84.PS_S[1:-1]/norm-y]
-        cfp.plot(x=x, y=y, yerr=yerr, shaded_err=True, color=colors[ires], label='S',
-                    legend_formatter=cfp.legend_formatter().add(pos=(legend_xpos,legend_ypos-0.14), length=legend_length))
-    # generate final plot and save
-    cfp.plot(x=0.886, y=0.92, text='SNR', normalised_coords=True)
-    save = figpath+'PS_res.pdf'
-    cfp.plot(xlabel=r"$k/k_\mathrm{max}$", ylabel=r"$P$", xlog=True, ylog=True, xlim=xlim, ylim=ylim, save=save)
-
-# ===================================================================
-def plot_spectra_res_resample(turb_data, noise_exp=1.0, res=1024, res_resample=1.0, normalize=False, relative_to_kmax=True):
-    xlim = [0.5, 2e2]
-    if relative_to_kmax:
-        xlim = [1e-2, 2]
-    ylim = [1e-14, 2e-2]
-    if normalize:
-        ylim = [1e-8, 3e4]
-    colors = ['r', 'g', 'b']
-    for irr, rr in enumerate(['2.0', '1.0', '0.5']):
-        kmax = 1.0
-        if relative_to_kmax:
-            kmax = turb_data[rr]['stats'][0].avg.k.max()
-        x = turb_data[rr]['stats'][0].avg.k[1:-1]/kmax
-        for isnr, SNR in enumerate(SNR_list):
-            pos_correct = -0.2
-            if SNR not in [0.1, 1.0, 10]: continue
-            # print('SNR = ', SNR)
-            if SNR ==  3: pos_correct = +0.02
-            if SNR ==  5: pos_correct = -0.32
-            if SNR == 10: pos_correct = -0.50
-            legend_xpos, legend_ypos = 0.015, 0.925
-            legend_length = 1.35
-            if SNR == 1: labels = ['N', 'S+N', r'$k_\mathrm{noise}/k_\mathrm{max}$']
-            else: labels = [None, None, None]
-            norm = 1.0
-            if normalize:
-                norm = turb_data[rr]['stats'][isnr].avg.PS_S[1:].sum()
-            # print('Norm (total signal): ', norm)
-            # draw the noise spectra
-            y = kmax**(-1)*turb_data[rr]['stats'][isnr].avg.PS_N[1:-1]/norm
-            # print('Total noise: ', y.sum())
-            if SNR == 1: lf = cfp.legend_formatter().add(pos=(legend_xpos,legend_ypos-0.07), length=legend_length)
-            else: lf = None
-            cfp.plot(x=x, y=y, color=colors[irr], linestyle=(0, (2, 2)), linewidth=1.0, label=labels[0], legend_formatter=lf)
-            cfp.plot(x=1.1, y=10**(np.log10(y[-1])+pos_correct), text=str(SNR))
-            # draw the noisy data spectra
-            y = turb_data[rr]['stats'][isnr].avg.PS_SpN[1:-1]/norm
-            if SNR == 1: lf = cfp.legend_formatter().add(pos=(legend_xpos,legend_ypos), length=legend_length)
-            else: lf = None
-            po = cfp.plot(x=x, y=y, color=colors[irr], label=labels[1], legend_formatter=lf)
-            # draw k_noise
-            k_noise = turb_data[rr]['stats'][isnr].avg.k_noise/kmax
-            k_noise_min = turb_data[rr]['stats'][isnr].p16.k_noise/kmax
-            k_noise_max = turb_data[rr]['stats'][isnr].p84.k_noise/kmax
-            if SNR > 1e-2 and k_noise_min >= 2.5e-2 and k_noise_max <= 0.98: # exclude drawing very high SNR cases, as k_noise is effectively 1
-                y_cross = turb_data[rr]['stats'][isnr].avg.PS_S_at_k_noise/norm # intersection with signal spectrum
-                po.plt().vlines(k_noise, ylim[0], y_cross, color=colors[irr], linestyle=(0, (1, 1)))
-                po.plt().fill_between([k_noise_min, k_noise_max], ylim[0], y_cross,
-                                        color=colors[irr], alpha=0.2, edgecolor='none')
-                # fake line to get legend formatter to work
-                if SNR == 1: lf = cfp.legend_formatter().add(pos=(legend_xpos+0.25,legend_ypos), length=legend_length)
-                else: lf = None
-                cfp.plot(x=0, y=1, color=colors[irr], linestyle=(0, (1, 1)),
-                            label=labels[2], legend_formatter=lf)
-        # plot signal spectrum
-        y = turb_data[rr]['stats'][0].avg.PS_S[1:-1]/norm
-        yerr = [y-turb_data[rr]['stats'][0].p16.PS_S[1:-1]/norm, turb_data[rr]['stats'][0].p84.PS_S[1:-1]/norm-y]
-        cfp.plot(x=x, y=y, yerr=yerr, shaded_err=True, color=colors[irr], label='S',
-                    legend_formatter=cfp.legend_formatter().add(pos=(legend_xpos,legend_ypos-0.14), length=legend_length))
-    # generate final plot and save
-    cfp.plot(x=0.886, y=0.92, text='SNR', normalised_coords=True)
-    save = figpath+'PS_res_resample_example.pdf'
-    cfp.plot(xlabel=r"$k/k_\mathrm{max}$", ylabel=r"$P$", xlog=True, ylog=True, xlim=xlim, ylim=ylim, save=save)
-
-# ===================================================================
-def report_tabs_1_2_values(turb_data):
-    def print_values_and_get_sigrho_Brunt(box_ind, proj_ind):
-        td = turb_data['50mu']['data'][0][box_ind*3+proj_ind]
-        print('pos, LOS, sigrho, sigN, R^(1/2), sigrho_Brunt = ',
-                BOX_list[box_ind], LOSs[proj_ind],
-                cfp.round(td.sigma_3D[0],2,True)+' & '+cfp.round(td.sigma_2D[0],2,True)+' & '+
-                cfp.round(td.R_to_half[0],2,True)+' & '+cfp.round(td.Brunt_sigma_3D[0],2,True))
-        return td.Brunt_sigma_3D[0]
-    LOSs = ['x', 'y', 'z']
-    box_inds_at_LOS_x = [1, 2, 0, 3, 4]
-    # 5 boxes at LOS x
-    sigrho_boxes = []
-    for box_ind in box_inds_at_LOS_x:
-        proj_ind = 0
-        sigrho_boxes.append(print_values_and_get_sigrho_Brunt(box_ind, proj_ind))
-    sigrho_boxes = np.array(sigrho_boxes)
-    p50, p16, p84 = np.percentile(sigrho_boxes, [50, 16, 84])
-    print("sigrho for the 5 boxes at LOS x = "+
-            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True))
-    mean, std = sigrho_boxes.mean(), sigrho_boxes.std()
-    print("sigrho for the 5 boxes at LOS x = "+
-            cfp.round(mean,3,True)+' +/- '+cfp.round(std,2,True))
-    # 3 LOS at center box
-    sigrho_LOSs = []
-    for proj_ind in LOS_list:
-        box_ind = 0
-        sigrho_LOSs.append(print_values_and_get_sigrho_Brunt(box_ind, proj_ind))
-    sigrho_LOSs = np.array(sigrho_LOSs)
-    p50, p16, p84 = np.percentile(sigrho_LOSs, [50, 16, 84])
-    print("sigrho for the 3 LOS at the centre box = "+
-            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True))
-    mean, std = sigrho_LOSs.mean(), sigrho_LOSs.std()
-    print("sigrho for the 3 LOS at the centre box = "+
-            cfp.round(mean,3,True)+' +/- '+cfp.round(std,3,True))
-    # void size dependence
-    for void_size in void_sizes:
-        td = turb_data[void_size]['stats'][0]
-        quantities = ['sigma_3D', 'sigma_2D', 'R_to_half', 'Brunt_sigma_3D']
-        line_str = void_size+": "+", ".join(quantities)+" = "
-        for q in quantities:
-            p16, p50, p84 = getattr(td.p16, q), getattr(td.avg, q), getattr(td.p84, q)
-            line_str += " & $"+cfp.round(p50,2,True)+"^{+"+cfp.round(p84-p50,1,True)+"}_{"+cfp.round(p16-p50,1,True)+"}$"
-        print(line_str)
-
-# ===================================================================
-def plot_k_noise_vs_SNR_res_resample(turb_data):
-    # ----------------------------------------------------
-    def k_noise_func(SNR, SNR_crit=1.0):
-        PL_exp = 2.0 / 3.0
-        sharpness = 4.0
-        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
-        return np.log(k_noise)
-    # ----------------------------------------------------
-    # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
-    xlim = [5e-2, 2e2]
-    kmax_list = []
-    SNR_crit = []
-    SNR_crit_err = []
-    for ivs, void_size in reversed(list(enumerate(void_sizes))):
-        print('void size = '+void_size, color='cyan')
-        match ivs:
-            case 0: res_colors = res_colors_magenta
-            case 1: res_colors = res_colors_blue
-            case 2: res_colors = res_colors_green
-        for ires, res in enumerate(res_resample_list):
-            kmax = turb_data[void_size][str(res)]['stats'][0].avg.k.max()
-            kmax_list.append(kmax)
-            snr = []
-            k_noise = []
-            k_noise_err = []
-            for isnr, SNR in enumerate(SNR_list):
-                if SNR > 100 or SNR < 1e-1: continue
-                x = SNR
-                snr.append(x)
-                y = turb_data[void_size][str(res)]['stats'][isnr].avg.k_noise/kmax
-                k_noise.append(y)
-                yerr = [y-turb_data[void_size][str(res)]['stats'][isnr].p16.k_noise/kmax,
-                        turb_data[void_size][str(res)]['stats'][isnr].p84.k_noise/kmax-y]
-                k_noise_err.append(np.mean(yerr))
-                if SNR == 1:
-                    label = r"$k_\mathrm{max}="+str(int(kmax))+r"$"
-                    if ivs in [0,1]: label = " "
-                    lf = cfp.legend_formatter().add(pos=(0.64-(2-ivs)*0.05,0.45-ires*0.085))
-                else:
-                    label = None
-                    lf = None
-                cfp.plot(x=x, y=y, yerr=np.array([yerr]).T, color=res_colors[ires], linestyle='none',
-                            marker=void_markers[void_size], alpha=0.8, label=label, legend_formatter=lf)
-            snr = np.array(snr)
-            k_noise = np.array(k_noise)
-            k_noise_err = np.array(k_noise_err)
-            params = {'SNR_crit':[0.1,1.0,50]}
-            fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
-                                params=params, n_random_draws=100)
-            SNR_crit.append(fitdat.popt[0])
-            SNR_crit_err.append(fitdat.perr[0])
-            xfit = cfp.logspace(xlim[0], xlim[1], 200)
-            yfit = np.exp(k_noise_func(xfit, *fitdat.popt)) # best-fit line
-            if res == 1.0:
-                label = 'fit for '+void_size_labels[void_size]
-                lf = cfp.legend_formatter().add(pos=(0.01,0.92-ivs*0.075))
-            else:
-                label = None
-                lf = None
-            cfp.plot(x=xfit, y=yfit, linewidth=1.0, color=res_colors[ires], linestyle=void_linestyles[void_size],
-                        label=label, legend_formatter=lf)
-    kmax_list = np.array(kmax_list)
-    SNR_crit = np.array(SNR_crit)
-    SNR_crit_err = np.array(SNR_crit_err)
-    # generate final plot and save
-    cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=r"$k_\mathrm{noise}/k_\mathrm{max}$",
-                xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0], save=figpath+'k_noise_vs_SNR_res_resample.pdf')
-    # modelling of SNR_crit
-    for ivs, void_size in enumerate(void_sizes):
-        ib, ie = ivs * len(res_resample_list), (ivs + 1) * len(res_resample_list)
-        cfp.plot(x=kmax_list[ib:ie], y=SNR_crit[ib:ie], yerr=SNR_crit_err[ib:ie].T, marker=void_markers[void_size],
-                    linestyle='none', color=void_colors[void_size], label=void_size_labels[void_size],
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-ivs*0.09)))
-    def PL(x, a):
-        return a*x**(2.0/3.0)
-    fitdat = cfp.fit(PL, kmax_list, SNR_crit, yerr=np.abs(SNR_crit_err.T).mean(axis=0))
-    xfit = cfp.logspace(kmax_list.min(), kmax_list.max(), 200)
-    yfit = PL(xfit, *fitdat.popt) # best-fit line
-    label = r'$\mathrm{SNR_{crit}}=('+cfp.round(fitdat.popt[0],2,True)+r'\pm'+cfp.round(fitdat.pstd[0],1,True)+r')\,k_\mathrm{max}^{2/3}$'
-    cfp.plot(x=xfit, y=yfit, linewidth=1.0, color='black', label=label,
-                legend_formatter=cfp.legend_formatter().add(pos=(0.25,0.15)))
-    cfp.plot(xlog=True, ylog=True, xlabel=r'$k_\mathrm{max}$', ylabel=r'$\mathrm{SNR_{crit}}$',
-                xlim=[10, 2.5e2], save=figpath+'SNR_crit_vs_kmax.pdf')
-
-# ===================================================================
-def plot_sigrho_Brunt_denoised(turb_data):
-    # denoised Brunt sigma_rho vs SNR
-    xlim = [5e-2, 2e2]
-    ylim = [0.0, 1.0]
-    for ivs, void_size in reversed(list(enumerate(void_sizes))):
-        x = []
-        y = []
-        yerr = []
-        for isnr, SNR in enumerate(SNR_list):
-            if isnr < 2: continue # skip SNR -> infinity and SNR = 0.01
-            x.append(SNR)
-            sigrho = []
-            sigrho_err = []
-            for ires, res in enumerate(res_resample_list):
-                dat = turb_data[void_size][str(res)]['stats'][isnr].avg.Brunt_sigma_3D_denoised
-                sigrho.append(dat)
-                err = [dat-turb_data[void_size][str(res)]['stats'][isnr].p16.Brunt_sigma_3D_denoised,
-                        turb_data[void_size][str(res)]['stats'][isnr].p84.Brunt_sigma_3D_denoised-dat]
-                sigrho_err.append(err)
-            y.append(np.mean(sigrho)) # average over all k_max cases
-            yerr.append(np.mean(sigrho_err,axis=0))
-        # draw data points
-        cfp.plot(x=x, y=y, yerr=np.array(yerr).T, color=void_colors[void_size], linestyle='none',
-                    marker=void_markers[void_size], alpha=0.8, label=void_size_labels[void_size],
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.9-ivs*0.08)))
-        # draw sigma_rho Brunt denoised at SNR -> infinity
-        sigrho_Brunt_denoised_at_SNR_inf = turb_data[void_size]['1.0']['stats'][0].avg.Brunt_sigma_3D_denoised
-        cfp.plot(x=xlim, y=[sigrho_Brunt_denoised_at_SNR_inf,sigrho_Brunt_denoised_at_SNR_inf],
-                    linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8, color=void_colors[void_size])
-    # fake line for SNR->infinity legend
-    cfp.plot(x=[0.0,0.1], y=[0.0,0.0], color='grey', linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8,
-                label=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}(\mathrm{SNR}\to\infty)$",
-                legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-0.25), length=1.4))
-    # generate final plot and save
-    cfp.plot(xlabel="SNR", ylabel=r"$\sigma_{\rho/\rho_0,\mathrm{Brunt,denoised}}$",
-                xlog=True, xlim=xlim, ylim=ylim, save=figpath+'Brunt_sigrho_denoised_k_max_averaged.pdf')
-
-# ===================================================================
-def get_noise_subtracted_spectra_and_sigma_rho_Brunt(turb_data):
-    PS_SpN_minus_N_stats = []
-    sigrB_SpN_minus_N_stats = []
-    for isnr, SNR in enumerate(SNR_list):
-        k = turb_data['data'][isnr][0].k[0]
-        # extract all PS_SpN and PS_N over ibl = 5 box locations and 3 projection axes and ins = 100 noise samples
-        objs = np.array(turb_data['data'][isnr])
-        PS_SpN = np.array([objs[ibl].PS_SpN[ins] for ibl in range(len(objs)) for ins in range(len(objs[ibl].PS_SpN))])
-        PS_N = np.array([objs[ibl].PS_N[ins] for ibl in range(len(objs)) for ins in range(len(objs[ibl].PS_N))])
-        # subtract noise spectrum from signal+noise spectrum
-        PS_SpN_minus_N = PS_SpN - PS_N
-        PS_SpN_minus_N[PS_SpN_minus_N<=0] = 1e-99 # fix bad values
-        # compute Brunt sigma_rho
-        sigrB_SpN_minus_N = np.sqrt((PS_SpN_minus_N[:,1:] / PS_SpN_minus_N[:,0:1] * 2 * k[1:]).sum(axis=1))
-        # compute percentiles and attach to return container
-        PS_SpN_minus_N_stats.append(10**(np.percentile(np.log10(PS_SpN_minus_N), [16,50,84], axis=0)))
-        sigrB_SpN_minus_N_stats.append(np.percentile(sigrB_SpN_minus_N, [16,50,84]))
-    PS_SpN_minus_N_stats = np.array(PS_SpN_minus_N_stats)
-    sigrB_SpN_minus_N_stats = np.array(sigrB_SpN_minus_N_stats)
-    return PS_SpN_minus_N_stats, sigrB_SpN_minus_N_stats
-
-# ===================================================================
-def plot_sigrho_Brunt_denoised_SpN_minus_N(sigrB_SpN_minus_N_stats):
-    # denoised Brunt sigma_rho vs SNR
-    xlim = [5e-2, 2e2]
-    ylim = [0.0, 1.0]
-    # get data
-    x = SNR_list[1:] # skip SNR -> infinity
-    y = sigrB_SpN_minus_N_stats[1:,1]
-    yerr = sigrB_SpN_minus_N_stats[1:,0::2] # 16th and 84th
-    yerr = np.abs(yerr - y[:,None])
-    # draw data points
-    cfp.plot(x=x, y=y, yerr=yerr.T, color=void_colors["50mu"], linestyle='none',
-                marker=void_markers["50mu"], alpha=0.8)
-    # draw sigma_rho Brunt denoised at SNR -> infinity
-    sigrho_Brunt_denoised_at_SNR_inf = sigrB_SpN_minus_N_stats[0,1]
-    cfp.plot(x=xlim, y=[sigrho_Brunt_denoised_at_SNR_inf,sigrho_Brunt_denoised_at_SNR_inf],
-                linewidth=1.0, linestyle=(0, (2, 2)), alpha=0.8, color=void_colors["50mu"],
-                label=r"Noise-subtracted $\sigma_{\rho/\rho_0,\mathrm{Brunt}}(\mathrm{SNR}\to\infty)$",
-                legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90), length=1.4))
-    # generate final plot and save
-    cfp.plot(xlabel="SNR", ylabel=r"Noise-subtracted $\sigma_{\rho/\rho_0,\mathrm{Brunt}}$",
-                xlog=True, xlim=xlim, ylim=ylim, save=figpath+'Brunt_sigrho_denoised_noise_subtracted.pdf')
-
 
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
@@ -847,26 +692,16 @@ if __name__ == "__main__":
     # figure 8 (SNR_crit vs k_max)
     plot_k_noise_vs_SNR_res_resample(turb_data_void_res)
 
-    # examples of spectra
-    plot_spectra(turb_data_void_res['50mu']['0.5'], '50mu', res_resample=0.5)
-    plot_spectra(turb_data_void_res['50mu']['1.0'], '50mu', res_resample=1.0)
-    plot_spectra(turb_data_void_res['50mu']['2.0'], '50mu', res_resample=2.0)
-    plot_spectra_res_resample(turb_data_void_res['50mu'])
-
     # figure 9
     plot_sigrho_Brunt_denoised(turb_data_void_res)
 
-    stop()
-
-    # figure 6 (R vs SNR)
-    plot_R_vs_SNR(turb_data)
-
-    # figure 7 (sigma_rho Brunt denoised and noise correction factors vs SNR)
-    plot_sigrho_Brunt_denoised_and_noise_corrections_vs_SNR(turb_data)
-
-    # Appendix (figure 8)
+    # Appendix (figure 10)
     plot_spectra(turb_data['12p5mu'], '12p5mu')
     plot_spectra(turb_data['100mu'], '100mu')
+
+    # Appendix (figure 11)
+    plot_spectra(turb_data_void_res['50mu']['0.5'], '50mu', res_resample=0.5)
+    plot_spectra(turb_data_void_res['50mu']['2.0'], '50mu', res_resample=2.0)
 
     # load noise exponent data
     turb_data_noise_exp = {}
@@ -875,22 +710,28 @@ if __name__ == "__main__":
         with open(dillfile, "rb") as f:
             turb_data_noise_exp[str(noise_exp)] = dill.load(f)
         print("Read '"+dillfile+"'.", color='green')
-    # Appendix (figure 9)
+    # Appendix (figure 12)
     plot_spectra(turb_data_noise_exp['0.0'], '50mu', noise_exp=0.0)
     plot_spectra(turb_data_noise_exp['2.0'], '50mu', noise_exp=2.0)
-    # Appendix (figure 10)
+    # Appendix (figure 13)
     plot_noise_exponent_influence(turb_data_noise_exp)
 
-    # load simulation resolution data
-    turb_data_res = {}
-    for res in [512, 1024, 2048]:
-        dillfile = get_filename(res, '50mu', dill=True)
-        with open(dillfile, "rb") as f:
-            turb_data_res[str(res)] = dill.load(f)
-        print("Read '"+dillfile+"'.", color='green')
-    # k_noise vs SNR and spectra for different simulation resolutions (512, 1024, 2048)
-    plot_k_noise_vs_SNR_res(turb_data_res)
-    plot_spectra(turb_data_res['512'], '50mu', res=512)
-    plot_spectra(turb_data_res['1024'], '50mu', res=1024)
-    plot_spectra(turb_data_res['2048'], '50mu', res=2048)
-    plot_spectra_res(turb_data_res)
+    # === OLD plots and extra plots
+    if 0:
+        # load simulation resolution data
+        turb_data_res = {}
+        for res in [512, 1024, 2048]:
+            dillfile = get_filename(res, '50mu', dill=True)
+            with open(dillfile, "rb") as f:
+                turb_data_res[str(res)] = dill.load(f)
+            print("Read '"+dillfile+"'.", color='green')
+        # k_noise vs SNR and spectra for different simulation resolutions (512, 1024, 2048)
+        plot_spectra(turb_data_res['512'], '50mu', res=512)
+        plot_spectra(turb_data_res['1024'], '50mu', res=1024)
+        plot_spectra(turb_data_res['2048'], '50mu', res=2048)
+
+        # figure 6 (R vs SNR)
+        plot_R_vs_SNR(turb_data)
+
+        # figure 7 (sigma_rho Brunt denoised and noise correction factors vs SNR)
+        plot_sigrho_Brunt_denoised_and_noise_corrections_vs_SNR(turb_data)
