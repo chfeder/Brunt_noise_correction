@@ -19,7 +19,7 @@ def report_tabs_1_2_values(turb_data):
         print('pos, LOS, sigrho, sigN, R^(1/2), sigrho_Brunt = ',
                 BOX_list[box_ind], LOSs[proj_ind],
                 cfp.round(td.sigma_3D[0],2,True)+' & '+cfp.round(td.sigma_2D[0],2,True)+' & '+
-                cfp.round(td.R_to_half[0],2,True)+' & '+cfp.round(td.Brunt_sigma_3D[0],2,True))
+                cfp.round(td.R_to_half[0],2,True)+' & '+cfp.round(td.Brunt_sigma_3D[0],2,True), color='cyan')
         return td.Brunt_sigma_3D[0]
     LOSs = ['x', 'y', 'z']
     box_inds_at_LOS_x = [1, 2, 0, 3, 4]
@@ -31,10 +31,10 @@ def report_tabs_1_2_values(turb_data):
     sigrho_boxes = np.array(sigrho_boxes)
     p50, p16, p84 = np.percentile(sigrho_boxes, [50, 16, 84])
     print("sigrho for the 5 boxes at LOS x = "+
-            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True))
+            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True), color='cyan')
     mean, std = sigrho_boxes.mean(), sigrho_boxes.std()
     print("sigrho for the 5 boxes at LOS x = "+
-            cfp.round(mean,3,True)+' +/- '+cfp.round(std,2,True))
+            cfp.round(mean,3,True)+' +/- '+cfp.round(std,2,True), color='cyan')
     # 3 LOS at center box
     sigrho_LOSs = []
     for proj_ind in LOS_list:
@@ -43,19 +43,19 @@ def report_tabs_1_2_values(turb_data):
     sigrho_LOSs = np.array(sigrho_LOSs)
     p50, p16, p84 = np.percentile(sigrho_LOSs, [50, 16, 84])
     print("sigrho for the 3 LOS at the centre box = "+
-            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True))
+            cfp.round(p50,2,True)+'^+'+cfp.round(p84-p50,2,True)+'_'+cfp.round(p16-p50,2,True), color='cyan')
     mean, std = sigrho_LOSs.mean(), sigrho_LOSs.std()
     print("sigrho for the 3 LOS at the centre box = "+
-            cfp.round(mean,3,True)+' +/- '+cfp.round(std,3,True))
+            cfp.round(mean,3,True)+' +/- '+cfp.round(std,3,True), color='cyan')
     # void size dependence
     for void_size in void_sizes:
         td = turb_data[void_size]['stats'][0]
         quantities = ['sigma_3D', 'sigma_2D', 'R_to_half', 'Brunt_sigma_3D']
-        line_str = void_size+": "+", ".join(quantities)+" = "
+        line_str = f"{void_size:>6}: "+", ".join(quantities)+" = "
         for q in quantities:
             p16, p50, p84 = getattr(td.p16, q), getattr(td.avg, q), getattr(td.p84, q)
             line_str += " & $"+cfp.round(p50,2,True)+"^{+"+cfp.round(p84-p50,1,True)+"}_{"+cfp.round(p16-p50,1,True)+"}$"
-        print(line_str)
+        print(line_str, color='cyan')
 
 # ===================================================================
 def plot_noisy_map_examples(turb_data, void_size):
@@ -336,6 +336,7 @@ def plot_sigrho_Brunt_denoised(turb_data):
                 sigrho_err.append(err)
             y.append(np.mean(sigrho)) # average over all k_max cases
             yerr.append(np.mean(sigrho_err,axis=0))
+            print(f"void size, SNR, sigma_rho_Brunt_denoised = {void_size:>6}, {SNR:>5.1f}, {y[-1]:5.3f}", color='cyan')
         # draw data points
         cfp.plot(x=x, y=y, yerr=np.array(yerr).T, color=void_colors[void_size], linestyle='none',
                     marker=void_markers[void_size], alpha=0.8, label=void_size_labels[void_size],
