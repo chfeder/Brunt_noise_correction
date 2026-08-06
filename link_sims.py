@@ -118,9 +118,7 @@ if __name__ == "__main__":
         m = models[i]
         model_name = make_model_name(m)
 
-        print("===", color='green')
         print("=== Working on model "+model_name+" ===", color='green')
-
 
         # New code:
 
@@ -128,7 +126,7 @@ if __name__ == "__main__":
         destination_path = "/scratch/ek9/ag9727/asc/sims/"
 
         cfp.run_shell_command("mkdir " + destination_path + model_name)
-        cfp.run_shell_command("ln -s " + source_path + model_name + "/* " + destination_path + model_name)
+        cfp.run_shell_command("ln -sf " + source_path + model_name + "/* " + destination_path + model_name)
 
         # Old code:
         """
