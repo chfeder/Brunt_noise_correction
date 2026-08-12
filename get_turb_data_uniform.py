@@ -43,22 +43,22 @@ def get_output_file_path(project_path, sim_name, noise_exp, res_resample):
 if __name__ == "__main__":
 
     # User changes here:
-    """
     resolutions = [256]                         # simulation resolution (default first)
     flow_types = ['s', 'c', 'm']                # Soluniodal, Compressive, Mixture
     mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]    # Mach numbers
     project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
     min_time = 30                               # Files correponding to times before this will be discarded
     max_time = 1000                             # Likewise, after this will be discarded
-    """
 
     # Test case:
+    """
     resolutions = [256]                         # simulation resolution (default first)
     flow_types = ['s']                          # Soluniodal, Compressive, Mixture
     mach_nums = [0.1]                           # Mach numbers
     project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
     min_time = 30                               # Files correponding to times before this will be discarded
     max_time = 31                               # Likewise, after this will be discarded
+    """
 
     noise_samples = 100 # convergence was checked also with 1000 noise samples, which yields practically the same
     print('Number of noise samples: '+str(noise_samples), color='lightred')
