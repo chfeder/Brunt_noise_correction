@@ -9,7 +9,8 @@ import dill
 import os
 
 # ===================================================================
-def get_turb_box(filename):
+def get_turb_box(filename, res_resample=1.0):
+    # Note res_sample does nothing here currently.
     return flashlib.FlashGG(filename).GetUniformGrid()
 
 # ===================================================================
@@ -187,8 +188,14 @@ def make_model_name_params(res, flow_type, mach) -> str:
     return 'N' + res + flow_type + mach_str
 
 # ===================================================================
-def get_output_file_path(project_path, sim_name, noise_exp):
-    return f"{project_path}processed_data/{sim_name}_noise_exp_{noise_exp}"
+def get_output_file_path(project_path, sim_name, noise_exp, res_resample):
+    s = f"{project_path}processed_data/{sim_name}"
+    if noise_exp != 1.0:
+        s += "_noise_exp_"+str(noise_exp)
+    if res_resample != 1.0:
+        s += "_res_resample_"+str(res_resample)
+    s += ".dill"
+    return s
 
 # -----------------------------------------------------------
 
@@ -196,12 +203,22 @@ def get_output_file_path(project_path, sim_name, noise_exp):
 if __name__ == "__main__":
 
     # User changes here:
+    """
     resolutions = [256]                         # simulation resolution (default first)
     flow_types = ['s', 'c', 'm']                # Soluniodal, Compressive, Mixture
     mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]    # Mach numbers
     project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
     min_time = 30                               # Files correponding to times before this will be discarded
     max_time = 1000                             # Likewise, after this will be discarded
+    """
+
+    # Test case:
+    resolutions = [256]                         # simulation resolution (default first)
+    flow_types = ['s']                          # Soluniodal, Compressive, Mixture
+    mach_nums = [0.1]                           # Mach numbers
+    project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
+    min_time = 30                               # Files correponding to times before this will be discarded
+    max_time = 31                               # Likewise, after this will be discarded
 
     noise_samples = 100 # convergence was checked also with 1000 noise samples, which yields practically the same
     print('Number of noise samples: '+str(noise_samples), color='lightred')
@@ -243,41 +260,46 @@ if __name__ == "__main__":
                 noise_exp_info += ' (white noise)'
             print("===== NOISE EXPONENT = "+noise_exp_info+" =====", color='cyan')
 
-            # data collection per box and/or LOS
-            data = [[] for _ in range(len(SNR_list))] # The outer axis is SNRs, inner axis is rets
+            for res_resample in [1.0]:
 
-            # Loop over each timestep in the simulation
-            for filename in timestepped_filenames:
+                if res_resample != 1.0:
+                    print("===== RESOLUTION RESAMPLING FACTOR = "+str(res_resample)+" =====", color='yellow')
 
-                dens = get_turb_box(filename)
-                print("=== Read dims "+str(dens.shape)+" from file "+filename, color='lightblue')
-                sigma_3D = (dens/dens.mean()).std()
+                # data collection per box and/or LOS
+                data = [[] for _ in range(len(SNR_list))] # The outer axis is SNRs, inner axis is rets
 
-                # loop over the 3 projection axes (x,y,z)
-                for LOS in LOS_list:
-                    print("computing projection along axis "+str(LOS), color='lightblue')
+                # Loop over each timestep in the simulation
+                for filename in timestepped_filenames:
 
-                    proj = dens.sum(axis=LOS) / dens.shape[LOS]
+                    dens = get_turb_box(filename, res_resample=res_resample)
+                    print("=== Read dims "+str(dens.shape)+" from file "+filename, color='lightblue')
+                    sigma_3D = (dens/dens.mean()).std()
 
-                    # loop over the 7 SNRs
-                    for iSNR, SNR in enumerate(SNR_list):
+                    # loop over the 3 projection axes (x,y,z)
+                    for LOS in LOS_list:
+                        print("computing projection along axis "+str(LOS), color='lightblue')
 
-                        ret = noise_iterations(noise_samples, proj, SNR, noise_exp=noise_exp)
-                        ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
+                        proj = dens.sum(axis=LOS) / dens.shape[LOS]
 
-                        data[iSNR].append(ret)
+                        # loop over the 7 SNRs
+                        for iSNR, SNR in enumerate(SNR_list):
 
-            # compute statistics over noise samples, boxes and LOS'
-            stats = []
-            for isnr in range(len(SNR_list)):
-                avg, std, p16, p84 = get_stats_object(data[isnr])
-                stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
+                            ret = noise_iterations(noise_samples, proj, SNR, noise_exp=noise_exp)
+                            ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
 
-            # package and save (dill) all data
-            turb_data = {"data": data, "stats": stats}
-            dillfile = get_output_file_path(project_path, sim_name, noise_exp)
-            with open(dillfile, "wb") as f:
-                dill.dump(turb_data, f)
-            print("Wrote '"+dillfile+"'.", color='magenta')
+                            data[iSNR].append(ret)
+
+                # compute statistics over noise samples, boxes and LOS'
+                stats = []
+                for isnr in range(len(SNR_list)):
+                    avg, std, p16, p84 = get_stats_object(data[isnr])
+                    stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
+
+                # package and save (dill) all data
+                turb_data = {"data": data, "stats": stats}
+                dillfile = get_output_file_path(project_path, sim_name, noise_exp, res_resample)
+                with open(dillfile, "wb") as f:
+                    dill.dump(turb_data, f)
+                print("Wrote '"+dillfile+"'.", color='magenta')
 
     timer.report()
