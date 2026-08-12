@@ -8,10 +8,13 @@
 #PBS -r y
 
 #PBS -P ek9
-#PBS -l walltime=12:00:00
+#PBS -l walltime=2:00:00
 #PBS -l ncpus=1
 #PBS -l mem=16GB
 #PBS -l storage=scratch/ek9
+
+# Add output files into logs/
+#PBS -o logs/
 
 # Working directory
 #PBS -l wd
@@ -32,9 +35,12 @@ mpirun -np 1 python3 ./get_turb_data_uniform.py -isim $PBS_ARRAY_INDEX 1>logs/sh
 # qsub -J 10-18 turb_uniform_job.sh
 # qsub -J 19-20 turb_uniform_job.sh
 
-# Notes:
+# Takes about 50mins to run everything.
+
+# Other commands:
 # qstat -u ag9727
-# qstat -t "id[]"    = expanded
+# qstat -t "id[]"           = expanded
 # nqstat_anu
 # ls logs/                  = shell.out.N files
 # tail -f logs/shell.out.x  = watch sim x
+# qdel "id[]"               = delete a job array

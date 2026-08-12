@@ -55,7 +55,7 @@ if __name__ == "__main__":
     mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]    # Mach numbers
     project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
     min_time = 30                               # Files correponding to times before this will be discarded
-    max_time = 1000                             # Likewise, after this will be discarded
+    max_time = 100                              # Likewise, after this will be discarded
 
     # Test case:
     """
