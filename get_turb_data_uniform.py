@@ -7,6 +7,7 @@ import flashlib
 import subprocess
 import dill
 import os
+import argparse
 
 # ===================================================================
 def get_turb_box(filename, res_resample=1.0):
@@ -42,6 +43,12 @@ def get_output_file_path(project_path, sim_name, noise_exp, res_resample):
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
 
+    # Parse the -isim argument (if it exists).
+    # This is used for Parallelising, by assigning each sim to a different core.
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-isim", type=int, default=None, help="index of single sim to process (for job arrays)")
+    args = parser.parse_args()
+
     # User changes here:
     resolutions = [256]                         # simulation resolution (default first)
     flow_types = ['s', 'c', 'm']                # Soluniodal, Compressive, Mixture
@@ -68,6 +75,10 @@ if __name__ == "__main__":
     existing_sims = os.listdir(f"{project_path}sims")
 
     sims = list(product(resolutions, flow_types, mach_nums))
+    # Reduce the list of simulations to do to just the 1 per core if isim is used
+    if args.isim is not None:
+        sims = [sims[args.isim]]
+
     for res, flow_type, mach in sims:
         sim_name = make_model_name_params(res, flow_type, mach)
         if sim_name in existing_sims:
