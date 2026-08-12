@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 
 from globals_turb_data import *
-from FlashFile2d import FlashFile2d
-import flashlib
 
 # ===================================================================
 def get_turb_box(filename, box, res_resample=1.0):
-    return flashlib.FlashGG(filename).GetUniformGrid()
-
-    """
     import yt
     yt.funcs.mylog.setLevel("ERROR")
     # box dimensions
@@ -52,7 +47,6 @@ def get_turb_box(filename, box, res_resample=1.0):
         dens = cfp.congrid(dens, new_shape)
         dens = (dens - dens.mean())/dens.std()*std + mean # correct to get exact previous mean and std
     return dens # density on uniform grid
-    """
 
 # ===================================================================
 def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=True, random_amplitudes=True, random_seed=None):
