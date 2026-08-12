@@ -48,43 +48,28 @@ def get_driving_str(model):
 
 def get_seed_str(model):
     seed_str = ""
-    if "seed" in model.colnames:
-        if model["seed"] == 5887: seed_str = 'S5887'
-        if model["seed"] == 1: seed_str = 'S1'
-        if model["seed"] == 2: seed_str = 'S2'
-        if model["seed"] == 3: seed_str = 'S3'
-        if model["seed"] == 4: seed_str = 'S4'
-        if model["seed"] == 5: seed_str = 'S5'
-        if model["seed"] == 6: seed_str = 'S6'
-        if model["seed"] == 7: seed_str = 'S7'
-        if model["seed"] == 8: seed_str = 'S8'
-        if model["seed"] == 9: seed_str = 'S9'
-        if model["seed"] == 140281: seed_str = ''
+    if ("seed" in model.colnames) and (model["seed"] != 140281):
+        seed_str = f"S{model["seed"]}"
     return seed_str
 
 def get_mach_str(model):
     mach_str = ""
     if "Mach" in model.colnames:
-        if model["Mach"] == 0.1: mach_str = 'M0p1'
-        if model["Mach"] == 0.2: mach_str = 'M0p2'
-        if model["Mach"] == 0.5: mach_str = 'M0p5'
-        if model["Mach"] == 1.0: mach_str = 'M1'
-        if model["Mach"] == 2.0: mach_str = 'M2'
-        if model["Mach"] == 5.0: mach_str = 'M5'
-        if model["Mach"] == 10.0: mach_str = 'M10'
+        mach = model["Mach"]
+        if mach == int(mach):
+            mach_str = 'M' + str(int(mach))
+        else:
+            mach_str = 'M' + str(mach).replace('.', 'p')
     return mach_str
 
 def get_aviro_str(model):
     aviro_str = ""
     if "aviro" in model.colnames:
-        if model["aviro"] == 0.5: aviro_str = 'A0p5'
-        if model["aviro"] == 1.0: aviro_str = 'A1'
-        if model["aviro"] == 2.5: aviro_str = 'A2p5'
-        if model["aviro"] == 5.0: aviro_str = 'A5'
-        if model["aviro"] == 10.0: aviro_str = 'A10'
-        if model["aviro"] == 20.0: aviro_str = 'A20'
-    else:
-        aviro_str = ""
+        aviro = model["aviro"]
+        if aviro == int(aviro):
+            aviro_str = 'A' + str(int(aviro))
+        else:
+            aviro_str = 'A' + str(aviro).replace('.', 'p')
     return aviro_str
 
 def make_model_name(model):
