@@ -15,20 +15,6 @@ def get_turb_box(filename, res_resample=1.0):
     return flashlib.FlashGG(filename).GetUniformGrid()
 
 # ===================================================================
-# ---- generates the model as a string for a given simulation, ie, "N256cM0p2", given the below params
-def make_model_name_params(res, flow_type, mach) -> str:
-    res = str(res)
-    flow_type = str(flow_type)
-    mach = float(mach)
-
-    if mach == int(mach):
-        mach_str = 'M' + str(int(mach))
-    else:
-        mach_str = 'M' + str(mach).replace('.', 'p')
-
-    return 'N' + res + flow_type + mach_str
-
-# ===================================================================
 def get_output_file_path(project_path, sim_name, noise_exp, res_resample):
     s = f"{project_path}processed_data/{sim_name}"
     if noise_exp != 1.0:
@@ -48,24 +34,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-isim", type=int, default=None, help="index of single sim to process (for job arrays)")
     args = parser.parse_args()
-
-    # User changes here:
-    resolutions = [256]                         # simulation resolution (default first)
-    flow_types = ['s', 'c', 'm']                # Soluniodal, Compressive, Mixture
-    mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]    # Mach numbers
-    project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
-    min_time = 30                               # Files correponding to times before this will be discarded
-    max_time = 100                              # Likewise, after this will be discarded
-
-    # Test case:
-    """
-    resolutions = [256]                         # simulation resolution (default first)
-    flow_types = ['s']                          # Soluniodal, Compressive, Mixture
-    mach_nums = [0.1]                           # Mach numbers
-    project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
-    min_time = 30                               # Files correponding to times before this will be discarded
-    max_time = 31                               # Likewise, after this will be discarded
-    """
 
     noise_samples = 100 # convergence was checked also with 1000 noise samples, which yields practically the same
     print('Number of noise samples: '+str(noise_samples), color='lightred')
@@ -135,15 +103,15 @@ if __name__ == "__main__":
                         # loop over the 7 SNRs
                         for iSNR, SNR in enumerate(SNR_list):
 
+                            # Add the noise randomly for a total of noise_samples times, then store it
                             ret = noise_iterations(noise_samples, proj, SNR, noise_exp=noise_exp)
                             ret.sigma_3D = np.array([sigma_3D]) # attach sigma_3D
-
                             data[iSNR].append(ret)
 
-                # compute statistics over noise samples, boxes and LOS'
+                # compute statistics
                 stats = []
-                for isnr in range(len(SNR_list)):
-                    avg, std, p16, p84 = get_stats_object(data[isnr])
+                for iSNR in range(len(SNR_list)):
+                    avg, std, p16, p84 = get_stats_object(data[iSNR]) # data[iSNR] is all the rets per projection for iSNR
                     stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
 
                 # package and save (dill) all data
@@ -152,5 +120,18 @@ if __name__ == "__main__":
                 with open(dillfile, "wb") as f:
                     dill.dump(turb_data, f)
                 print("Wrote '"+dillfile+"'.", color='magenta')
+
+                """
+                Dill file structure:
+
+                {"data": data, "stats": stats}
+
+                Each data[iSNR][j] is a ret object, where each iSNR is a SNR, and each j is a projection.
+                The ret object holds the data for all noise_samples iterations. Each ret object contains
+                the data for that projection.
+
+                Each stats[iSNR] is a list, [avg, std, p16, p64], where each entry is a ret object,
+                containing the data aggregated over the associated statistical metric.
+                """
 
     timer.report()

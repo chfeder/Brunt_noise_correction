@@ -11,11 +11,16 @@ import dill
 
 # === global variables and functions ===
 
-# centre, left, right, back, front box
-BOX_list = ['c_box', 'l_box', 'r_box', 'b_box', 'f_box']
-
 # 3 different projections (LOS)
 LOS_list = [0, 1, 2] # x, y, z
+
+# figure output path
+figpath = '../figs/'
+
+# ---------------- 5 BOX SIMULATION ONLY ----------------
+
+# centre, left, right, back, front box
+BOX_list = ['c_box', 'l_box', 'r_box', 'b_box', 'f_box']
 
 # SNR list (8 values, with the 0th index holding near infinite SNR)
 SNR_list = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
@@ -37,9 +42,34 @@ res_colors_magenta = cmap(np.linspace(0, 1, 5))
 res_colors_blue = plt.cm.Blues(np.linspace(0.3, 1.0, 5))
 res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
 
+# ------------------ UNIFORM SIMULATION ONLY ----------------
 
-# figure output path
-figpath = '../figs/'
+# Global settings
+resolutions = [256]                         # simulation resolution (default first)
+flow_types = ['s', 'c', 'm']                # Soluniodal, Compressive, Mixture
+mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]    # Mach numbers
+project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
+min_time = 30                               # Files correponding to times before this will be discarded
+max_time = 100                              # Likewise, after this will be discarded
+
+# Test case:
+"""
+resolutions = [256]                         # simulation resolution (default first)
+flow_types = ['s']                          # Soluniodal, Compressive, Mixture
+mach_nums = [0.1]                           # Mach numbers
+project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
+min_time = 30                               # Files correponding to times before this will be discarded
+max_time = 31                               # Likewise, after this will be discarded
+"""
+
+flow_sizes = ['s', 'c', 'm']
+flow_colors = {'s':'magenta', 'c':'blue', 'm':'green'}
+mach_colours = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
+flow_linestyles = {'s':'dotted', 'c':'solid', 'm':'dashed'}
+flow_markers = {'s':'s', 'c':'o', 'm':'D'}
+flow_labels =   {'s':'Solenoidal',
+                'c':'Compressive',
+                'm':'Mixed'}
 
 
 # ========== global functions ============
@@ -59,6 +89,8 @@ def get_filename(res, void_size, noise_exp=1.0, res_resample=1.0, dill=False):
     return filename
 
 # ===================================================================
+# Given a side length N and noise_exp, return the noise values over an N x N grid
+# The noise values are normalised to have a mean of 0 and std of 1
 def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=True, random_amplitudes=True, random_seed=None):
     # noise_exp = 1 creates a white-noise spectrum. The noise_exp is called 'alpha' in the paper (cf. Sec. 4.1).
     # Note that alpha = beta + 1, and hence, beta = alpha - 1. With alpha = 1, we have beta = 0, which is white noise.
@@ -102,6 +134,7 @@ def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=Tru
     return noise
 
 # ===================================================================
+# Given a signal (N x N array), add noise to it according to the desired SNR
 def add_noise(signal, SNR, noise_exp=1.0):
     N = signal.shape[0]
     noise = get_noise(N, noise_exp) # return noise with 0 mean and std of 1
@@ -121,10 +154,12 @@ def get_Brunt_data(k, P, k_noise=np.inf): # k_noise achieves denoising
     return Brunt_sigma_3D, Brunt_R_to_half
 
 # ===================================================================
+# Given a signal (N x N array), and an SNR, add noise to it for a specified number of trials
+# Return the resulting data in the form of a ret class, defined below
 def noise_iterations(iterations, signal, SNR, noise_exp=1.0):
     # prepare output lists
     sigma_2D_list = []
-    PS_SpN_list = []
+    PS_SpN_list = [] # PS = Power Spectrum, SpN = Signal plus Noise
     PS_N_list = []
     k_noise_list = []
     PS_S_at_k_noise_list = []
@@ -189,13 +224,19 @@ def noise_iterations(iterations, signal, SNR, noise_exp=1.0):
 
 # ===================================================================
 # --- function that computes statistics over the noise samples ---
+# Given a list of ret objects (where the list is all ret objects for a particular SNR,
+# and each ret corresponds to a single projection) return the list [avg, std, p16, p84],
+# where each entry is a ret object, containing all the data for that statiscal value.
 def get_stats_object(objs):
     # -----------------------------------------------------------
+    # Given an array containing all the data for a single attribute (across all ret objects),
+    # return the array [avg, std, 16th, 84th] for it. Some may not be scalars.
     def get_stats(arr, log_stats=True):
         if log_stats:
             arr[arr==0] = 1e-99 # fix 0 values in log statistics
             data_arr = np.log10(arr) # log statistics
-        else: data_arr = arr # linear statistics
+        else:
+            data_arr = arr # linear statistics
         stats = [np.nan, np.nan, np.nan, np.nan] # avg, std, 16th, 84th
         # statistics over axes 0 and 1 = boxes and noise realisations
         stats[0] = np.mean      (data_arr,     axis=(0, 1)) # avg
@@ -207,15 +248,46 @@ def get_stats_object(objs):
                 stats[i] = 10**stats[i]
         return stats
     # -----------------------------------------------------------
+
+    # Make a list of 4 new ret objects to return, the avg, std, p16, p84
     cls = type(objs[0])
     ret_stats_data = [cls.__new__(cls) for _ in range(4)]  # avg, std, p16, p84
-    for k, v in vars(objs[0]).items(): # loop over all keys
+
+    # For each (attribute name, attribute data) in the ret object...
+    for k, v in vars(objs[0]).items():
         # print('Computing statistics on '+k)
+
+        # Get every value for the single attribute k for every ret object in a single list
         vals = [getattr(o, k) for o in objs]
         arr = np.asarray(vals)
-        if k in ['noise_exp', 'noise', 'noisy_data', 'k']: log_stats = False
-        else: log_stats = True
+
+        # Get all the statistics (the list [avg, std, p16, p84]) for the attribute
+        if k in ['noise_exp', 'noise', 'noisy_data', 'k']:
+            log_stats = False
+        else:
+            log_stats = True
         stats = get_stats(arr, log_stats)
+
+        # Store all the results into the ret_stats_data
         for i in range(len(stats)):
             setattr(ret_stats_data[i], k, stats[i])
+
     return ret_stats_data
+
+# ===================================================================
+def make_mach_str(mach: float) -> str:
+    if mach == int(mach):
+        mach_str = 'M' + str(int(mach))
+    else:
+        mach_str = 'M' + str(mach).replace('.', 'p')
+    return mach_str
+
+# ---- generates the model as a string for a given simulation, ie, "N256cM0p2", given the below params
+def make_model_name_params(res, flow_type, mach) -> str:
+    res = str(res)
+    flow_type = str(flow_type)
+    mach = float(mach)
+    mach_str = make_mach_str(mach)
+
+    return 'N' + res + flow_type + mach_str
+
