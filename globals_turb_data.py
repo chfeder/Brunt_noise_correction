@@ -46,7 +46,7 @@ res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
 
 # Global settings
 resolutions = [256]                         # simulation resolution (default first)
-flow_types = ['s', 'c', 'm']                # Soluniodal, Compressive, Mixture
+flow_types = ['s', 'm', 'c']                # Soluniodal, Mixed, Compressive
 mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]    # Mach numbers
 project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
 min_time = 30                               # Files correponding to times before this will be discarded
@@ -55,14 +55,14 @@ max_time = 100                              # Likewise, after this will be disca
 # Test case:
 """
 resolutions = [256]                         # simulation resolution (default first)
-flow_types = ['s']                          # Soluniodal, Compressive, Mixture
+flow_types = ['s']                          # Soluniodal, Mixed, Compressive
 mach_nums = [0.1]                           # Mach numbers
 project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
 min_time = 30                               # Files correponding to times before this will be discarded
 max_time = 31                               # Likewise, after this will be discarded
 """
 
-flow_sizes = ['s', 'c', 'm']
+
 flow_colors = {'s':'magenta', 'c':'blue', 'm':'green'}
 mach_colours = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
 flow_linestyles = {'s':'dotted', 'c':'solid', 'm':'dashed'}

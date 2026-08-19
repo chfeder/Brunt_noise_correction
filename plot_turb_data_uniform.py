@@ -18,7 +18,7 @@ def load_default_plotstyle():
 def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
                 res_resample=1.0, normalize=False, ax=None, save_panel=True):
     xlim = [1e-2, 2]
-    ylim = [1e-14, 2e-2]
+    ylim = [1e-13, 1e4]
     if normalize:
         ylim = [1e-8, 3e4]
     kmax = turb_data['stats'][0].avg.k.max()
@@ -77,7 +77,7 @@ def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
         noise_str = "_noise_exp_"+str(noise_exp)
     save = None
     if save_panel:
-        save = figpath+'PS_N'+str(res)+flow_type+make_mach_str(mach)+noise_str+'.pdf'
+        save = figpath+'extra/PS_N'+str(res)+flow_type+make_mach_str(mach)+noise_str+'.pdf'
     cfp.plot(xlabel=r"$k/k_\mathrm{max}$", ylabel=r"$P$", ax=ax, xlog=True, ylog=True,
              xlim=xlim, ylim=ylim, save=save)
 # ===================================================================
@@ -140,27 +140,72 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
     # generate final plot and save
     save = None
     if save_panel:
-        save = figpath+"flow_type_"+str(flow_type)+'_k_noise_vs_SNR.pdf'
+        save = figpath+"extra/flow_type_"+str(flow_type)+'_k_noise_vs_SNR.pdf'
     cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=r"$k_\mathrm{noise}/k_\mathrm{max}$", ax=ax, save=save,
                 xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0])
 
 
+# ---------------------- GRIDS ----------------------------
+
 # Creates a flow_types x machs grid of power spectra plots
-def plot_spectra_grid(turb_data, flow_types=['s', 'm', 'c'], machs=[0.1, 0.5, 2, 10]):
-    fig, axes = plt.subplots(len(machs), len(flow_types), figsize=(11, 3), sharex=True, sharey=True, squeeze=False)
+def plot_spectra_grid(turb_data, flow_types=['s', 'm', 'c'], machs=[0.1, 0.5, 2, 10], grid_size=(12, 16)):
+    fig, axes = plt.subplots(len(machs), len(flow_types), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
     for icol, ft in enumerate(flow_types):
         for irow, mach in enumerate(machs):
             plot_spectra(turb_data[ft][mach], ft, mach, ax=axes[irow, icol], save_panel=False)
     fig.tight_layout()
-    fig.savefig(figpath + 'PS_grid.pdf', bbox_inches='tight')
+    fig.savefig(figpath + 'main/PS_grid.pdf', bbox_inches='tight')
     plt.close(fig)
 
-def plot_flows_grid(turb_data, flows=['s','c']):
-    fig, axes = plt.subplots(len(flow_types), 1, figsize=(14, 9), sharex=True, sharey=True, squeeze=False)
+def plot_flows_grid(turb_data, flows=['s','c'], grid_size=(12, 16)):
+    fig, axes = plt.subplots(1, len(flows), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
     for irow, ft in enumerate(flows):
             plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, irow], save_panel=False)
     fig.tight_layout()
-    fig.savefig(figpath + 'Flows_grid.pdf', bbox_inches='tight')
+    fig.savefig(figpath + 'main/flows_grid.pdf', bbox_inches='tight')
+
+def plot_z_proj_grid(turb_data, isnr=0, flow_types=['s','m','c'], machs=[0.1, 0.5, 2, 10], timestep=50, grid_size=(9, 12)):
+    # j here is the number which refers to the ret object, since they follow a pattern of
+    # (0,x) -> (0,y) -> (0,z) -> (1,x) -> ...
+    # for (timestep, projection LOS).
+
+    cfp.load_plot_style(fontsize=20)
+
+    j = (timestep * 3) + 2
+    all_z_projs = [turb_data[ft][mach]['data'][isnr][j].noisy_data[0] for ft in flow_types for mach in machs]
+    vmin = min(m.min() for m in all_z_projs)
+    vmax = max(m.max() for m in all_z_projs)
+    print(f"vmin: {vmin}")
+    print(f"vmax: {vmax}")
+    cmap = 'magma'
+    SNR = SNR_list[isnr]
+
+    fig, axes = plt.subplots(len(machs), len(flow_types), figsize=grid_size, squeeze=False)
+    for irow, mach in enumerate(machs):
+        for icol, ft in enumerate(flow_types):
+            ax = axes[irow, icol]
+
+            # check SNR match
+            dat = turb_data[ft][mach]['data'][isnr][j]
+            if dat.SNR[0] != SNR:
+                print("SNR DOESN'T MATCH")
+
+            po = cfp.plot_map(dat.noisy_data[0], ax=ax, log=True, axes_format=["", ""], axes_ticks=[[],[]],
+                                vmin=vmin, vmax=vmax, cmap=cmap, colorbar=False)
+            ax.text(0.5, 0.88, r"$\mathcal{M} = "+str(mach)+r"$", ha='center', va='center',
+                        transform=ax.transAxes, bbox=dict(boxstyle="round", fc="white", alpha=0.9))
+            if irow == 0:
+                ax.set_title(flow_labels[ft])
+
+    save = figpath+'main/noisy_data_map_grid_SNR_'+cfp.eform(SNR,prec=1)+'.pdf'
+    fig.savefig(save, bbox_inches='tight')
+    plt.close(fig)
+    print("Wrote '"+save+"'.", color='magenta')
+
+    # plot colorbar
+    cfp.plot_colorbar(vmin=vmin, vmax=vmax, log=True, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
+                        panels=3, orientation="horizontal", save=figpath+'main/noisy_data_map_grid_cbar.pdf')
+    load_default_plotstyle()
 
 
 # ===== the following applies in case we are running this in script mode =====
@@ -181,18 +226,13 @@ if __name__ == "__main__":
 
     # load default data
     turb_data = {flow_type: {} for flow_type in flow_types}
-
+    print("------------------ LOADING DATA -----------------------")
     for res, flow_type, mach in sims:
         sim_name = make_model_name_params(res, flow_type, mach)
         dillfile = f"{project_path}processed_data/{sim_name}.dill"
         with open(dillfile, "rb") as f:
             turb_data[flow_type][mach] = dill.load(f)
         print("Read '"+dillfile+"'.", color='green')
-
-
-    for mach in [0.1, 1, 10]:
-        for ft in ['s', 'c']:
-            print(ft, mach, [turb_data[ft][mach]['stats'][i].avg.k_noise for i in range(1,8)])
 
 
     # -------- FIGURES NOT TO BE USED IN REPORT --------
@@ -211,9 +251,22 @@ if __name__ == "__main__":
 
     # --------- FIGURES TO BE USED IN REPORT ------------
 
-    # Grid of power spectra
-    plot_spectra_grid(turb_data, flow_types, machs=[0.1, 0.5, 2, 10])
+    # Figure 1:
+    # Grid of z-projections
+    # NOTE THIS PLOT IS LOGARITHMIC
+    print("----------------- FIGURE 1 -------------------------")
+    plot_z_proj_grid(turb_data, flow_types=flow_types, machs=[0.1, 0.5, 2, 10], grid_size=(12, 16))
 
+    # Figure 2:
+    # Grid of power spectra
+    print("----------------- FIGURE 2 -------------------------")
+    plot_spectra_grid(turb_data, flow_types, machs=[0.1, 0.5, 2, 10], grid_size=(14, 16))
+
+    # Figure 3:
     # Grid of plots of x=SNR, y=knoise/kmax, across mach numbers
-    plot_flows_grid(turb_data, flows=['c', 's'])
+    print("----------------- FIGURE 3 -------------------------")
+    plot_flows_grid(turb_data, flows=['c', 's'], grid_size=(8, 4))
+
+
+    print("End.")
 
