@@ -3,10 +3,14 @@
 # Queue type: normal
 #PBS -q normal
 
+# 1 job per resolution (128, 256)
+#PBS -J 0-1
+#PBS -r y
+
 #PBS -P ek9
 #PBS -l walltime=00:10:00
 #PBS -l ncpus=1
-#PBS -l mem=64GB
+#PBS -l mem=96GB
 #PBS -l storage=scratch/ek9
 
 # Add output files into logs/
@@ -25,7 +29,7 @@ module load python3/3.12.1
 module load openmpi/4.0.7
 mkdir -p logs
 mkdir -p ../figs
-mpirun -np 1 python3 ./plot_turb_data_uniform.py 1>logs/plot.out 2>&1
+mpirun -np 1 python3 ./plot_turb_data_uniform.py -ires $PBS_ARRAY_INDEX 1>logs/plot.out.$PBS_ARRAY_INDEX 2>&1
 
-# Run this file with the following
+# Run this file with:
 # qsub plot_uniform_job.sh

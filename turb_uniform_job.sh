@@ -3,8 +3,8 @@
 # Queue type: normal
 #PBS -q normal
 
-# 1 job per simulation (21, since 1 resolution * 3 flow types * 7 Mach numbers)
-#PBS -J 0-20
+# 1 job per simulation (42, since 2 resolution * 3 flow types * 7 Mach numbers)
+#PBS -J 0-41
 #PBS -r y
 
 #PBS -P ek9
@@ -32,8 +32,10 @@ mpirun -np 1 python3 ./get_turb_data_uniform.py -isim $PBS_ARRAY_INDEX 1>logs/sh
 
 # Run this file with the following (since there's a max array size of 10, and min of 2):
 # qsub -J 0-9 turb_uniform_job.sh
-# qsub -J 10-18 turb_uniform_job.sh
-# qsub -J 19-20 turb_uniform_job.sh
+# qsub -J 10-19 turb_uniform_job.sh
+# qsub -J 20-29 turb_uniform_job.sh
+# qsub -J 30-39 turb_uniform_job.sh
+# qsub -J 40-41 turb_uniform_job.sh
 
 # Takes about 50mins to run everything.
 

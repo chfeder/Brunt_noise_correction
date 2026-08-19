@@ -85,7 +85,7 @@ if __name__ == "__main__":
                     print("===== RESOLUTION RESAMPLING FACTOR = "+str(res_resample)+" =====", color='yellow')
 
                 # data collection per box and/or LOS
-                data = [[] for _ in range(len(SNR_list))] # The outer axis is SNRs, inner axis is rets
+                data = [[] for _ in range(len(SNR_list_uniform))] # The outer axis is SNRs, inner axis is rets
 
                 # Loop over each timestep in the simulation
                 for filename in timestepped_filenames:
@@ -101,7 +101,7 @@ if __name__ == "__main__":
                         proj = dens.sum(axis=LOS) / dens.shape[LOS]
 
                         # loop over the 7 SNRs
-                        for iSNR, SNR in enumerate(SNR_list):
+                        for iSNR, SNR in enumerate(SNR_list_uniform):
 
                             # Add the noise randomly for a total of noise_samples times, then store it
                             ret = noise_iterations(noise_samples, proj, SNR, noise_exp=noise_exp)
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
                 # compute statistics
                 stats = []
-                for iSNR in range(len(SNR_list)):
+                for iSNR in range(len(SNR_list_uniform)):
                     avg, std, p16, p84 = get_stats_object(data[iSNR]) # data[iSNR] is all the rets per projection for iSNR
                     stats.append(SimpleNamespace(avg=avg, std=std, p16=p16, p84=p84))
 
