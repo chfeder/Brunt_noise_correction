@@ -83,27 +83,28 @@ def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
 # ===================================================================
 def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True):
     # ----------------------------------------------------
-    def k_noise_func(SNR, SNR_crit=1.0):
-        PL_exp = 2.0 / 3.0
+    def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
+        #PL_exp = 2.0 / 3.0
         sharpness = 4.0
         k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
         return np.log(k_noise)
     # ----------------------------------------------------
     # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
-    xlim = [5e-2, 2e2]
+    xlim = [5e-2, 2e3]
     mach_list = []
     SNR_crit = []
     SNR_crit_err = []
 
     for iMach, mach in enumerate(mach_nums):
-        kmax = turb_data[flow_type][mach]['stats'][0].avg.k.max()
+        kmax = turb_data[flow_type][mach]['stats'][0].avg.k.max() #this should be context for the uniform experiemtn
+
+        print(f"kmax is {kmax}")
+
         mach_list.append(mach)
         snr = []
         k_noise = []
         k_noise_err = []
         for isnr, SNR in enumerate(SNR_list_uniform):
-            if SNR > 100 or SNR < 1e-1:
-                continue
             x = SNR
             snr.append(x)
             y = turb_data[flow_type][mach]['stats'][isnr].avg.k_noise/kmax
@@ -113,7 +114,7 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
             k_noise_err.append(np.mean(yerr))
             if SNR == 1:
                 label = r"$Mach="+str(mach)+r"$"
-                lf = cfp.legend_formatter().add(pos=(0.64-(2-0)*0.05,0.45-iMach*0.085))
+                lf = cfp.legend_formatter().add(pos=(0.64-(2-0)*0.05,0.55-iMach*0.085))
             else:
                 label = None
                 lf = None
@@ -122,19 +123,23 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
         snr = np.array(snr)
         k_noise = np.array(k_noise)
         k_noise_err = np.array(k_noise_err)
-        params = {'SNR_crit':[0.1,1.0,50]}
+
+        # free variables to fit the function too
+        # format: [lower bound, starting guess, upper bound]
+        params = {
+            'SNR_crit': [0, 1.0, 1000], #original: [0.1, 1.0, 50]
+            'PL_exp':   [0, 1.0, 1000]  #originally fixed to 2/3
+        }
         fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
                             params=params, n_random_draws=100)
+
         SNR_crit.append(fitdat.popt[0])
         SNR_crit_err.append(fitdat.perr[0])
         xfit = cfp.logspace(xlim[0], xlim[1], 200)
         yfit = np.exp(k_noise_func(xfit, *fitdat.popt)) # best-fit line
 
-        lf = cfp.legend_formatter().add(pos=(0.01,0.92-0*0.075))
-
-        # I removed label=label here
-        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colours[iMach], linestyle=flow_linestyles[flow_type],
-                    legend_formatter=lf)
+        # I removed label=label and legend_formatter=lf here
+        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colours[iMach], linestyle=flow_linestyles[flow_type])
     mach_list = np.array(mach_list)
     SNR_crit = np.array(SNR_crit)
     SNR_crit_err = np.array(SNR_crit_err)
@@ -166,24 +171,33 @@ def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.
 
 def plot_flows_grid(turb_data, res, flow_types=['s','c'], grid_size=(12, 16)):
     fig, axes = plt.subplots(1, len(flow_types), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
-    for irow, ft in enumerate(flow_types):
-            plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, irow], save_panel=False)
+    for icol, ft in enumerate(flow_types):
+            axes[0, icol].set_title(flow_labels[ft])
+            plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, icol], save_panel=False)
     fig.tight_layout()
     fig.savefig(figpath + f'main/flows_grid_N{res}.pdf', bbox_inches='tight')
 
-def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.1, 0.5, 2, 10], timestep=50, grid_size=(9, 12)):
+def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.1, 0.5, 2, 10], timestep=50,
+                        grid_size=(9, 12), log=True, label_info=""):
     # j here is the number which refers to the ret object, since they follow a pattern of
     # (0,x) -> (0,y) -> (0,z) -> (1,x) -> ...
     # for (timestep, projection LOS).
 
     cfp.load_plot_style(fontsize=20)
 
-    j = (timestep * 3) + 2
-    all_z_projs = [turb_data[ft][mach]['data'][isnr][j].noisy_data[0] for ft in flow_types for mach in machs]
-    vmin = min(m.min() for m in all_z_projs)
-    vmax = max(m.max() for m in all_z_projs)
-    print(f"vmin: {vmin}")
-    print(f"vmax: {vmax}")
+    if log:
+        # set the real min and max as log boundaries
+        j = (timestep * 3) + 2
+        all_z_projs = [turb_data[ft][mach]['data'][isnr][j].noisy_data[0] for ft in flow_types for mach in machs]
+        vmin = min(m.min() for m in all_z_projs)
+        vmax = max(m.max() for m in all_z_projs)
+        print(f"vmin: {vmin}")
+        print(f"vmax: {vmax}")
+    else:
+        #original paper's: vmin, vmax = 5e-3, 1e-2
+        vmin, vmax = 5e-2, 1e-2
+
+
     cmap = 'magma'
     SNR = SNR_list_uniform[isnr]
 
@@ -197,21 +211,21 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
             if dat.SNR[0] != SNR:
                 print("SNR DOESN'T MATCH")
 
-            po = cfp.plot_map(dat.noisy_data[0], ax=ax, log=True, axes_format=["", ""], axes_ticks=[[],[]],
+            po = cfp.plot_map(dat.noisy_data[0], ax=ax, log=log, axes_format=["", ""], axes_ticks=[[],[]],
                                 vmin=vmin, vmax=vmax, cmap=cmap, colorbar=False)
             ax.text(0.5, 0.88, r"$\mathcal{M} = "+str(mach)+r"$", ha='center', va='center',
                         transform=ax.transAxes, bbox=dict(boxstyle="round", fc="white", alpha=0.9))
             if irow == 0:
                 ax.set_title(flow_labels[ft])
 
-    save = figpath+f'main/noisy_data_map_grid_SNR_'+cfp.eform(SNR,prec=1)+f'_N{res}.pdf'
+    save = figpath+f'main/z_proj_grid_'+cfp.eform(SNR,prec=1)+f'_N{res}_{label_info}.pdf'
     fig.savefig(save, bbox_inches='tight')
     plt.close(fig)
     print("Wrote '"+save+"'.", color='magenta')
 
     # plot colorbar
-    cfp.plot_colorbar(vmin=vmin, vmax=vmax, log=True, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
-                        panels=3, orientation="horizontal", save=figpath+f'main/noisy_data_map_grid_cbar_N{res}.pdf')
+    cfp.plot_colorbar(vmin=vmin, vmax=vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
+                        panels=3, orientation="horizontal", save=figpath+f'main/z_proj_grid_scale_N{res}_{label_info}.pdf')
     load_default_plotstyle()
 
 
@@ -269,8 +283,16 @@ if __name__ == "__main__":
         plot_z_proj_grid(turb_data[res],
                             res=res,
                             flow_types=flow_types,
-                            machs=[0.1, 0.5, 2, 10],
-                            grid_size=(12, 16))
+                            machs=[0.1, 0.5],
+                            grid_size=(12, 16),
+                            label_info="subsonic")
+        plot_z_proj_grid(turb_data[res],
+                            res=res,
+                            flow_types=flow_types,
+                            machs=[2, 10],
+                            grid_size=(12, 16),
+                            label_info="supersonic")
+
 
         # Figure 2:
         # Grid of power spectra
@@ -286,7 +308,7 @@ if __name__ == "__main__":
         print("----------------- FIGURE 3 -------------------------")
         plot_flows_grid(turb_data[res],
                             res=res,
-                            flow_types=['c', 's'],
+                            flow_types=['s', 'c'],
                             grid_size=(9, 4))
 
     print("End.")

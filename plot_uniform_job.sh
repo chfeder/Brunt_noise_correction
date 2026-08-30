@@ -33,3 +33,5 @@ mpirun -np 1 python3 ./plot_turb_data_uniform.py -ires $PBS_ARRAY_INDEX 1>logs/p
 
 # Run this file with:
 # qsub plot_uniform_job.sh
+
+# usually takes about 4 mins
