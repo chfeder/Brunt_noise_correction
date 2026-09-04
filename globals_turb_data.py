@@ -45,13 +45,14 @@ res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
 # ------------------ UNIFORM SIMULATION ONLY ----------------
 
 # Global settings
-resolutions = [128, 256]                                    # Simulation resolution
+resolutions = [256]                                         # Simulation resolution
 flow_types = ['s', 'm', 'c']                                # Soluniodal, Mixed, Compressive
 mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]                    # Mach numbers
 project_path = "/scratch/ek9/ag9727/asc/"                   # Path to folder
 min_time = 30                                               # Files correponding to times before this will be discarded
 max_time = 100                                              # Likewise, after this will be discarded
-SNR_list_uniform = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100, 1000] # Signal to Noise Ratios
+#SNR_list_uniform = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100, 1000] # Signal to Noise Ratios
+SNR_list_uniform = [1e6, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000]
 
 # Test case:
 """
