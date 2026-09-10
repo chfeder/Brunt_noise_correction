@@ -2,6 +2,7 @@
 
 from globals_turb_data import *
 from itertools import product
+import math
 import argparse
 
 # ===================================================================
@@ -26,13 +27,14 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
 
     midpt = math.floor(len(machs)/2)
 
-    lower_machs = machs[0:midpt-1]
+    lower_machs = machs[0:midpt]
     upper_machs = machs[midpt:len(machs)]
 
+    # set the real min and max as log boundaries
+    j = (timestep * 3) + 2
 
     if log:
-        # set the real min and max as log boundaries
-        j = (timestep * 3) + 2
+
         all_z_projs = [turb_data[ft][mach]['data'][isnr][j].noisy_data[0] for ft in flow_types for mach in lower_machs]
         lower_vmin = min(m.min() for m in all_z_projs)
         lower_vmax = max(m.max() for m in all_z_projs)
@@ -46,7 +48,6 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
         print(f"upper_vmax: {upper_vmax}")
     else:
         #original paper's: vmin, vmax = 5e-3, 1e-2
-        vmin, vmax = 5e-2, 1e-2
         lower_vmin, lower_vmax = 5e-2, 1e-2
         upper_vmin, upper_vmax = 5e-2, 1e-2
 
@@ -81,7 +82,7 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
     print("Wrote '"+save+"'.", color='magenta')
 
     # plot colorbar
-    cfp.plot_colorbar(vmin=upper_vmax, vmax=upper_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
+    cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
                         panels=3, orientation="horizontal", save=figpath+f'main/upper_z_proj_grid_scale_N{res}_{label_info}.pdf')
     cfp.plot_colorbar(vmin=lower_vmax, vmax=lower_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
                         panels=3, orientation="horizontal", save=figpath+f'main/lower_z_proj_grid_scale_N{res}_{label_info}.pdf')
@@ -244,27 +245,6 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
         save = figpath+"extra/flow_type_"+str(flow_type)+'_k_noise_vs_SNR.pdf'
     cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=r"$k_\mathrm{noise}/k_\mathrm{max}$", ax=ax, save=save,
                 xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0])
-
-    # ------PARAM GRAPHS ------------------
-
-    #OLD:
-    """
-    for ivs, void_size in enumerate(void_sizes):
-        ib, ie = ivs * len(res_resample_list), (ivs + 1) * len(res_resample_list)
-        cfp.plot(x=kmax_list[ib:ie], y=SNR_crit[ib:ie], yerr=SNR_crit_err[ib:ie].T, marker=void_markers[void_size],
-                    linestyle='none', color=void_colors[void_size], label=void_size_labels[void_size],
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-ivs*0.09)))
-    def PL(x, a):
-        return a*x**(2.0/3.0)
-    fitdat = cfp.fit(PL, kmax_list, SNR_crit, yerr=np.abs(SNR_crit_err.T).mean(axis=0))
-    xfit = cfp.logspace(kmax_list.min(), kmax_list.max(), 200)
-    yfit = PL(xfit, *fitdat.popt) # best-fit line
-    label = r'$\mathrm{SNR_{crit}}=('+cfp.round(fitdat.popt[0],2,True)+r'\pm'+cfp.round(fitdat.pstd[0],1,True)+r')\,k_\mathrm{max}^{2/3}$'
-    cfp.plot(x=xfit, y=yfit, linewidth=1.0, color='black', label=label,
-                legend_formatter=cfp.legend_formatter().add(pos=(0.25,0.15)))
-    cfp.plot(xlog=True, ylog=True, xlabel=r'$k_\mathrm{max}$', ylabel=r'$\mathrm{SNR_{crit}}$',
-                xlim=[10, 2.5e2], save=figpath+'SNR_crit_vs_kmax.pdf')
-    """
 
 
 def plot_flows_grid(turb_data, res, flow_types=['s','c'], grid_size=(12, 16)):
@@ -432,16 +412,9 @@ if __name__ == "__main__":
         plot_z_proj_grid(turb_data[res],
                             res=res,
                             flow_types=flow_types,
-                            machs=[0.1, 0.5],
+                            machs=[0.1, 0.5, 2, 10],
                             grid_size=(12, 16),
-                            label_info="subsonic")
-        plot_z_proj_grid(turb_data[res],
-                            res=res,
-                            flow_types=flow_types,
-                            machs=[2, 10],
-                            grid_size=(12, 16),
-                            label_info="supersonic")
-
+                            label_info="")
 
         # Figure 2:
         # Grid of power spectra
