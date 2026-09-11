@@ -305,7 +305,6 @@ def fit_k_noise_vs_SNR(turb_data, flow_type):
             'PL_exp':   [0, 1.0, 1000]  #originally fixed to 2/3
         }
         fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
-                        fit_method='mcmc',
                          params=params, n_random_draws=100)
 
         SNR_crit.append(fitdat.popt[0]); SNR_crit_err.append(fitdat.perr[0])
@@ -328,8 +327,12 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'c']):
     """
     fig, axes = plt.subplots(2, len(flow_types), figsize=(6*len(flow_types), 8), squeeze=False)
 
-    def PL(x, a, b):
-        return a*x**b
+
+    #def PL(x, a, b):
+    #    return a*x**b
+
+    def PL_log(x, log_a, b):
+        return log_a + b * np.log(x)
 
     for icol, flow_type in enumerate(flow_types):
         mach_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR(turb_data, flow_type)
@@ -341,11 +344,24 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'c']):
                     #label=flow_labels[flow_type],
                     #legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90))
                     )
-        fitdat = cfp.fit(PL, mach_list, SNR_crit, yerr=np.abs(SNR_crit_err.T).mean(axis=0), fit_method='mcmc')
+        """
+        # Linear fit code
+        fitdat = cfp.fit(PL, mach_list, SNR_crit, yerr=np.abs(SNR_crit_err.T).mean(axis=0))
         xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
         yfit = PL(xfit, *fitdat.popt)
         label = (r'$\mathrm{SNR_{crit}}=('+cfp.round(fitdat.popt[0],2,True)+r')\,\mathcal{M}^{'
                  +cfp.round(fitdat.popt[1],2,True)+r'}$')
+        """
+        # Log fit code
+        yerr_mean = np.abs(SNR_crit_err.T).mean(axis=0)
+        fitdat = cfp.fit(PL_log, mach_list, np.log(SNR_crit), yerr=yerr_mean/SNR_crit)
+        a, b = np.exp(fitdat.popt[0]), fitdat.popt[1]
+        xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
+        yfit = a * xfit**b
+        label = (r'$\mathrm{SNR_{crit}}=('+cfp.round(a,2,True)+r')\,\mathcal{M}^{'
+                 +cfp.round(b,2,True)+r'}$')
+
+
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color='black', label=label,
                     legend_formatter=cfp.legend_formatter().add(pos=(0.25,0.15)))
         cfp.plot(xlog=True, ylog=True, ax=ax,
@@ -359,11 +375,23 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'c']):
         ax = axes[1, icol]
         cfp.plot(x=mach_list, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
                     marker=flow_markers[flow_type], linestyle='none', color=flow_colors[flow_type])
-        fitdat = cfp.fit(PL, mach_list, PL_exp_list, yerr=np.abs(PL_exp_err.T).mean(axis=0), fit_method='mcmc')
+
+        """
+        # linear fit code
+        fitdat = cfp.fit(PL, mach_list, PL_exp_list, yerr=np.abs(PL_exp_err.T).mean(axis=0))
         xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
         yfit = PL(xfit, *fitdat.popt)
         label = (r'$\mathrm{PL_{exp}}=('+cfp.round(fitdat.popt[0],2,True)+r')\,\mathcal{M}^{'
                  +cfp.round(fitdat.popt[1],2,True)+r'}$')
+        """
+        # log fit code
+        yerr_mean = np.abs(PL_exp_err.T).mean(axis=0)
+        fitdat = cfp.fit(PL_log, mach_list, np.log(PL_exp_list), yerr=yerr_mean/PL_exp_list)
+        a, b = np.exp(fitdat.popt[0]), fitdat.popt[1]
+        xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
+        yfit = a * xfit**b
+        label = (r'$\mathrm{PL_{exp}}=('+cfp.round(a,2,True)+r')\,\mathcal{M}^{'
+                 +cfp.round(b,2,True)+r'}$')
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color='black', label=label,
                     legend_formatter=cfp.legend_formatter().add(pos=(0.25,0.15)))
         cfp.plot(xlog=True, ylog=True, ax=ax, xlabel=r'$\mathcal{M}$')
@@ -489,6 +517,10 @@ if __name__ == "__main__":
     # reduce sim cases to load for efficency during test
     testing = False
     if testing:
+        # figure 4
+        flow_types = ["s", "c"]
+
+        # Figure 5
         mach_nums = [0.1, 0.5, 2, 10]
         flow_types = ["s", "c"]
 
