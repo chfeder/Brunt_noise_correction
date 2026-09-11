@@ -9,7 +9,7 @@
 #PBS -P ek9
 #PBS -l walltime=00:10:00
 #PBS -l ncpus=1
-#PBS -l mem=96GB
+#PBS -l mem=128GB
 #PBS -l storage=scratch/ek9
 
 # Add output files into logs/
@@ -31,6 +31,6 @@ mkdir -p ../figs
 mpirun -np 1 python3 ./plot_turb_data_uniform.py -ires 0 1>logs/plot.out.0 2>&1
 
 # Run this file with:
-# qsub plot_uniform_job.sh
+# qsub ./plot_uniform_job.sh
 
 # usually takes about 4 mins

@@ -2,6 +2,7 @@
 
 from globals_turb_data import *
 from itertools import product
+from datetime import datetime
 import math
 import argparse
 
@@ -48,14 +49,16 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
         print(f"upper_vmax: {upper_vmax}")
     else:
         #original paper's: vmin, vmax = 5e-3, 1e-2
-        lower_vmin, lower_vmax = 5e-2, 1e-2
-        upper_vmin, upper_vmax = 5e-2, 1e-2
+        lower_vmin, lower_vmax = 5e-3, 1e-2
+        upper_vmin, upper_vmax = 5e-3, 1e-2
 
 
     cmap = 'magma'
     SNR = SNR_list_uniform[isnr]
 
-    fig, axes = plt.subplots(len(machs), len(flow_types), figsize=grid_size, squeeze=False)
+
+    fig, axes = plt.subplots(len(machs), len(flow_types), squeeze=False, figsize=grid_size, gridspec_kw={'hspace': 0, 'wspace': 0})
+    fig.set_constrained_layout(False)
     for irow, mach in enumerate(machs):
         for icol, ft in enumerate(flow_types):
             ax = axes[irow, icol]
@@ -66,26 +69,35 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
                 print("SNR DOESN'T MATCH")
 
             if mach in lower_machs:
-                po = cfp.plot_map(dat.noisy_data[0], ax=ax, log=log, axes_format=["", ""], axes_ticks=[[],[]],
+                po_lower = cfp.plot_map(dat.noisy_data[0], ax=ax, log=log, axes_format=["", ""], axes_ticks=[[],[]],
                                     vmin=lower_vmin, vmax=lower_vmax, cmap=cmap, colorbar=False)
+                ax.set_box_aspect(1)
             else:
-                po = cfp.plot_map(dat.noisy_data[0], ax=ax, log=log, axes_format=["", ""], axes_ticks=[[],[]],
+                po_upper = cfp.plot_map(dat.noisy_data[0], ax=ax, log=log, axes_format=["", ""], axes_ticks=[[],[]],
                                     vmin=upper_vmin, vmax=upper_vmax, cmap=cmap, colorbar=False)
+                ax.set_box_aspect(1)
+
             ax.text(0.5, 0.88, r"$\mathcal{M} = "+str(mach)+r"$", ha='center', va='center',
                         transform=ax.transAxes, bbox=dict(boxstyle="round", fc="white", alpha=0.9))
             if irow == 0:
+
                 ax.set_title(flow_labels[ft])
 
-    save = figpath+f'main/z_proj_grid_'+cfp.eform(SNR,prec=1)+f'_N{res}_{label_info}.pdf'
-    fig.savefig(save, bbox_inches='tight')
+    #important: this solves the alignment problem, eliminating all the gaps
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
+
+    save = figpath+f'main/fig_1_z_proj_grid_'+cfp.eform(SNR,prec=1)+f'_N{res}_{label_info}.pdf'
+    fig.savefig(save)
     plt.close(fig)
     print("Wrote '"+save+"'.", color='magenta')
 
-    # plot colorbar
+
+    #plot colorbar
     cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
-                        panels=3, orientation="horizontal", save=figpath+f'main/upper_z_proj_grid_scale_N{res}_{label_info}.pdf')
+                       panels=3, orientation="vertical", save=figpath+f'main/fig_1_cbar_above_zero_machs.pdf')
     cfp.plot_colorbar(vmin=lower_vmax, vmax=lower_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
-                        panels=3, orientation="horizontal", save=figpath+f'main/lower_z_proj_grid_scale_N{res}_{label_info}.pdf')
+                       panels=3, orientation="vertical", save=figpath+f'main/fig_1_cbar_below_zero_machs.pdf')
+
 
     load_default_plotstyle()
 
@@ -104,7 +116,7 @@ def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.
             if icol == 0:
                 axes[irow, icol].set_ylabel(r"$\mathcal{M} = " + str(mach) + "$")
     fig.tight_layout()
-    fig.savefig(figpath + f'main/PS_grid_N{res}.pdf', bbox_inches='tight')
+    fig.savefig(figpath + f'main/fig_2_PS_grid_N{res}.pdf', bbox_inches='tight')
     plt.close(fig)
 
 def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
@@ -169,7 +181,7 @@ def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
         noise_str = "_noise_exp_"+str(noise_exp)
     save = None
     if save_panel:
-        save = figpath+'extra/PS_N'+str(res)+flow_type+make_mach_str(mach)+noise_str+'.pdf'
+        save = figpath+'extra/fig_2_PS_N'+str(res)+flow_type+make_mach_str(mach)+noise_str+'.pdf'
     cfp.plot(xlabel=r"$k/k_\mathrm{max}$", ylabel=r"$P$", ax=ax, xlog=True, ylog=True,
              xlim=xlim, ylim=ylim, save=save)
 
@@ -253,7 +265,7 @@ def plot_flows_grid(turb_data, res, flow_types=['s','c'], grid_size=(12, 16)):
             axes[0, icol].set_title(flow_labels[ft])
             plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, icol], save_panel=False)
     fig.tight_layout()
-    fig.savefig(figpath + f'main/flows_grid_N{res}.pdf', bbox_inches='tight')
+    fig.savefig(figpath + f'main/fig_3_flows_grid_N{res}.pdf', bbox_inches='tight')
 
 
 
@@ -293,6 +305,7 @@ def fit_k_noise_vs_SNR(turb_data, flow_type):
             'PL_exp':   [0, 1.0, 1000]  #originally fixed to 2/3
         }
         fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
+                        fit_method='mcmc',
                          params=params, n_random_draws=100)
 
         SNR_crit.append(fitdat.popt[0]); SNR_crit_err.append(fitdat.perr[0])
@@ -325,9 +338,10 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'c']):
         ax = axes[0, icol]
         cfp.plot(x=mach_list, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
                     marker=flow_markers[flow_type], linestyle='none', color=flow_colors[flow_type],
-                    label=flow_labels[flow_type],
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90)))
-        fitdat = cfp.fit(PL, mach_list, SNR_crit, yerr=np.abs(SNR_crit_err.T).mean(axis=0))
+                    #label=flow_labels[flow_type],
+                    #legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90))
+                    )
+        fitdat = cfp.fit(PL, mach_list, SNR_crit, yerr=np.abs(SNR_crit_err.T).mean(axis=0), fit_method='mcmc')
         xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
         yfit = PL(xfit, *fitdat.popt)
         label = (r'$\mathrm{SNR_{crit}}=('+cfp.round(fitdat.popt[0],2,True)+r')\,\mathcal{M}^{'
@@ -337,26 +351,128 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'c']):
         cfp.plot(xlog=True, ylog=True, ax=ax,
                     xlabel=(r'$\mathcal{M}$' if icol==0 else None),
                     ylabel=(r'$\mathrm{SNR_{crit}}$' if icol==0 else None))
-        if icol == 0: ax.set_ylabel(r'$\mathrm{SNR_{crit}}$')
+        if icol == 0:
+            ax.set_ylabel(r'$\mathrm{SNR_{crit}}$')
         ax.set_title(flow_labels[flow_type])
 
         # --- row 1: PL_exp vs Mach ---
         ax = axes[1, icol]
         cfp.plot(x=mach_list, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
                     marker=flow_markers[flow_type], linestyle='none', color=flow_colors[flow_type])
-        cfp.plot(xlog=True, ylog=False, ax=ax, xlabel=r'$\mathcal{M}$')
-        if icol == 0: ax.set_ylabel(r'$\mathrm{PL_{exp}}$')
+        fitdat = cfp.fit(PL, mach_list, PL_exp_list, yerr=np.abs(PL_exp_err.T).mean(axis=0), fit_method='mcmc')
+        xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
+        yfit = PL(xfit, *fitdat.popt)
+        label = (r'$\mathrm{PL_{exp}}=('+cfp.round(fitdat.popt[0],2,True)+r')\,\mathcal{M}^{'
+                 +cfp.round(fitdat.popt[1],2,True)+r'}$')
+        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color='black', label=label,
+                    legend_formatter=cfp.legend_formatter().add(pos=(0.25,0.15)))
+        cfp.plot(xlog=True, ylog=True, ax=ax, xlabel=r'$\mathcal{M}$')
+        if icol == 0:
+            ax.set_ylabel(r'$\mathrm{PL_{exp}}$')
 
     fig.tight_layout()
-    save = figpath + 'main/SNR_crit_PL_exp_vs_Mach.pdf'
+    save = figpath + 'main/fig_4_SNR_crit_PL_exp_vs_Mach.pdf'
     fig.savefig(save, bbox_inches='tight')
     plt.close(fig)
     print("Wrote '"+save+"'.")
 
+# =========================== FIGURE 5 ==============================================
+def plot_z_proj_grid_with_noise(turb_data, flow_types=['s', 'c'], machs=[0.1, 10], snrs=[0.1, 1, 10],
+                                res=256, isnr=0,  timestep=50,
+                                grid_size=(9, 12), symlog=True, label_info=""):
+    """
+    plots the following grid:
+                                | SNRS
+                                | 0.1       1      10
+    ------------------------------------------------------
+    solenoidal      | Mach 0.1  |
+                    | Mach 10   |
+    compressive     | Mach 0.1  |
+                    | Mach 10   |
+
+    each entry is the z projection heatmap
+    """
+    cfp.load_plot_style(fontsize=20)
+
+    j = (timestep * 3) + 2
+
+    row_keys = [(ft, mach) for mach in machs for ft in flow_types]
+    isnrs = [SNR_list_uniform.index(SNR) for SNR in snrs]
+
+    cmap = "magma" if not symlog else 'RdBu_r'
+    mach_cbars = {}
+
+    # one scale per Mach
+    scales = {}
+    for mach in machs:
+        # noisy_data[0] is the actual data in the proj
+        maps = [turb_data[ft][mach]['data'][isnr][j].noisy_data[0] for ft in flow_types for isnr in isnrs]
+        # all vals for that mach acorss every flow type and used mach
+        allvals = np.concatenate([m.ravel() for m in maps])
+
+        # in plotting this grid, if we just use the min and max, we get that the whole grid ranges
+        # from about -150 to 150 (possible due to high mach and low SNR cases).
+        symlog_linthresh = 1
+        if symlog:
+            vmin, vmax = min(allvals), max(allvals)
+        else:
+            # we delete the extreme values, otherwise, the whole grid is jsut purple
+            # tried using sigma. even sigma=1 wasnt great due to dist flatness
+            vmin, vmax = np.percentile(allvals, [10, 90])
+
+        scales[mach] = (vmin, vmax)
+        print(f"Mach {mach} vmin: {vmin}, vmax: {vmax}")
+
+    fig, axes = plt.subplots(len(row_keys), len(snrs), figsize=grid_size, squeeze=False)
+
+    for irow, (ft, mach) in enumerate(row_keys):
+        vmin, vmax = scales[mach]
+        for icol, isnr in enumerate(isnrs):
+            ax = axes[irow, icol]
+            SNR = SNR_list_uniform[isnr]
+
+            dat = turb_data[ft][mach]['data'][isnr][j]
+            if dat.SNR[0] != SNR:
+                print("SNR DOESN'T MATCH")
+
+            plot_data = dat.noisy_data[0]
+
+            po = cfp.plot_map(plot_data, ax=ax, symlog=symlog, symlog_linthresh=symlog_linthresh,
+                                axes_format=["", ""], axes_ticks=[[],[]],
+                                vmin=vmin, vmax=vmax, cmap=cmap, colorbar=False)
+            if mach not in mach_cbars:
+                mach_cbars[mach] = ax.images[0]
+
+            if irow == 0:
+                ax.set_title(r"$\mathrm{SNR} = "+str(SNR)+r"$")
+            if icol == 0:
+                ax.set_ylabel(flow_labels[ft]+"\n"+r"$\mathcal{M} = "+str(mach)+r"$")
+
+    #important: this solves the alignment problem, eliminating all the gaps
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
+
+    save = figpath+f'main/fig_5_z_proj_grid_noise_N{res}_{label_info}.pdf'
+    fig.savefig(save, bbox_inches='tight')
+    plt.close(fig)
+    print("Wrote '"+save+"'.", color='magenta')
+
+    upper_vmin, upper_vmax = scales[machs[0]]
+    lower_vmin, lower_vmax = scales[machs[1]]
+
+    cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, symlog=symlog, cmap=cmap, symlog_linthresh=symlog_linthresh,
+                        label=r'Column density $(\mathrm{g\,cm^{-2}})$'+"\n"+r"$\mathcal{M} = "+str(machs[0])+r"$",
+                        panels=3, orientation="vertical", save=figpath+f'main/fig_5_cbar_above_zero_machs.pdf')
+    cfp.plot_colorbar(vmin=lower_vmin, vmax=lower_vmax, symlog=symlog, cmap=cmap, symlog_linthresh=symlog_linthresh,
+                        label=r'Column density $(\mathrm{g\,cm^{-2}})$'+"\n"+r"$\mathcal{M} = "+str(machs[1])+r"$",
+                        panels=3, orientation="vertical", save=figpath+f'main/fig_5_cbar_below_zero_machs.pdf')
+
+    load_default_plotstyle()
 
 
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
+
+    print(datetime.now())
 
     # Parse the -ires argument (if it exists).
     # This is used for Parallelising, by assigning each res to a different core.
@@ -369,6 +485,12 @@ if __name__ == "__main__":
     # Reduce the list of simulations to do to just the 1 per core if ires is used
     if args.ires is not None:
         resolutions = [resolutions[args.ires]]
+
+    # reduce sim cases to load for efficency during test
+    testing = False
+    if testing:
+        mach_nums = [0.1, 0.5, 2, 10]
+        flow_types = ["s", "c"]
 
     sims = list(product(resolutions, flow_types, mach_nums))
 
@@ -403,19 +525,32 @@ if __name__ == "__main__":
         print(f"------------------- RESOLUTION {res} ---------------------")
 
 
+        # Figure 4:
+        # Show the params of figure 3 varying.
+        print("----------------- FIGURE 4-------------------------")
+        plot_fit_params_grid(turb_data[res],
+                            flow_types=['s', 'c'])
+
+
+        # Figure 5:
+        # z projections with noise added
+        print("----------------- FIGURE 5 -----------------------")
+        plot_z_proj_grid_with_noise(turb_data[res],
+                                    flow_types=['s', 'c'],
+                                    machs=[0.1, 10],
+                                    snrs=[0.1, 1, 10],
+                                    symlog=False)
 
         # Figure 1:
         # Grid of z-projections
-        # NOTE THIS PLOT IS LOGARITHMIC
-        # TODO  - combine into  grid, just have the things sacles
         print("----------------- FIGURE 1 -------------------------")
         plot_z_proj_grid(turb_data[res],
                             res=res,
                             flow_types=flow_types,
                             machs=[0.1, 0.5, 2, 10],
                             grid_size=(12, 16),
-                            label_info="")
-
+                            label_info="",
+                            log=True)
         # Figure 2:
         # Grid of power spectra
         print("----------------- FIGURE 2 -------------------------")
@@ -435,11 +570,10 @@ if __name__ == "__main__":
                             flow_types=['s', 'c'],
                             grid_size=(9, 4))
 
-        # Figure 4:
-        # Show the params of figure 3 varying.
-        print("----------------- FIGURE 4-------------------------")
-        plot_fit_params_grid(turb_data[res],
-                            flow_types=['s', 'c'])
+
+
+
+
 
 
     print("End.")
