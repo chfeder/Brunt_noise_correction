@@ -15,7 +15,7 @@ import dill
 LOS_list = [0, 1, 2] # x, y, z
 
 # figure output path
-figpath = '../figs/'
+figpath = '../../figs/'
 
 # ---------------- 5 BOX SIMULATION ONLY ----------------
 
