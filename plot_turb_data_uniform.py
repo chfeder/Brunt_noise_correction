@@ -574,7 +574,6 @@ if __name__ == "__main__":
                                     symlog=False,
                                     log=False)
 
-        """
         # Show the params of figure 3 varying.
         print("----------------- FIGURE 4-------------------------")
         plot_fit_params_grid(turb_data[res],
@@ -612,7 +611,6 @@ if __name__ == "__main__":
                             flow_types=['s', 'c'],
                             grid_size=(9, 4))
 
-        """
 
 
 

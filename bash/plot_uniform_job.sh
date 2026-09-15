@@ -27,10 +27,15 @@
 module load python3/3.12.1
 module load openmpi/4.0.7
 mkdir -p ../logs
-mkdir -p ../../figs
+mkdir -p ../figs
+mkdir -p ../figs/main
+mkdir -p ../figs/extra
 mpirun -np 1 python3 ../plot_turb_data_uniform.py -ires 0 1>../logs/plot.out.0 2>&1
 
 # Run this file with:
 # qsub ./plot_uniform_job.sh
+
+# Watch execution:
+# tail -f ../logs/plot.out.0
 
 # usually takes about 4 mins

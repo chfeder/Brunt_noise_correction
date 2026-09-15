@@ -1,2 +1,2 @@
-rm -rf ../../figs/main/*
-rm -rf ../../figs/extra/*
+rm -rf ../figs/main/*
+rm -rf ../figs/extra/*
