@@ -41,9 +41,19 @@ def get_ics(model):
 def get_driving_str(model):
     driving_str = ""
     if "driving" in model.colnames:
-        if model["driving"] == "sol" : driving_str = 's'
-        if model["driving"] == "mix" : driving_str = 'm'
-        if model["driving"] == "comp": driving_str = 'c'
+        if model["driving"] == "sol":
+            driving_str = 's'
+        elif model["driving"] == "mix":
+            driving_str = 'm'
+        elif model["driving"] == "comp":
+            driving_str = 'c'
+        else:
+            # zeta (which is in [0,1]) refers to a blend of sol and comp
+            zeta = float(model["driving"])
+            if zeta == int(zeta):
+                driving_str = 'z' + str(int(zeta))
+            else:
+                driving_str = 'z' + str(zeta).replace('.', 'p')
     return driving_str
 
 def get_seed_str(model):

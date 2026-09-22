@@ -46,7 +46,7 @@ res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
 
 # Global settings
 resolutions = [256]                                         # Simulation resolution
-flow_types = ['s', 'm', 'c']                                # Soluniodal, Mixed, Compressive
+flow_types = ['s', 'm', 'c', 0.1, 0.2, 0.3, 0.4, 0.75]      # s=Soluniodal (zeta=1), m=Mixed (zeta=0.5), c=Compressive (zeta=0)
 mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]                    # Mach numbers
 project_path = "/scratch/ek9/ag9727/asc/"                   # Path to folder
 min_time = 30                                               # Files correponding to times before this will be discarded
@@ -284,12 +284,25 @@ def make_mach_str(mach: float) -> str:
         mach_str = 'M' + str(mach).replace('.', 'p')
     return mach_str
 
+def make_flow_str(flow: str | float | int) -> str:
+    if flow in ['s', 'm', 'c']:
+        return flow
+    else:
+        # zeta (which is in [0,1]) refers to a blend of sol and comp
+        zeta = float(flow)
+        if zeta == int(zeta):
+            return 'z' + str(int(zeta))
+        else:
+            return 'z' + str(zeta).replace('.', 'p')
+
 # ---- generates the model as a string for a given simulation, ie, "N256cM0p2", given the below params
-def make_model_name_params(res, flow_type, mach) -> str:
+def make_model_name_params(res, flow_type: str | float | int, mach) -> str:
     res = str(res)
-    flow_type = str(flow_type)
+
+    flow_str = make_flow_str(flow_type)
+
     mach = float(mach)
     mach_str = make_mach_str(mach)
 
-    return 'N' + res + flow_type + mach_str
+    return 'N' + res + flow_str + mach_str
 
