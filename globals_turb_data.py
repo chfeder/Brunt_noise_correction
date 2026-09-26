@@ -46,13 +46,13 @@ res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
 
 # Global settings
 resolutions = [256]                                         # Simulation resolution
-flow_types = ['s', 'm', 'c', 0.1, 0.2, 0.3, 0.4, 0.75]      # s=Soluniodal (zeta=1), m=Mixed (zeta=0.5), c=Compressive (zeta=0)
+flow_types = ['c', 0.1, 0.2, 0.3, 0.4, 'm', 0.75, 's']      # s=Soluniodal (zeta=1), m=Mixed (zeta=0.5), c=Compressive (zeta=0)
+flow_types_nums = np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1])
 mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]                    # Mach numbers
 project_path = "/scratch/ek9/ag9727/asc/"                   # Path to folder
 min_time = 30                                               # Files correponding to times before this will be discarded
 max_time = 100                                              # Likewise, after this will be discarded
-#SNR_list_uniform = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100, 1000] # Signal to Noise Ratios
-SNR_list_uniform = [1e6, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000]
+SNR_list_uniform = [1e6, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 100000] # Signal to Noise Ratios
 
 # Test case:
 """
@@ -65,13 +65,38 @@ max_time = 31                               # Likewise, after this will be disca
 """
 
 
-flow_colors = {'s':'magenta', 'c':'blue', 'm':'green'}
-mach_colours = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
-flow_linestyles = {'s':'dotted', 'c':'solid', 'm':'dashed'}
-flow_markers = {'s':'s', 'c':'o', 'm':'D'}
-flow_labels =   {'s':'Solenoidal',
-                'c':'Compressive',
-                'm':'Mixed'}
+flow_colors = {
+    's':'magenta', 'c':'blue', 'm':'green',
+    0.1:'magenta', 1:'blue', 10:'green',
+}
+flow_linestyles = {
+    's':'dotted', 'c':'dotted', 'm':'dotted',
+    0.1:'dotted', 1:'dotted', 10:'dotted',
+}
+flow_markers = {
+    's':'o', 'c':'o', 'm':'o',
+    0.1:'o', 1:'o', 10:'o',
+}
+flow_labels = {
+    's':'Solenoidal', 'c':'Compressive', 'm':'Mixed',
+    0.1: 0.1, 1:1, 10:10,
+}
+
+flow_to_num = dict()
+for x in flow_types_nums:
+    flow_to_num[x] = x
+flow_to_num['s'] = 1
+flow_to_num['m'] = 0.5
+flow_to_num['c'] = 0
+
+zeta_colours = plt.cm.magma(np.linspace(0, 0.9, len(flow_types)))
+
+mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
+mach_linestyles = {0.1:'dotted', 1:'dotted', 10:'dotted'}
+mach_markers = {0.1:'o', 1:'o', 10:'o'}
+mach_labels = {
+    0.1: r'$\mathcal{M}=0.1$', 1:r'$\mathcal{M}=1$', 10:r'$\mathcal{M}=10$',
+}
 
 
 # ========== global functions ============
