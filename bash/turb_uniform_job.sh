@@ -11,7 +11,7 @@
 #PBS -P ek9
 #PBS -l walltime=2:00:00
 #PBS -l ncpus=1
-#PBS -l mem=16GB
+#PBS -l mem=32GB
 #PBS -l storage=scratch/ek9
 
 # Add output files into logs/
@@ -28,7 +28,7 @@
 
 module load python3/3.12.1
 module load openmpi/4.0.7
-mkdir -p logs
+mkdir -p ../logs
 mpirun -np 1 python3 ../get_turb_data_uniform.py -isim $PBS_ARRAY_INDEX 1>../logs/shell.out.$PBS_ARRAY_INDEX 2>&1
 
 # Run this file with the following (since there's a max array size of 10, and min of 2):
