@@ -106,11 +106,11 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
 
 # ============================= FIGURE B ====================================
 # Creates a flow_types x machs grid of power spectra plots
-def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.5, 2, 10], grid_size=(12, 16)):
+def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.5, 2, 10], grid_size=(12, 16), skip_SNR_above_hundred=True):
     fig, axes = plt.subplots(len(machs), len(flow_types), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
     for icol, ft in enumerate(flow_types):
         for irow, mach in enumerate(machs):
-            plot_spectra(turb_data[ft][mach], ft, mach, ax=axes[irow, icol], save_panel=False,  show_ylabel=(icol == 0))
+            plot_spectra(turb_data[ft][mach], ft, mach, ax=axes[irow, icol], save_panel=False,  show_ylabel=(icol == 0), skip_SNR_above_hundred=skip_SNR_above_hundred)
 
             if icol == len(flow_types) - 1:
                 ax_r = axes[irow, icol].twinx()
@@ -121,11 +121,15 @@ def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.
             if irow == 0:
                 axes[irow, icol].set_title(flow_labels[ft])
     fig.tight_layout()
-    fig.savefig(figpath + f'main/fig_B_PS_grid_N{res}.pdf', bbox_inches='tight')
+    if skip_SNR_above_hundred:
+        fig.savefig(figpath + f'main/fig_B_PS_grid_N{res}.pdf', bbox_inches='tight')
+    else:
+        fig.savefig(figpath + f'extra/PS_grid_N{res}.pdf', bbox_inches='tight')
+
     plt.close(fig)
 
 def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
-                res_resample=1.0, normalize=False, ax=None, save_panel=True, show_ylabel=True):
+                res_resample=1.0, normalize=False, ax=None, save_panel=True, show_ylabel=True, skip_SNR_above_hundred=True):
     xlim = [1e-2, 2]
     ylim = [1e-13, 1e4]
     if normalize:
@@ -134,7 +138,7 @@ def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
     x = turb_data['stats'][0].avg.k[1:-1]/kmax
     for isnr, SNR in enumerate(SNR_list_uniform):
         pos_correct = -0.2
-        if SNR > 1e2: continue
+        if SNR > 1e2 and skip_SNR_above_hundred: continue
         if SNR ==  3: pos_correct = +0.02
         if SNR ==  5: pos_correct = -0.32
         if SNR == 10: pos_correct = -0.50
@@ -349,7 +353,7 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c']):
     x_of_upper_row_flow_type = 0.6
 
     x_of_SNR_crit_eq_label = 0.0
-    x_of_alpha_eq_label = 0.45
+    x_of_alpha_eq_label = 0.35
 
 
     for i_flow_type, flow_type in enumerate(flow_types):
@@ -537,7 +541,7 @@ def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True):
     # ----------------------------------------------------
 
     # TEXT PLACEMENT CONSTANTS
-    x_of_mach_labels = 0.7
+    x_of_mach_labels = 0.6
     y_of_heighest_mach_label = 0.65
 
 
@@ -681,7 +685,10 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10]):
 
     # Text placement constants
     y_of_highest_equality = 0.2 #equality, as in, the labels like "SNR = (3 +/- 4) x ..."
+    x_of_eq_label = 0.15
+
     x_of_upper_row_flow_type = 0.6
+
 
 
     for iMach, mach in enumerate(machs):
@@ -693,7 +700,7 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10]):
         ax = axes[0, icol]
         cfp.plot(x=flow_types_nums, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
                     marker=mach_markers[mach], linestyle=mach_linestyles[mach], color=mach_colors[iMach],
-                    label=r'$\mathcal{M} = ' + mach + r'$',
+                    label=r'$\mathcal{M} = ' + str(mach) + r'$',
                     legend_formatter=cfp.legend_formatter().add(pos=(x_of_upper_row_flow_type,0.90-iMach*0.09))
                     )
 
@@ -705,7 +712,7 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10]):
         label = (r'$\mathrm{SNR_{crit}} = ('+cfp.round(a,2,True)+r'\pm'+cfp.round(fitdat.pstd[0],2,True)
                 +r') + ('+cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.pstd[1],2,True)+r')\,\zeta$')
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color='black', label=label,
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.25,y_of_highest_equality-iMach*0.09)))
+                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_eq_label,y_of_highest_equality-iMach*0.09)))
         cfp.plot(xlog=False, ylog=True, ax=ax,
                     xlabel=(r'$\zeta$' if icol==0 else None),
                     ylabel=(r'$\mathrm{SNR_{crit}}$' if icol==0 else None),
@@ -719,7 +726,7 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10]):
         ax = axes[1, icol]
         cfp.plot(x=flow_types_nums, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
                     marker=mach_markers[mach], linestyle=mach_linestyles[mach], color=mach_colors[iMach],
-                    label=r'$\mathcal{M} = ' + mach + r'$',
+                    label=r'$\mathcal{M} = ' + str(mach) + r'$',
                     legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-iMach*0.09))
                     )
 
@@ -731,7 +738,7 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10]):
         label = (r'$\alpha = ('+cfp.round(a,2,True)+r'\pm'+cfp.round(fitdat.pstd[0],2,True)
                 +r') + ('+cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.pstd[1],2,True)+r')\,\zeta$')
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color='black', label=label,
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.25,y_of_highest_equality-iMach*0.09)))
+                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_eq_label, y_of_highest_equality-iMach*0.09)))
         cfp.plot(xlog=False, ylog=True, ax=ax, xlabel=r'$\zeta$')
         if icol == 0:
             ax.set_ylabel(r'$\mathrm{\alpha}$')
@@ -778,6 +785,9 @@ if __name__ == "__main__":
         'G': True,
     }
 
+    # 'Extra plots' are plots which aren't used in the paper.
+    plot_extra_plots = True
+
 
     # figures_to_plot = {
     #     'A': False,
@@ -787,6 +797,16 @@ if __name__ == "__main__":
     #     'E': False,
     #     'F': True,
     #     'G': True,
+    # }
+
+    # figures_to_plot = {
+    #     'A': False,
+    #     'B': True,
+    #     'C': False,
+    #     'D': True,
+    #     'E': False,
+    #     'F': False,
+    #     'G': False,
     # }
 
     # ============= END OF SETTINGS ==============
@@ -843,7 +863,8 @@ if __name__ == "__main__":
                                     res=res,
                                     flow_types=['s', 'm', 'c'],
                                     machs=[0.1, 0.5, 2, 10],
-                                    grid_size=(14, 16))
+                                    grid_size=(14, 16),
+                                    skip_SNR_above_hundred=True)
 
 
 
@@ -874,6 +895,15 @@ if __name__ == "__main__":
                                             snrs=[0.3, 1, 3],
                                             symlog=False,
                                             log=False)
+
+            if plot_extra_plots:
+                print("----------------- EXTRA PLOT A -------------------------")
+                plot_spectra_grid(turb_data[res],
+                                    res=res,
+                                    flow_types=['s', 'm', 'c'],
+                                    machs=[0.1],
+                                    skip_SNR_above_hundred=False,
+                                    grid_size=(12, 5),)
 
             # deallocate data
             del turb_data
@@ -909,6 +939,9 @@ if __name__ == "__main__":
                 print("----------------- FIGURE G -------------------------")
                 plot_fit_params_grid_zeta(turb_data[res],
                                             machs=[0.1, 1, 10])
+
+
+
 
 
 
