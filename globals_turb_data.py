@@ -92,8 +92,8 @@ flow_to_num['c'] = 0
 zeta_colours = plt.cm.magma(np.linspace(0, 0.9, len(flow_types)))
 
 mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
-mach_linestyles = {0.1:'dotted', 1:'dotted', 10:'dotted'}
-mach_markers = {0.1:'o', 1:'o', 10:'o'}
+mach_linestyles = {0.1:'dotted', 0.2:'dotted', 0.5:'dotted', 1:'dotted', 10:'dotted'}
+mach_markers = {0.1:'o', 0.2:'o', 0.5:'o', 1:'o', 10:'o'}
 mach_labels = {
     0.1: r'$\mathcal{M}=0.1$', 1:r'$\mathcal{M}=1$', 10:r'$\mathcal{M}=10$',
 }
@@ -211,7 +211,15 @@ def noise_iterations(iterations, signal, SNR, noise_exp=1.0):
         PS_N = cfp.get_spectrum(noise, verbose=0)['P_tot']
         PS_N_list.append(PS_N)
         # k_noise and PS_S value at k_noise
-        k_noise_ind = np.argmin(np.abs(np.log10(PS_S[1:]/PS_N[1:])))
+
+
+        if min(np.abs(np.log10(PS_S[1:]/PS_N[1:]))) < 1e-3:
+            # Just this on its own (without the if) can cause k_noise to
+            # be set to a local min should there be an uptick in the far right
+            k_noise_ind = np.argmin(np.abs(np.log10(PS_S[1:]/PS_N[1:])))
+        else:
+            k_noise_ind = len(k[1:]) - 1
+
         k_noise = k[1:][k_noise_ind]
         k_noise_list.append(k_noise)
         PS_S_at_k_noise_list.append(PS_S[1:][k_noise_ind])

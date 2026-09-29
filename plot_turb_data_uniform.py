@@ -775,39 +775,30 @@ if __name__ == "__main__":
     # ================ SETTINGS ================
 
     # Choose which figures to plot here
-    figures_to_plot = {
-        'A': True,
-        'B': True,
-        'C': True,
-        'D': True,
-        'E': True,
-        'F': True,
-        'G': True,
-    }
-
-    # 'Extra plots' are plots which aren't used in the paper.
-    plot_extra_plots = True
-
-
     # figures_to_plot = {
-    #     'A': False,
-    #     'B': False,
-    #     'C': False,
-    #     'D': False,
-    #     'E': False,
+    #     'A': True,
+    #     'B': True,
+    #     'C': True,
+    #     'D': True,
+    #     'E': True,
     #     'F': True,
     #     'G': True,
+    #     # 'Extra plots' are plots which aren't used in the paper.
+    #     'extra_plot_A': False,
+    #     'extra_plot_B': False, #If True, this overrides F
     # }
 
-    # figures_to_plot = {
-    #     'A': False,
-    #     'B': True,
-    #     'C': False,
-    #     'D': True,
-    #     'E': False,
-    #     'F': False,
-    #     'G': False,
-    # }
+    figures_to_plot = {
+        'A': False,
+        'B': False,
+        'C': False,
+        'D': False,
+        'E': False,
+        'F': False,
+        'G': False,
+        'extra_plot_A': True,
+        'extra_plot_B': True,
+    }
 
     # ============= END OF SETTINGS ==============
 
@@ -829,8 +820,8 @@ if __name__ == "__main__":
     # Because there would be too much data to have on the computer
     # at once, we load the data required for smc (solenoidal, mixed, compressive only)
     # plots first, then more selectively load zeta data.
-    smc_plots = figures_to_plot['A'] or figures_to_plot['B'] or figures_to_plot['C'] or figures_to_plot['D'] or figures_to_plot['E']
-    zeta_plots = figures_to_plot['F'] or figures_to_plot['G']
+    smc_plots = figures_to_plot['A'] or figures_to_plot['B'] or figures_to_plot['C'] or figures_to_plot['D'] or figures_to_plot['E'] or figures_to_plot['extra_plot_A']
+    zeta_plots = figures_to_plot['F'] or figures_to_plot['G'] or figures_to_plot['extra_plot_B']
 
 
     if smc_plots:
@@ -896,14 +887,14 @@ if __name__ == "__main__":
                                             symlog=False,
                                             log=False)
 
-            if plot_extra_plots:
+            if figures_to_plot['extra_plot_A']:
                 print("----------------- EXTRA PLOT A -------------------------")
                 plot_spectra_grid(turb_data[res],
                                     res=res,
                                     flow_types=['s', 'm', 'c'],
                                     machs=[0.1],
-                                    skip_SNR_above_hundred=False,
-                                    grid_size=(12, 5),)
+                                    grid_size=(14,6),
+                                    skip_SNR_above_hundred=False)
 
             # deallocate data
             del turb_data
@@ -919,7 +910,7 @@ if __name__ == "__main__":
         turb_data = load_data(
             resolutions=resolutions,
             flow_types=flow_types,
-            machs=[0.1, 1, 10]
+            machs=[0.1, 0.2, 0.5, 1, 10]
         )
 
 
@@ -939,6 +930,13 @@ if __name__ == "__main__":
                 print("----------------- FIGURE G -------------------------")
                 plot_fit_params_grid_zeta(turb_data[res],
                                             machs=[0.1, 1, 10])
+
+            if figures_to_plot['extra_plot_B']:
+                print("----------------- EXTRA PLOT B -------------------------")
+                plot_machs_grid(turb_data[res],
+                                res=res,
+                                machs=[0.1, 0.2],
+                                grid_size=(9, 4))
 
 
 

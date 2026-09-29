@@ -35,6 +35,9 @@ mpirun -np 1 python3 ../plot_turb_data_uniform.py -ires 0 1>../logs/plot.out.0 2
 # Run this file with:
 # qsub ./plot_uniform_job.sh
 
+# Schedule with:
+# qsub -a $(date -d "+3 hours" +%Y%m%d%H%M) plot_uniform_job.sh
+
 # Watch execution:
 # tail -f ../logs/plot.out.0
 
