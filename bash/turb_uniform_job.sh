@@ -9,7 +9,7 @@
 #PBS -r y
 
 #PBS -P ek9
-#PBS -l walltime=2:00:00
+#PBS -l walltime=2:30:00
 #PBS -l ncpus=1
 #PBS -l mem=32GB
 #PBS -l storage=scratch/ek9

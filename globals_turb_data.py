@@ -213,7 +213,7 @@ def noise_iterations(iterations, signal, SNR, noise_exp=1.0):
         # k_noise and PS_S value at k_noise
 
 
-        if min(np.abs(np.log10(PS_S[1:]/PS_N[1:]))) < 1e-3:
+        if not all(PS_S[1:] > PS_N[1:]):
             # Just this on its own (without the if) can cause k_noise to
             # be set to a local min should there be an uptick in the far right
             k_noise_ind = np.argmin(np.abs(np.log10(PS_S[1:]/PS_N[1:])))

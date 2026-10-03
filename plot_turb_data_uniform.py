@@ -7,6 +7,8 @@ import math
 import argparse
 import gc
 
+
+
 # ===================================================================
 # ------------------------ HELPER FUNCTIONS --------------------------
 def load_default_plotstyle():
@@ -196,7 +198,7 @@ def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
 
 
 # =============================FIGURE C =======================================
-def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True):
+def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True, fit_params=None):
     # ----------------------------------------------------
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         #PL_exp = 2.0 / 3.0
@@ -244,12 +246,11 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
         k_noise = np.array(k_noise)
         k_noise_err = np.array(k_noise_err)
 
+
+
         # free variables to fit the function too
-        # format: [lower bound, starting guess, upper bound]
-        params = {
-            'SNR_crit': [0, 1.0, 1000], #original: [0.1, 1.0, 50]
-            'PL_exp':   [0, 1.0, 1000]  #originally fixed to 2/3
-        }
+        params = fit_params
+
         fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
                             params=params, n_random_draws=100)
 
@@ -271,11 +272,11 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
                 xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0])
 
 
-def plot_flows_grid(turb_data, res, flow_types=['s','c'], grid_size=(12, 16)):
+def plot_flows_grid(turb_data, res, flow_types=['s','c'], grid_size=(12, 16), fit_params=None):
     fig, axes = plt.subplots(1, len(flow_types), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
     for icol, ft in enumerate(flow_types):
             axes[0, icol].set_title(flow_labels[ft])
-            plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, icol], save_panel=False)
+            plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, icol], save_panel=False, fit_params=fit_params)
     fig.tight_layout()
     fig.savefig(figpath + f'main/fig_C_flows_grid_N{res}.pdf', bbox_inches='tight')
     plt.close(fig)
@@ -285,7 +286,7 @@ def plot_flows_grid(turb_data, res, flow_types=['s','c'], grid_size=(12, 16)):
 # =========================== FIGURE D ==============================================
 # somehwat of a copy of figure 3's, except this function doesn't plot, it only fits the data.
 # used to create the subpanels.
-def fit_k_noise_vs_SNR(turb_data, flow_type):
+def fit_k_noise_vs_SNR(turb_data, flow_type, fit_params):
     # ----------------------------------------------------
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         sharpness = 4.0
@@ -312,11 +313,8 @@ def fit_k_noise_vs_SNR(turb_data, flow_type):
         snr = np.array(snr); k_noise = np.array(k_noise); k_noise_err = np.array(k_noise_err)
 
         # free variables to fit the function too
-        # format: [lower bound, starting guess, upper bound]
-        params = {
-            'SNR_crit': [0, 1.0, 1000], #original: [0.1, 1.0, 50]
-            'PL_exp':   [0, 1.0, 1000]  #originally fixed to 2/3
-        }
+        params = fit_params
+
         fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
                          params=params, n_random_draws=100)
 
@@ -326,7 +324,7 @@ def fit_k_noise_vs_SNR(turb_data, flow_type):
     return (np.array(mach_list), np.array(SNR_crit), np.array(SNR_crit_err),
             np.array(PL_exp_list), np.array(PL_exp_err))
 
-def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c']):
+def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], fit_params=None):
     """
     2-panel graph as follows:
 
@@ -357,7 +355,7 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c']):
 
 
     for i_flow_type, flow_type in enumerate(flow_types):
-        mach_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR(turb_data, flow_type)
+        mach_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR(turb_data, flow_type, fit_params)
 
         icol = 0
 
@@ -531,7 +529,7 @@ Mach 0.1 vs Mach 10
 """
 
 
-def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True):
+def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True, fit_params=None):
     # ----------------------------------------------------
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         #PL_exp = 2.0 / 3.0
@@ -546,7 +544,7 @@ def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True):
 
 
     # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
-    xlim = [5e-2, 2e5]
+    xlim = [5e-2, 2e4]
     zeta_list = []
     SNR_crit = []
     SNR_crit_err = []
@@ -584,10 +582,7 @@ def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True):
 
         # free variables to fit the function too
         # format: [lower bound, starting guess, upper bound]
-        params = {
-            'SNR_crit': [0, 1.0, 1000], #original: [0.1, 1.0, 50]
-            'PL_exp':   [0, 1.0, 1000]  #originally fixed to 2/3
-        }
+        params = fit_params
         fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
                             params=params, n_random_draws=100)
 
@@ -609,11 +604,11 @@ def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True):
                 xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0])
 
 
-def plot_machs_grid(turb_data, res, machs=[0.1, 10], grid_size=(12, 16)):
+def plot_machs_grid(turb_data, res, machs=[0.1, 10], grid_size=(12, 16), fit_params=None):
     fig, axes = plt.subplots(1, len(machs), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
     for icol, mach in enumerate(machs):
             axes[0, icol].set_title(r'$\mathcal{M}=' + str(mach) +r"$")
-            plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=axes[0, icol], save_panel=False)
+            plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=axes[0, icol], save_panel=False, fit_params=fit_params)
     fig.tight_layout()
     fig.savefig(figpath + f'main/fig_F_flows_grid_N{res}.pdf', bbox_inches='tight')
 
@@ -621,7 +616,7 @@ def plot_machs_grid(turb_data, res, machs=[0.1, 10], grid_size=(12, 16)):
 # =========================== FIGURE G ==============================================
 # somehwat of a copy of figure F's, except this function doesn't plot, it only fits the data.
 # used to create the subpanels.
-def fit_k_noise_vs_SNR_for_zeta(turb_data, mach):
+def fit_k_noise_vs_SNR_for_zeta(turb_data, mach, fit_params):
     # ----------------------------------------------------
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         sharpness = 4.0
@@ -648,11 +643,7 @@ def fit_k_noise_vs_SNR_for_zeta(turb_data, mach):
         snr = np.array(snr); k_noise = np.array(k_noise); k_noise_err = np.array(k_noise_err)
 
         # free variables to fit the function too
-        # format: [lower bound, starting guess, upper bound]
-        params = {
-            'SNR_crit': [0, 1.0, 1000], #original: [0.1, 1.0, 50]
-            'PL_exp':   [0, 1.0, 1000]  #originally fixed to 2/3
-        }
+        params = fit_params
         fitdat = cfp.fit(k_noise_func, snr, np.log(k_noise), yerr=k_noise_err/k_noise,
                          params=params, n_random_draws=100)
 
@@ -662,7 +653,7 @@ def fit_k_noise_vs_SNR_for_zeta(turb_data, mach):
     return (np.array(flows_list), np.array(SNR_crit), np.array(SNR_crit_err),
             np.array(PL_exp_list), np.array(PL_exp_err))
 
-def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10]):
+def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
     """
     2-panel graph as follows:
 
@@ -692,7 +683,7 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10]):
 
 
     for iMach, mach in enumerate(machs):
-        flows_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR_for_zeta(turb_data, mach)
+        flows_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR_for_zeta(turb_data, mach, fit_params=fit_params)
 
         icol = 0
 
@@ -775,29 +766,49 @@ if __name__ == "__main__":
     # ================ SETTINGS ================
 
     # Choose which figures to plot here
-    # figures_to_plot = {
-    #     'A': True,
-    #     'B': True,
-    #     'C': True,
-    #     'D': True,
-    #     'E': True,
-    #     'F': True,
-    #     'G': True,
-    #     # 'Extra plots' are plots which aren't used in the paper.
-    #     'extra_plot_A': False,
-    #     'extra_plot_B': False, #If True, this overrides F
-    # }
-
     figures_to_plot = {
         'A': False,
         'B': False,
-        'C': False,
+        'C': True,
         'D': False,
         'E': False,
-        'F': False,
-        'G': False,
-        'extra_plot_A': True,
-        'extra_plot_B': True,
+        'F': True,
+        'G': True,
+        # 'Extra plots' are plots which aren't used in the paper.
+        'extra_plot_A': False,
+        'extra_plot_B': False, #If True, this overrides F
+    }
+
+    figures_to_plot = {
+        'A': True,
+        'B': True,
+        'C': True,
+        'D': True,
+        'E': True,
+        'F': True,
+        'G': True,
+        # 'Extra plots' are plots which aren't used in the paper.
+        'extra_plot_A': False,
+        'extra_plot_B': False, #If True, this overrides F
+    }
+
+    # figures_to_plot = {
+    #     'A': False,
+    #     'B': False,
+    #     'C': False,
+    #     'D': False,
+    #     'E': False,
+    #     'F': False,
+    #     'G': False,
+    #     'extra_plot_A': True,
+    #     'extra_plot_B': True,
+    # }
+
+    # Defines the search space for cfp.fit calls
+    # format: [lower bound, starting guess, upper bound]
+    fit_params = {
+        'SNR_crit': [0, 10, 1e4], #original: [0.1, 1.0, 50]
+        'PL_exp':   [0, 1.0, 100]  #originally fixed to 2/3
     }
 
     # ============= END OF SETTINGS ==============
@@ -812,16 +823,21 @@ if __name__ == "__main__":
 
     load_default_plotstyle()
 
-    # Reduce the list of simulations to do to just the 1 per core if ires is used
+
+    # Decide which subset of the data to load
+    # Loading all data without parrellisation causes a crash, figures are divided into two subcases, loaded seperately
     if args.ires is not None:
-        resolutions = [resolutions[args.ires]]
-
-
-    # Because there would be too much data to have on the computer
-    # at once, we load the data required for smc (solenoidal, mixed, compressive only)
-    # plots first, then more selectively load zeta data.
-    smc_plots = figures_to_plot['A'] or figures_to_plot['B'] or figures_to_plot['C'] or figures_to_plot['D'] or figures_to_plot['E'] or figures_to_plot['extra_plot_A']
-    zeta_plots = figures_to_plot['F'] or figures_to_plot['G'] or figures_to_plot['extra_plot_B']
+        if args.ires == 0:
+            smc_plots = figures_to_plot['A'] or figures_to_plot['B'] or figures_to_plot['C'] or figures_to_plot['D'] or figures_to_plot['E'] or figures_to_plot['extra_plot_A']
+            zeta_plots = False
+        elif args.ires == 1:
+            smc_plots = False
+            zeta_plots = figures_to_plot['F'] or figures_to_plot['G'] or figures_to_plot['extra_plot_B']
+        else:
+            print(f"Warning: args.ires is {args.ires}, which may lead to undefined behaviour", color=red)
+    else:
+        smc_plots = figures_to_plot['A'] or figures_to_plot['B'] or figures_to_plot['C'] or figures_to_plot['D'] or figures_to_plot['E'] or figures_to_plot['extra_plot_A']
+        zeta_plots = figures_to_plot['F'] or figures_to_plot['G'] or figures_to_plot['extra_plot_B']
 
 
     if smc_plots:
@@ -865,7 +881,8 @@ if __name__ == "__main__":
                 plot_flows_grid(turb_data[res],
                                     res=res,
                                     flow_types=['s', 'c'],
-                                    grid_size=(9, 4))
+                                    grid_size=(9, 4),
+                                    fit_params=fit_params)
 
 
 
@@ -874,7 +891,8 @@ if __name__ == "__main__":
             if figures_to_plot['D']:
                 print("----------------- FIGURE D-------------------------")
                 plot_fit_params_grid(turb_data[res],
-                                    flow_types=['s', 'm', 'c'])
+                                    flow_types=['s', 'm', 'c'],
+                                    fit_params=fit_params)
 
 
             # z projections with noise added
@@ -897,6 +915,7 @@ if __name__ == "__main__":
                                     skip_SNR_above_hundred=False)
 
             # deallocate data
+            # relevant only if zeta is also called later
             del turb_data
             gc.collect()
 
@@ -910,7 +929,7 @@ if __name__ == "__main__":
         turb_data = load_data(
             resolutions=resolutions,
             flow_types=flow_types,
-            machs=[0.1, 0.2, 0.5, 1, 10]
+            machs=[0.1, 1, 10]
         )
 
 
@@ -923,19 +942,22 @@ if __name__ == "__main__":
                 plot_machs_grid(turb_data[res],
                                 res=res,
                                 machs=[0.1, 10],
-                                grid_size=(9, 4))
+                                grid_size=(9, 4),
+                                fit_params=fit_params)
 
             # figure D but over zetas
             if figures_to_plot['G']:
                 print("----------------- FIGURE G -------------------------")
                 plot_fit_params_grid_zeta(turb_data[res],
-                                            machs=[0.1, 1, 10])
+                                            machs=[0.1, 1, 10],
+                                            fit_params=fit_params)
+
 
             if figures_to_plot['extra_plot_B']:
                 print("----------------- EXTRA PLOT B -------------------------")
                 plot_machs_grid(turb_data[res],
                                 res=res,
-                                machs=[0.1, 0.2],
+                                machs=[0.1, 10],
                                 grid_size=(9, 4))
 
 
