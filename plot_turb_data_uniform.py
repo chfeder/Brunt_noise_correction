@@ -97,10 +97,15 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
 
 
     #plot colorbar
+    panel_w = grid_size[0] / len(flow_types)
+    panel_h = grid_size[1] / len(machs)
+
+    plt.figure(figsize=(panel_w, panel_h))
     cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
-                       panels=3, orientation="vertical", save=figpath+f'main/fig_A_cbar_above_zero_machs.pdf')
-    cfp.plot_colorbar(vmin=lower_vmax, vmax=lower_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
-                       panels=3, orientation="vertical", save=figpath+f'main/fig_A_cbar_below_zero_machs.pdf')
+                       panels=len(upper_machs), orientation="vertical", save=figpath+f'main/fig_A_cbar_above_zero_machs.pdf')
+    plt.figure(figsize=(panel_w, panel_h))
+    cfp.plot_colorbar(vmin=lower_vmin, vmax=lower_vmax, log=log, cmap=cmap, label=r'Column density $(\mathrm{g\,cm^{-2}})$',
+                       panels=len(lower_machs), orientation="vertical", save=figpath+f'main/fig_A_cbar_below_zero_machs.pdf')
 
 
     load_default_plotstyle()
@@ -112,7 +117,8 @@ def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.
     fig, axes = plt.subplots(len(machs), len(flow_types), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
     for icol, ft in enumerate(flow_types):
         for irow, mach in enumerate(machs):
-            plot_spectra(turb_data[ft][mach], ft, mach, ax=axes[irow, icol], save_panel=False,  show_ylabel=(icol == 0), skip_SNR_above_hundred=skip_SNR_above_hundred)
+            plot_spectra(turb_data[ft][mach], ft, mach, ax=axes[irow, icol], save_panel=False, show_xlabel=(irow == 3),
+                            show_ylabel=(icol == 0), skip_SNR_above_hundred=skip_SNR_above_hundred)
 
             if icol == len(flow_types) - 1:
                 ax_r = axes[irow, icol].twinx()
@@ -123,6 +129,8 @@ def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.
             if irow == 0:
                 axes[irow, icol].set_title(flow_labels[ft])
     fig.tight_layout()
+    space = 0.05
+    fig.subplots_adjust(wspace=space, hspace=space)
     if skip_SNR_above_hundred:
         fig.savefig(figpath + f'main/fig_B_PS_grid_N{res}.pdf', bbox_inches='tight')
     else:
@@ -131,7 +139,7 @@ def plot_spectra_grid(turb_data, res, flow_types=['s', 'm', 'c'], machs=[0.1, 0.
     plt.close(fig)
 
 def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
-                res_resample=1.0, normalize=False, ax=None, save_panel=True, show_ylabel=True, skip_SNR_above_hundred=True):
+                res_resample=1.0, normalize=False, ax=None, save_panel=True, show_xlabel=True, show_ylabel=True, skip_SNR_above_hundred=True):
     xlim = [1e-2, 2]
     ylim = [1e-13, 1e4]
     if normalize:
@@ -193,17 +201,17 @@ def plot_spectra(turb_data, flow_type: str, mach, noise_exp=1.0, res=256,
     save = None
     if save_panel:
         save = figpath+'extra/fig_B_PS_N'+str(res)+flow_type+make_mach_str(mach)+noise_str+'.pdf'
-    cfp.plot(xlabel=r"$k/k_\mathrm{max}$", ylabel=(r"$P$" if show_ylabel else None), ax=ax, xlog=True, ylog=True,
+    cfp.plot(xlabel=r"$k/k_\mathrm{max}$" if show_xlabel else None, ylabel=(r"$P$" if show_ylabel else None), ax=ax, xlog=True, ylog=True,
              xlim=xlim, ylim=ylim, save=save)
 
 
 # =============================FIGURE C =======================================
-def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True, fit_params=None):
+def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True, fit_params=None, show_ylabel=True):
     # ----------------------------------------------------
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         #PL_exp = 2.0 / 3.0
         sharpness = 4.0
-        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
+        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp)))**(1/sharpness)
         return np.log(k_noise)
     # ----------------------------------------------------
     # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
@@ -215,7 +223,8 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
     PL_exp_err = []
 
     # TEXT PLACEMENT CONSTANTS
-    x_of_machs_labels = 0.6
+    x_of_machs_labels = 0.625
+    y_of_highest_label = 0.6
 
     for iMach, mach in enumerate(mach_nums):
         kmax = turb_data[flow_type][mach]['stats'][0].avg.k.max() #this should be context for the uniform experiemtn
@@ -236,7 +245,7 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
             k_noise_err.append(np.mean(yerr))
             if SNR == 1:
                 label = r"$\mathcal{M}="+str(mach)+r"$"
-                lf = cfp.legend_formatter().add(pos=(x_of_machs_labels,0.55-iMach*0.085))
+                lf = cfp.legend_formatter().add(pos=(x_of_machs_labels,y_of_highest_label-iMach*0.085))
             else:
                 label = None
                 lf = None
@@ -268,7 +277,8 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, ax=None, save_panel=True
     save = None
     if save_panel:
         save = figpath+"extra/flow_type_"+str(flow_type)+'_k_noise_vs_SNR.pdf'
-    cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=r"$k_\mathrm{noise}/k_\mathrm{max}$", ax=ax, save=save,
+    ylabel = r"$k_\mathrm{noise}/k_\mathrm{max}$" if show_ylabel else ""
+    cfp.plot(xlabel=r"$\mathrm{SNR}$", ylabel=ylabel, ax=ax, save=save,
                 xlog=True, ylog=True, xlim=xlim, ylim=[2e-2,2e0])
 
 
@@ -276,7 +286,7 @@ def plot_flows_grid(turb_data, res, flow_types=['s','c'], grid_size=(12, 16), fi
     fig, axes = plt.subplots(1, len(flow_types), figsize=grid_size, sharex=True, sharey=True, squeeze=False)
     for icol, ft in enumerate(flow_types):
             axes[0, icol].set_title(flow_labels[ft])
-            plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, icol], save_panel=False, fit_params=fit_params)
+            plot_k_noise_vs_SNR_for_flows(turb_data, ft, ax=axes[0, icol], save_panel=False, fit_params=fit_params, show_ylabel=True) #(icol == 0))
     fig.tight_layout()
     fig.savefig(figpath + f'main/fig_C_flows_grid_N{res}.pdf', bbox_inches='tight')
     plt.close(fig)
@@ -290,7 +300,7 @@ def fit_k_noise_vs_SNR(turb_data, flow_type, fit_params):
     # ----------------------------------------------------
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         sharpness = 4.0
-        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
+        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp)))**(1/sharpness)
         return np.log(k_noise)
     # ----------------------------------------------------
     mach_list = []
@@ -348,10 +358,10 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], fit_params=None)
 
     # TEXT PLACEMENT CONSTANTS
     y_of_highest_equality = 0.25 #equality, as in, the labels like "SNR_crit = (3 +/- 4) x ..."
-    x_of_upper_row_flow_type = 0.6
+    x_of_upper_row_flow_type = 0.625 #sol, mixed, comp labels on snr crit row
 
     x_of_SNR_crit_eq_label = 0.0
-    x_of_alpha_eq_label = 0.35
+    x_of_alpha_eq_label = 0.375
 
 
     for i_flow_type, flow_type in enumerate(flow_types):
@@ -362,7 +372,7 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], fit_params=None)
         # --- row 0: SNR_crit vs Mach ---
         ax = axes[0, icol]
         cfp.plot(x=mach_list, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
-                    marker=flow_markers[flow_type], linestyle='none', color=flow_colors[flow_type],
+                    marker=flow_markers[flow_type], linestyle=':', color=flow_colors[flow_type],
                     label=flow_labels[flow_type],
                     legend_formatter=cfp.legend_formatter().add(pos=(x_of_upper_row_flow_type,0.90-i_flow_type*0.09))
                     )
@@ -376,7 +386,8 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], fit_params=None)
                  +cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.pstd[1],2,True)+r'}$')
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, label=label,
                     legend_formatter=cfp.legend_formatter().add(pos=(x_of_SNR_crit_eq_label,y_of_highest_equality-i_flow_type*0.09)),
-                    color=flow_colors[flow_type], linestyle=flow_linestyles[flow_type],
+                    color=flow_colors[flow_type], linestyle='-',
+                    ylim=[1,3e3],
                     )
         cfp.plot(xlog=True, ylog=True, ax=ax,
                     xlabel=(r'$\mathcal{M}$' if icol==0 else None),
@@ -390,7 +401,7 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], fit_params=None)
         # --- row 1: PL_exp vs Mach ---
         ax = axes[1, icol]
         cfp.plot(x=mach_list, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
-                    marker=flow_markers[flow_type], linestyle='none', color=flow_colors[flow_type],
+                    marker=flow_markers[flow_type], linestyle=':', color=flow_colors[flow_type],
                     label=flow_labels[flow_type],
                     legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-i_flow_type*0.09))
                     )
@@ -405,7 +416,7 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], fit_params=None)
                  +cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.pstd[1],2,True)+r'}$')
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0,label=label,
                     legend_formatter=cfp.legend_formatter().add(pos=(x_of_alpha_eq_label,y_of_highest_equality-i_flow_type*0.09)),
-                    color=flow_colors[flow_type], linestyle=flow_linestyles[flow_type],)
+                    color=flow_colors[flow_type], linestyle='-',)
         cfp.plot(xlog=True, ylog=True, ax=ax, xlabel=r'$\mathcal{M}$')
         if icol == 0:
             ax.set_ylabel(r'$\mathrm{\alpha}$')
@@ -512,14 +523,21 @@ def plot_z_proj_grid_with_noise(turb_data, flow_types=['s', 'c'], machs=[0.1, 10
     lower_vmin, lower_vmax = scales[machs[0]]
     upper_vmin, upper_vmax = scales[machs[1]]
 
+    panel_w = grid_size[0] / len(snrs)
+    panel_h = grid_size[1] / len(row_keys)
+
+    plt.figure(figsize=(panel_w, panel_h))
     cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, log=log, symlog=symlog, cmap=cmap, symlog_linthresh=symlog_linthresh,
-                        label=r'Column density $(\mathrm{g\,cm^{-2}})$'+"\n"+r"$\mathcal{M} = "+str(machs[0])+r"$",
-                        panels=3, orientation="vertical", save=figpath+f'main/fig_E_cbar_above_zero_machs.pdf')
+                        label=r'Column density $(\mathrm{g\,cm^{-2}})$',
+                        panels=2, orientation="vertical", save=figpath+f'main/fig_E_cbar_above_zero_machs.pdf')
+    plt.figure(figsize=(panel_w, panel_h))
     cfp.plot_colorbar(vmin=lower_vmin, vmax=lower_vmax,log=log,  symlog=symlog, cmap=cmap, symlog_linthresh=symlog_linthresh,
-                        label=r'Column density $(\mathrm{g\,cm^{-2}})$'+"\n"+r"$\mathcal{M} = "+str(machs[1])+r"$",
-                        panels=3, orientation="vertical", save=figpath+f'main/fig_E_cbar_below_zero_machs.pdf')
+                        label=r'Column density $(\mathrm{g\,cm^{-2}})$',
+                        panels=2, orientation="vertical", save=figpath+f'main/fig_E_cbar_below_zero_machs.pdf')
 
     load_default_plotstyle()
+
+
 
 
 # =============================FIGURE F =======================================
@@ -534,12 +552,12 @@ def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True, fit
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         #PL_exp = 2.0 / 3.0
         sharpness = 4.0
-        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
+        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp)))**(1/sharpness)
         return np.log(k_noise)
     # ----------------------------------------------------
 
     # TEXT PLACEMENT CONSTANTS
-    x_of_mach_labels = 0.6
+    x_of_mach_labels = 0.65
     y_of_heighest_mach_label = 0.65
 
 
@@ -620,7 +638,7 @@ def fit_k_noise_vs_SNR_for_zeta(turb_data, mach, fit_params):
     # ----------------------------------------------------
     def k_noise_func(SNR, SNR_crit=1.0, PL_exp=2/3):
         sharpness = 4.0
-        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp*sharpness)))**(1/sharpness)
+        k_noise = (1 / (1 + (SNR/SNR_crit)**(-PL_exp)))**(1/sharpness)
         return np.log(k_noise)
     # ----------------------------------------------------
     flows_list = []
@@ -670,15 +688,21 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
     """
     fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False)
 
+    def exp_func(x, b, c):
+        return np.exp(b * (x - 1)) + c
 
-    def PL(x, a, b):
+    def log_exp_func(x, b, c):
+        return np.log(np.exp(b * (x - 1)) + c)
+
+    def lin_func(x, a, b):
        return a + x * b
 
     # Text placement constants
-    y_of_highest_equality = 0.2 #equality, as in, the labels like "SNR = (3 +/- 4) x ..."
-    x_of_eq_label = 0.15
+    y_of_highest_equality = 0.25 #equality, as in, the labels like "SNR = (3 +/- 4) x ..."
+    x_of_eq_label = 0
+    x_of_upper_row_flow_type = 0.7
 
-    x_of_upper_row_flow_type = 0.6
+
 
 
 
@@ -690,19 +714,27 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
         # --- row 0: SNR_crit vs Mach ---
         ax = axes[0, icol]
         cfp.plot(x=flow_types_nums, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
-                    marker=mach_markers[mach], linestyle=mach_linestyles[mach], color=mach_colors[iMach],
+                    marker=mach_markers[mach], linestyle=mach_linestyles[mach], color=mach_colors_3_pt[iMach],
                     label=r'$\mathcal{M} = ' + str(mach) + r'$',
-                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_upper_row_flow_type,0.90-iMach*0.09))
+                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_upper_row_flow_type,0.90-iMach*0.09)),
+                    ylim=[1e-1, 2e4]
                     )
 
         yerr_mean = np.abs(SNR_crit_err.T).mean(axis=0)
-        fitdat = cfp.fit(PL, flow_types_nums, SNR_crit, yerr=yerr_mean)
-        a, b = fitdat.popt[0], fitdat.popt[1]
+
+        # format: [lower bound, starting guess, upper bound]
+        exp_fit_params = {
+            'b': [-10, -5, 0],
+            'c': [0, 10, 1e4],
+        }
+        fitdat = cfp.fit(log_exp_func, flow_types_nums, np.log(SNR_crit), yerr=yerr_mean/SNR_crit, params=exp_fit_params)
+        b, c = fitdat.popt[0], fitdat.popt[1]
         xfit = np.linspace(0, 1, 200)
-        yfit = a + b * xfit
-        label = (r'$\mathrm{SNR_{crit}} = ('+cfp.round(a,2,True)+r'\pm'+cfp.round(fitdat.pstd[0],2,True)
-                +r') + ('+cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.pstd[1],2,True)+r')\,\zeta$')
-        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color='black', label=label,
+        yfit = exp_func(xfit, b, c)
+        label = (r'$\mathrm{SNR_{crit}} = (' + cfp.round(c,2,True) + r'\pm' + cfp.round(fitdat.pstd[1],2,True)
+         + r') + e^{(' + cfp.round(b,2,True) + r'\pm' + cfp.round(fitdat.pstd[0],2,True)
+         + r')(\zeta-1)}$')
+        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors_3_pt[iMach], label=label,
                     legend_formatter=cfp.legend_formatter().add(pos=(x_of_eq_label,y_of_highest_equality-iMach*0.09)))
         cfp.plot(xlog=False, ylog=True, ax=ax,
                     xlabel=(r'$\zeta$' if icol==0 else None),
@@ -716,19 +748,20 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
         # --- row 1: PL_exp vs Mach ---
         ax = axes[1, icol]
         cfp.plot(x=flow_types_nums, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
-                    marker=mach_markers[mach], linestyle=mach_linestyles[mach], color=mach_colors[iMach],
+                    marker=mach_markers[mach], linestyle=mach_linestyles[mach], color=mach_colors_3_pt[iMach],
                     label=r'$\mathcal{M} = ' + str(mach) + r'$',
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-iMach*0.09))
+                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-iMach*0.09)),
+                    ylim=[0.5,7]
                     )
 
         yerr_mean = np.abs(PL_exp_err.T).mean(axis=0)
-        fitdat = cfp.fit(PL, flow_types_nums, PL_exp_list, yerr=yerr_mean)
+        fitdat = cfp.fit(lin_func, flow_types_nums, PL_exp_list, yerr=yerr_mean)
         a, b = fitdat.popt[0], fitdat.popt[1]
         xfit = np.linspace(0, 1, 200)
-        yfit = a + b * xfit
+        yfit = lin_func(xfit, a, b)
         label = (r'$\alpha = ('+cfp.round(a,2,True)+r'\pm'+cfp.round(fitdat.pstd[0],2,True)
                 +r') + ('+cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.pstd[1],2,True)+r')\,\zeta$')
-        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color='black', label=label,
+        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors_3_pt[iMach], label=label,
                     legend_formatter=cfp.legend_formatter().add(pos=(x_of_eq_label, y_of_highest_equality-iMach*0.09)))
         cfp.plot(xlog=False, ylog=True, ax=ax, xlabel=r'$\zeta$')
         if icol == 0:
@@ -807,7 +840,7 @@ if __name__ == "__main__":
     # Defines the search space for cfp.fit calls
     # format: [lower bound, starting guess, upper bound]
     fit_params = {
-        'SNR_crit': [0, 10, 1e4], #original: [0.1, 1.0, 50]
+        'SNR_crit': [0, 10, 1e4],   #original: [0.1, 1.0, 50]
         'PL_exp':   [0, 1.0, 100]  #originally fixed to 2/3
     }
 

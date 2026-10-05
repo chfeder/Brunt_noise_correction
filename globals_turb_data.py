@@ -92,6 +92,7 @@ flow_to_num['c'] = 0
 zeta_colours = plt.cm.magma(np.linspace(0, 0.9, len(flow_types)))
 
 mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
+mach_colors_3_pt = ["#0D0887", "#CC4778", "#F89441"]
 mach_linestyles = {0.1:'dotted', 0.2:'dotted', 0.5:'dotted', 1:'dotted', 10:'dotted'}
 mach_markers = {0.1:'o', 0.2:'o', 0.5:'o', 1:'o', 10:'o'}
 mach_labels = {
