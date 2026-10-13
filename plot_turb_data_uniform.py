@@ -23,12 +23,20 @@ def load_default_plotstyle():
 # Generates strings such as "value +/- error" for symmetrics labels, or "value^{+...}_{-...}" for
 # asymetric errors
 def val_with_err_str(val, perr, sym=True, prec=2) -> str:
+
+    # the error term has the same place value as the main term
+    if val == 0:
+        d = prec - 1
+    else:
+        d = max(prec - 1 - int(np.floor(np.log10(np.abs(val)))), 0)
+
+    fmt = lambda x: f"{x:.{d}f}"
+
     if sym:
-        return cfp.round(val, prec, True) + r'\pm' + cfp.round(np.abs(perr).mean(), prec, True)
+        return fmt(val) + r'\pm' + fmt(np.abs(perr).mean())
     else:
         lo, hi = np.abs(perr[0]), np.abs(perr[1])
-        return (cfp.round(val, prec, True)
-                + r'^{+' + cfp.round(hi, prec, True) + r'}_{-' + cfp.round(lo, prec, True) + r'}')
+        return fmt(val) + r'^{+' + fmt(hi) + r'}_{-' + fmt(lo) + r'}'
 
 
 # ============================= FIGURE A ========================================
@@ -831,7 +839,7 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
     order = np.argsort(machs_arr)
 
 
-    xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
+    xfit = cfp.logspace(mach_nums[0], mach_nums[-1], 200)
 
     # FITTING LINES OF BEST FIT
     # row 0: lambda vs Mac
@@ -845,8 +853,8 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
     }
     yerr_mean = np.abs(lam_perr_list).mean(axis=1)
     fitdat = cfp.fit(log_func, machs_arr, lam_list, yerr=yerr_mean, params=log_fit_params)
-    label = (r'$\lambda = (' + val_with_err_str(fitdat.popt[0], fitdat.perr[0], sym=False)
-             + r')\ln\mathcal{M} + (' + val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=False) + r')$')
+    label = (r'$\lambda = (' + val_with_err_str(fitdat.popt[0], fitdat.perr[0], sym=True)
+             + r')\ln\mathcal{M} + (' + val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=True) + r')$')
     cfp.plot(x=xfit, y=log_func(xfit, *fitdat.popt), ax=ax, linewidth=1.0, color='k', label=label,
              legend_formatter=cfp.legend_formatter().add(pos=(0.02, 0.90)))
     cfp.plot(xlog=True, ylog=False, ax=ax, xlabel=r'$\mathcal{M}$')
@@ -863,8 +871,8 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
     yerr_mean = np.abs(eta_perr_list).mean(axis=1)
     fitdat = cfp.fit(PL_log, machs_arr, np.log(eta_list), yerr=yerr_mean/eta_list, params=pl_fit_params)
     A, p = fitdat.popt[0], fitdat.popt[1]
-    label = (r'$\eta = (' + val_with_err_str(A, fitdat.perr[0], sym=False)
-             + r')\,\mathcal{M}^{(' + val_with_err_str(p, fitdat.perr[1], sym=False) + r')}$')
+    label = (r'$\eta = (' + val_with_err_str(A, fitdat.perr[0], sym=True)
+             + r')\,\mathcal{M}^{(' + val_with_err_str(p, fitdat.perr[1], sym=True) + r')}$')
     cfp.plot(x=xfit, y=A * xfit**p, ax=ax, linewidth=1.0, color='k', label=label,
              legend_formatter=cfp.legend_formatter().add(pos=(0.02, 0.90)))
     cfp.plot(xlog=True, ylog=True, ax=ax, xlabel=r'$\mathcal{M}$')
@@ -922,7 +930,7 @@ def plot_fig_I(turb_data, machs=[0.1, 1, 10], fit_params=None):
     a1_perr_list = np.array(a1_perr_list)
     order = np.argsort(machs_arr)
 
-    xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
+    xfit = cfp.logspace(mach_nums[0], mach_nums[-1], 200)
 
 
     log_fit_params = {
@@ -940,8 +948,8 @@ def plot_fig_I(turb_data, machs=[0.1, 1, 10], fit_params=None):
 
         yerr_mean = np.abs(y_perr_list).mean(axis=1)
         fitdat = cfp.fit(log_func, machs_arr, y_list, yerr=yerr_mean, params=log_fit_params)
-        label = (r'$' + sym + r' = (' + val_with_err_str(fitdat.popt[0], fitdat.perr[0], sym=False)
-                 + r')\ln\mathcal{M} + (' + val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=False) + r')$')
+        label = (r'$' + sym + r' = (' + val_with_err_str(fitdat.popt[0], fitdat.perr[0], sym=True)
+                 + r')\ln\mathcal{M} + (' + val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=True) + r')$')
         cfp.plot(x=xfit, y=log_func(xfit, *fitdat.popt), ax=ax, linewidth=1.0, color='k', label=label,
                  legend_formatter=cfp.legend_formatter().add(pos=(0.02, 0.90)))
         cfp.plot(xlog=True, ylog=False, ax=ax, xlabel=r'$\mathcal{M}$')

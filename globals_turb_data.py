@@ -96,7 +96,7 @@ mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
 mach_linestyles = {0.1:'dotted', 0.2:'dotted', 0.5:'dotted', 1:'dotted', 10:'dotted'}
 mach_markers = {0.1:'o', 0.2:'o', 0.5:'o', 1:'o', 10:'o'}
 mach_labels = {
-    0.1: r'$\mathcal{M}=0.1$', 1:r'$\mathcal{M}=1$', 10:r'$\mathcal{M}=10$',
+    0.1: r'$\mathcal{M}=0.1$', 0.5:r'$\mathcal{M}=0.5$', 1:r'$\mathcal{M}=1$', 10:r'$\mathcal{M}=10$',
 }
 
 
