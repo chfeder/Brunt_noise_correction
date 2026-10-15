@@ -49,6 +49,7 @@ resolutions = [256]                                         # Simulation resolut
 flow_types = ['c', 0.1, 0.2, 0.3, 0.4, 'm', 0.75, 's']      # s=Soluniodal (zeta=1), m=Mixed (zeta=0.5), c=Compressive (zeta=0)
 flow_types_nums = np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1])
 mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]                    # Mach numbers
+supersonic_mach_nums = [x for x in mach_nums if x >= 1]
 project_path = "/scratch/ek9/ag9727/asc/"                   # Path to folder
 min_time = 30                                               # Files correponding to times before this will be discarded
 max_time = 100                                              # Likewise, after this will be discarded
@@ -64,22 +65,11 @@ min_time = 30                               # Files correponding to times before
 max_time = 31                               # Likewise, after this will be discarded
 """
 
-
 flow_colors = {
     's':'magenta', 'c':'blue', 'm':'green',
-    0.1:'magenta', 1:'blue', 10:'green',
-}
-flow_linestyles = {
-    's':'dotted', 'c':'dotted', 'm':'dotted',
-    0.1:'dotted', 1:'dotted', 10:'dotted',
-}
-flow_markers = {
-    's':'o', 'c':'o', 'm':'o',
-    0.1:'o', 1:'o', 10:'o',
 }
 flow_labels = {
     's':'Solenoidal', 'c':'Compressive', 'm':'Mixed',
-    0.1: 0.1, 1:1, 10:10,
 }
 
 flow_to_num = dict()
@@ -90,14 +80,7 @@ flow_to_num['m'] = 0.5
 flow_to_num['c'] = 0
 
 zeta_colours = plt.cm.magma(np.linspace(0, 0.9, len(flow_types)))
-
 mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
-#mach_colors_3_pt = ["#0D0887", "#CC4778", "#F89441"]
-mach_linestyles = {0.1:'dotted', 0.2:'dotted', 0.5:'dotted', 1:'dotted', 10:'dotted'}
-mach_markers = {0.1:'o', 0.2:'o', 0.5:'o', 1:'o', 10:'o'}
-mach_labels = {
-    0.1: r'$\mathcal{M}=0.1$', 0.5:r'$\mathcal{M}=0.5$', 1:r'$\mathcal{M}=1$', 10:r'$\mathcal{M}=10$',
-}
 
 
 # ========== global functions ============

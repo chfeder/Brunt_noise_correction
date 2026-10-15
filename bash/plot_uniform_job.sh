@@ -32,6 +32,8 @@ module load openmpi/4.0.7
 mkdir -p ../logs
 mkdir -p ../figs
 mkdir -p ../figs/main
+mkdir -p ../figs/main/all_machs
+mkdir -p ../figs/main/supersonic_machs
 mkdir -p ../figs/extra
 
 # Each sub-job gets its own index (0 or 1) from PBS

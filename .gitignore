@@ -4,4 +4,4 @@ __pycache__/
 /fourier_tools_py3
 /logs
 turb_uniform.*
-figs/extra
+figs/*
