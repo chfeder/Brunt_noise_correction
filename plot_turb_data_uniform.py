@@ -38,6 +38,10 @@ def val_with_err_str(val, perr, sym=True, prec=2) -> str:
         lo, hi = np.abs(perr[0]), np.abs(perr[1])
         return fmt(val) + r'^{+' + fmt(hi) + r'}_{-' + fmt(lo) + r'}'
 
+# Generates strings of the form M +/- avr_std
+def mach_label(mach_std, precision=2):
+    return r'(\mathcal{M}\pm' + f'{np.mean(mach_std):.{precision}g}' + r')'
+
 
 # ============================= FIGURE A ========================================
 def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.1, 0.5, 2, 10], timestep=50,
@@ -281,7 +285,7 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, machs=mach_nums, ax=None
             else:
                 label = None
                 lf = None
-            cfp.plot(x=x, y=y, yerr=np.array([yerr]).T, color=mach_colors[iMach], linestyle='none',
+            cfp.plot(x=x, y=y, yerr=np.array([yerr]).T, color=mach_colors[mach_nums.index(mach)], linestyle='none',
                         marker='o', alpha=0.8, label=label, legend_formatter=lf, ax=ax)
         snr = np.array(snr)
         k_noise = np.array(k_noise)
@@ -301,7 +305,7 @@ def plot_k_noise_vs_SNR_for_flows(turb_data, flow_type, machs=mach_nums, ax=None
         yfit = np.exp(k_noise_func(xfit, *fitdat.popt)) # best-fit line
 
         # I removed label=label and legend_formatter=lf here
-        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[iMach], linestyle='dotted')
+        cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)], linestyle='dotted')
     mach_list = np.array(mach_list)
     SNR_crit = np.array(SNR_crit)
     SNR_crit_err = np.array(SNR_crit_err)
@@ -332,7 +336,7 @@ def plot_flows_grid(turb_data, res, machs=mach_nums, flow_types=['s','c'], grid_
 
 
 # =========================== FIGURE D ==============================================
-# somehwat of a copy of figure 3's, except this function doesn't plot, it only fits the data.
+# somehwat of a copy of figure C's, except this function doesn't plot, it only fits the data.
 # used to create the subpanels.
 def fit_k_noise_vs_SNR(turb_data, flow_type, machs, fit_params):
     # ----------------------------------------------------
@@ -385,7 +389,7 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], machs=mach_nums,
     each panel has the param as the y-axis, and all have the mach as x-axis
 
     """
-    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False)
+    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False, sharex=True)
 
 
     #def PL(x, a, b):
@@ -406,74 +410,78 @@ def plot_fit_params_grid(turb_data, flow_types=['s', 'm', 'c'], machs=mach_nums,
     }
 
     # TEXT PLACEMENT CONSTANTS
-    y_of_highest_equality = 0.25 #equality, as in, the labels like "SNR_crit = (3 +/- 4) x ..."
-    x_of_upper_row_flow_type = 0.625 #sol, mixed, comp labels on snr crit row
+    y_of_top_label = 0.9
 
     x_of_SNR_crit_eq_label = 0.0
-    x_of_alpha_eq_label = 0.37
+    x_of_alpha_eq_label = 0
+
+
+    if np.array_equal(machs, mach_nums):      # full set of Machs
+        ylim_SNR_crit = [4, 8e4]
+        ylim_alpha    = [0.25, 1.5]
+    else:
+        ylim_SNR_crit = [4, 5e3]
+        ylim_alpha    = [0.4, 1.1]
 
 
     for i_flow_type, flow_type in enumerate(flow_types):
         mach_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR(turb_data, flow_type, machs, fit_params)
 
+        mach_list, mach_std = get_true_mach(flow_type, mach_list) #update with true mach values
+
         icol = 0
 
         # --- row 0: SNR_crit vs Mach ---
         ax = axes[0, icol]
-        cfp.plot(x=mach_list, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
-                    marker='o', linestyle=':', color=flow_colors[flow_type],
-                    label=flow_labels[flow_type],
-                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_upper_row_flow_type,0.90-i_flow_type*0.09))
-                    )
+        cfp.plot(x=mach_list, y=SNR_crit, xerr=mach_std, yerr=SNR_crit_err.T, ax=ax,
+                    marker='o', linestyle=':', color=flow_colors[flow_type])
 
         yerr_mean = np.abs(SNR_crit_err.T).mean(axis=0)
-        fitdat = cfp.fit(PL_log, mach_list, np.log(SNR_crit), yerr=yerr_mean/SNR_crit, params=fit_params_ab_SNR_crit)
+        fitdat = cfp.fit(PL_log, mach_list, np.log(SNR_crit), xerr=mach_std, yerr=yerr_mean/SNR_crit, params=fit_params_ab_SNR_crit)
         a, b = fitdat.popt[0], fitdat.popt[1]
         xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
         yfit = a * xfit**b
-        label = (r'$\mathrm{SNR_{crit}}=(' + val_with_err_str(a, fitdat.perr[0], sym=True) + r')\,\mathcal{M}^{('
-                 + val_with_err_str(b, fitdat.perr[1], sym=True) + r')}$')
-        #label = (r'$\mathrm{SNR_{crit}}=('+cfp.round(a,2,True)+r'\pm'+cfp.round(fitdat.perr[0],2,True)+r')\,\mathcal{M}^{'
-        #         +cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.perr[1],2,True)+r'}$')
+
+        zeta_str = f'{flow_to_num[flow_type]:.1f}'
+        label = (r'$\zeta = ' + zeta_str + r';\ \mathrm{SNR_{crit}}=(' + val_with_err_str(a, fitdat.perr[0], sym=True) + r')\,'
+                    + mach_label(mach_std) + r'^{(' + val_with_err_str(b, fitdat.perr[1], sym=True) + r')}$')
+
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, label=label,
-                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_SNR_crit_eq_label,y_of_highest_equality-i_flow_type*0.09)),
+                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_SNR_crit_eq_label,y_of_top_label-i_flow_type*0.09)),
                     color=flow_colors[flow_type], linestyle='-',
-                    ylim=[1,3e3],
+                    ylim=ylim_SNR_crit,
                     )
         cfp.plot(xlog=True, ylog=True, ax=ax,
-                    xlabel=(r'$\mathcal{M}$' if icol==0 else None),
+                    xlabel=None,
                     ylabel=(r'$\mathrm{SNR_{crit}}$' if icol==0 else None),
-                    marker='o',
-                    label=flow_labels[flow_type])
+                    marker='o',)
         if icol == 0:
             ax.set_ylabel(r'$\mathrm{SNR_{crit}}$')
         #ax.set_title(flow_labels[flow_type])
 
         # --- row 1: PL_exp vs Mach ---
         ax = axes[1, icol]
-        cfp.plot(x=mach_list, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
-                    marker='o', linestyle=':', color=flow_colors[flow_type],
-                    label=flow_labels[flow_type],
-                    legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-i_flow_type*0.09))
-                    )
+        cfp.plot(x=mach_list, y=PL_exp_list, xerr=mach_std, yerr=PL_exp_err.T, ax=ax,
+                    marker='o', linestyle=':', color=flow_colors[flow_type])
 
 
         yerr_mean = np.abs(PL_exp_err.T).mean(axis=0)
-        fitdat = cfp.fit(PL_log, mach_list, np.log(PL_exp_list), yerr=yerr_mean/PL_exp_list, params=fit_params_ab_alpha)
+        fitdat = cfp.fit(PL_log, mach_list, np.log(PL_exp_list), xerr=mach_std, yerr=yerr_mean/PL_exp_list, params=fit_params_ab_alpha)
         a, b = fitdat.popt[0], fitdat.popt[1]
         xfit = cfp.logspace(mach_list.min(), mach_list.max(), 200)
         yfit = a * xfit**b
-        label = (r'$\mathrm{\alpha}=(' + val_with_err_str(a, fitdat.perr[0], sym=True) + r')\,\mathcal{M}^{('
-                 + val_with_err_str(b, fitdat.perr[1], sym=True) + r')}$')
-        # label = (r'$\mathrm{\alpha}=('+cfp.round(a,2,True)+r'\pm'+cfp.round(fitdat.perr[0],2,True)+r')\,\mathcal{M}^{'
-        #          +cfp.round(b,2,True)+r'\pm'+cfp.round(fitdat.perr[1],2,True)+r'}$')
+        label = (r'$\zeta = ' + zeta_str + r';\ \mathrm{\alpha}=(' + val_with_err_str(a, fitdat.perr[0], sym=True) + r')\,'
+                    + mach_label(mach_std) + r'^{(' + val_with_err_str(b, fitdat.perr[1], sym=True) + r')}$')
         cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0,label=label,
-                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_alpha_eq_label,y_of_highest_equality-i_flow_type*0.09)),
-                    color=flow_colors[flow_type], linestyle='-',)
+                    legend_formatter=cfp.legend_formatter().add(pos=(x_of_alpha_eq_label,y_of_top_label-i_flow_type*0.09)),
+                    color=flow_colors[flow_type], linestyle='-',
+                    ylim=ylim_alpha,)
         cfp.plot(xlog=True, ylog=True, ax=ax, xlabel=r'$\mathcal{M}$')
         if icol == 0:
             ax.set_ylabel(r'$\mathrm{\alpha}$')
 
+    axes[0, 0].set_xlabel('')
+    axes[0, 0].tick_params(axis='x', labelbottom=False)
     fig.tight_layout()
     if min(machs) < 1:
         save = figpath + 'main/all_machs/fig_D_SNR_crit_PL_exp_vs_Mach.pdf'
@@ -604,8 +612,8 @@ def plot_k_noise_vs_SNR_for_machs(turb_data, mach, ax=None, save_panel=True, fit
     # ----------------------------------------------------
 
     # TEXT PLACEMENT CONSTANTS
-    x_of_mach_labels = 0.65
-    y_of_heighest_mach_label = 0.65
+    x_of_mach_labels = 0.625 #formerly 0.65
+    y_of_heighest_mach_label = 0.7#formerly 0.65
 
 
     # similar to figure 5 (k_noise vs SNR), but for fixed 50mu voids and resolution resampling factors 0.5, 1.0, 2.0
@@ -739,7 +747,7 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
     the xaxis is on a linear scale, the y-axis is on a log scale.
 
     """
-    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False)
+    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False, sharex=True)
 
     def exp_func(x, b, c):
         return np.exp(b * (1 - x)) + c
@@ -751,14 +759,19 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
        return a + x * b
 
     # Text placement constants
-    y_of_highest_equality = 0.25 #equality, as in, the labels like "SNR = (3 +/- 4) x ..."
-    x_of_eq_label = 0
-    x_of_upper_row_flow_type = 0.7
+    x_of_upper_row_flow_type = 0
 
 
     label_machs = [0.1, 1, 10]
     plotting_all_machs = (list(machs) == list(mach_nums))
     iLabel = 0
+
+    if plotting_all_machs:
+        ylim_SNR_crit = [5, 1e5]
+        ylim_alpha    = [0.29, 1.4]
+    else:
+        ylim_SNR_crit = [3, 2e4]
+        ylim_alpha    = [0.4, 1.5]
 
 
     for iMach, mach in enumerate(machs):
@@ -770,18 +783,8 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
 
         # --- row 0: SNR_crit vs Mach ---
         ax = axes[0, icol]
-        if show_label:
-            cfp.plot(x=flow_types_nums, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
-                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
-                        label=r'$\mathcal{M} = ' + str(mach) + r'$',
-                        legend_formatter=cfp.legend_formatter().add(pos=(x_of_upper_row_flow_type,0.90-iLabel*0.09)),
-                        ylim=[1e-1, 2e4]
-                        )
-        else:
-            cfp.plot(x=flow_types_nums, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
-                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
-                        ylim=[1e-1, 2e4]
-                        )
+
+        ylim = ylim_SNR_crit
 
         yerr_mean = np.abs(SNR_crit_err.T).mean(axis=0)
 
@@ -794,21 +797,30 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
         b, c = fitdat.popt[0], fitdat.popt[1]
         xfit = np.linspace(0, 1, 200)
         yfit = exp_func(xfit, b, c)
-        label = (r'$\mathrm{SNR_{crit}} = (' + val_with_err_str(c, fitdat.perr[1], sym=True)
+        label = (r'$\mathcal{M} = ' + str(mach) + r';\; \mathrm{SNR_{crit}} = (' + val_with_err_str(c, fitdat.perr[1], sym=True)
          + r') + e^{(' + val_with_err_str(b, fitdat.perr[0], sym=True)
          + r')(1-\zeta)}$')
+
         if show_label:
-            cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)], label=label,
-                        legend_formatter=cfp.legend_formatter().add(pos=(x_of_eq_label,y_of_highest_equality-iLabel*0.09)))
+            cfp.plot(x=flow_types_nums, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
+                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
+                        label=label,
+                        legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-iLabel*0.09)),
+                        ylim=ylim
+                        )
+            cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)], label=None)
             cfp.plot(xlog=False, ylog=True, ax=ax,
-                        xlabel=(r'$\zeta$' if icol==0 else None),
+                        xlabel=None,
                         ylabel=(r'$\mathrm{SNR_{crit}}$' if icol==0 else None),
-                        marker='o',
-                        label=r'$\mathcal{M}='+str(mach)+r'$')
+                        marker='o')
         else:
-            cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)])
+            cfp.plot(x=flow_types_nums, y=SNR_crit, yerr=SNR_crit_err.T, ax=ax,
+                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
+                        ylim=ylim
+                        )
+            cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)], label=None)
             cfp.plot(xlog=False, ylog=True, ax=ax,
-                        xlabel=(r'$\zeta$' if icol==0 else None),
+                        xlabel=None,
                         ylabel=(r'$\mathrm{SNR_{crit}}$' if icol==0 else None),
                         marker='o',)
         if icol == 0:
@@ -816,31 +828,34 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
         #ax.set_title(flow_labels[flow_type])
 
         # --- row 1: PL_exp vs Mach ---
+
         ax = axes[1, icol]
-        if show_label:
-            cfp.plot(x=flow_types_nums, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
-                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
-                        label=r'$\mathcal{M} = ' + str(mach) + r'$',
-                        legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-iLabel*0.09)),
-                        ylim=[0.5/4,7/4]
-                        )
-        else:
-            cfp.plot(x=flow_types_nums, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
-                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
-                        ylim=[0.5/4,7/4]
-                        )
+
+        ylim = ylim_alpha
 
         yerr_mean = np.abs(PL_exp_err.T).mean(axis=0)
         fitdat = cfp.fit(lin_func, flow_types_nums, PL_exp_list, yerr=yerr_mean)
         a, b = fitdat.popt[0], fitdat.popt[1]
         xfit = np.linspace(0, 1, 200)
         yfit = lin_func(xfit, a, b)
-        label = (r'$\alpha = ('+val_with_err_str(a, fitdat.perr[0], sym=True)
-                +r') + ('+val_with_err_str(b, fitdat.perr[1], sym=True)+r')\,\zeta$')
+
+
+
+        label = (r'$\mathcal{M} = ' + str(mach) + r';\; \alpha = (' + val_with_err_str(a, fitdat.perr[0], sym=True)
+                + r') + (' + val_with_err_str(b, fitdat.perr[1], sym=True) + r')\,\zeta$')
         if show_label:
-            cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)], label=label,
-                        legend_formatter=cfp.legend_formatter().add(pos=(x_of_eq_label, y_of_highest_equality-iLabel*0.09)))
+            cfp.plot(x=flow_types_nums, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
+                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
+                        label=label,
+                        legend_formatter=cfp.legend_formatter().add(pos=(0.02,0.90-iLabel*0.09)),
+                        ylim=ylim
+                        )
+            cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)], label=None)
         else:
+            cfp.plot(x=flow_types_nums, y=PL_exp_list, yerr=PL_exp_err.T, ax=ax,
+                        marker='o', linestyle='dotted', color=mach_colors[mach_nums.index(mach)],
+                        ylim=ylim
+                        )
             cfp.plot(x=xfit, y=yfit, ax=ax, linewidth=1.0, color=mach_colors[mach_nums.index(mach)])
         cfp.plot(xlog=False, ylog=True, ax=ax, xlabel=r'$\zeta$')
         if icol == 0:
@@ -849,6 +864,8 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
         if show_label:
             iLabel += 1
 
+    axes[0, 0].set_xlabel('')
+    axes[0, 0].tick_params(axis='x', labelbottom=False)
     fig.tight_layout()
     if min(machs) < 1:
         save = figpath + 'main/all_machs/fig_G_SNR_crit_and_alpha_vs_zeta.pdf'
@@ -871,7 +888,11 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
     -----------------
               Mach
     """
-    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False)
+
+    x_of_lam_eq = 0.15
+    x_of_eta_eq = x_of_lam_eq + 0.2
+
+    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False, sharex=True)
 
     def log_exp_func(x, b, c):
         return np.log(np.exp(b * (1 - x)) + c)
@@ -883,10 +904,16 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
         return np.log(A) + p * np.log(x)
 
     lam_list, lam_perr_list, eta_list, eta_perr_list = [], [], [], []
+    true_mach_list, true_mach_std_list = [], []
+
 
     # For each mach, fit SNR_crit(zeta) then plot
     for iMach, mach in enumerate(machs):
         flows_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR_for_zeta(turb_data, mach, fit_params=fit_params)
+
+        true_mach, true_mach_std = get_true_mach_agg_over_flows(flows_list, mach)
+        true_mach_list.append(true_mach)
+        true_mach_std_list.append(true_mach_std)
 
         yerr_mean = np.abs(SNR_crit_err.T).mean(axis=0)
 
@@ -902,12 +929,14 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
         eta_perr_list.append(fitdat.perr[1])
 
         color = mach_colors[mach_nums.index(mach)]
-        cfp.plot(x=mach, y=fitdat.popt[0], yerr=np.array([np.abs(fitdat.perr[0])]).T, ax=axes[0, 0],
+        cfp.plot(x=true_mach, y=fitdat.popt[0], xerr=true_mach_std, yerr=np.array([np.abs(fitdat.perr[0])]).T, ax=axes[0, 0],
                  color=color, marker='o', linestyle='none')
-        cfp.plot(x=mach, y=fitdat.popt[1], yerr=np.array([np.abs(fitdat.perr[1])]).T, ax=axes[1, 0],
+        cfp.plot(x=true_mach, y=fitdat.popt[1], xerr=true_mach_std, yerr=np.array([np.abs(fitdat.perr[1])]).T, ax=axes[1, 0],
                  color=color, marker='o', linestyle='none')
 
-    machs_arr = np.array(machs)
+    #machs_arr = np.array(machs)
+    machs_arr = np.array(true_mach_list)
+    machs_std_arr = np.array(true_mach_std_list)
     lam_list = np.array(lam_list)
     lam_perr_list = np.array(lam_perr_list)
     eta_list = np.array(eta_list)
@@ -928,12 +957,13 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
         'b': [-100, 1, 100],
     }
     yerr_mean = np.abs(lam_perr_list).mean(axis=1)
-    fitdat = cfp.fit(log_func, machs_arr, lam_list, yerr=yerr_mean, params=log_fit_params)
+    fitdat = cfp.fit(log_func, machs_arr, lam_list, xerr=machs_std_arr, yerr=yerr_mean, params=log_fit_params)
     label = (r'$\lambda = (' + val_with_err_str(fitdat.popt[0], fitdat.perr[0], sym=True)
-             + r')\ln\mathcal{M} + (' + val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=True) + r')$')
+            + r')\ln' + mach_label(machs_std_arr) + r' + (' + val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=True) + r')$')
+
     cfp.plot(x=xfit, y=log_func(xfit, *fitdat.popt), ax=ax, linewidth=1.0, color='k', label=label,
-             legend_formatter=cfp.legend_formatter().add(pos=(0.02, 0.90)))
-    cfp.plot(xlog=True, ylog=False, ax=ax, xlabel=r'$\mathcal{M}$')
+             legend_formatter=cfp.legend_formatter().add(pos=(x_of_lam_eq, 0.90)))
+    cfp.plot(xlog=True, ylog=False, ax=ax, xlabel=None)
     ax.set_ylabel(r'$\lambda$')
 
     # row 1: eta vs Mach
@@ -945,15 +975,17 @@ def plot_fig_H(turb_data, machs=[0.1, 1, 10], fit_params=None):
         'p': [-5, 0.5, 5],
     }
     yerr_mean = np.abs(eta_perr_list).mean(axis=1)
-    fitdat = cfp.fit(PL_log, machs_arr, np.log(eta_list), yerr=yerr_mean/eta_list, params=pl_fit_params)
+    fitdat = cfp.fit(PL_log, machs_arr, np.log(eta_list), xerr=machs_std_arr, yerr=yerr_mean/eta_list, params=pl_fit_params)
     A, p = fitdat.popt[0], fitdat.popt[1]
     label = (r'$\eta = (' + val_with_err_str(A, fitdat.perr[0], sym=True)
-             + r')\,\mathcal{M}^{(' + val_with_err_str(p, fitdat.perr[1], sym=True) + r')}$')
+            + r')\,' + mach_label(machs_std_arr) + r'^{(' + val_with_err_str(p, fitdat.perr[1], sym=True) + r')}$')
     cfp.plot(x=xfit, y=A * xfit**p, ax=ax, linewidth=1.0, color='k', label=label,
-             legend_formatter=cfp.legend_formatter().add(pos=(0.02, 0.90)))
+             legend_formatter=cfp.legend_formatter().add(pos=(x_of_eta_eq, 0.90)))
     cfp.plot(xlog=True, ylog=True, ax=ax, xlabel=r'$\mathcal{M}$')
     ax.set_ylabel(r'$\eta$')
 
+    axes[0, 0].set_xlabel('')
+    axes[0, 0].tick_params(axis='x', labelbottom=False)
     fig.tight_layout()
     if min(machs) < 1:
         save = figpath + 'main/all_machs/fig_H_SNR_crit_fit_params_vs_mach.pdf'
@@ -975,7 +1007,7 @@ def plot_fig_I(turb_data, machs=[0.1, 1, 10], fit_params=None):
     ------------------
                 Mach
     """
-    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False)
+    fig, axes = plt.subplots(2, 1, figsize=(6, 8), squeeze=False, sharex=True)
 
     def lin_func(x, a, b):
         return a + x * b
@@ -984,10 +1016,15 @@ def plot_fig_I(turb_data, machs=[0.1, 1, 10], fit_params=None):
         return a * np.log(x) + b
 
     a0_list, a0_perr_list, a1_list, a1_perr_list = [], [], [], []
+    true_mach_list, true_mach_std_list = [], []
 
     # For each mach, fit alpha(zeta) then plot
     for iMach, mach in enumerate(machs):
         flows_list, SNR_crit, SNR_crit_err, PL_exp_list, PL_exp_err = fit_k_noise_vs_SNR_for_zeta(turb_data, mach, fit_params=fit_params)
+
+        true_mach, true_mach_std = get_true_mach_agg_over_flows(flows_list, mach)
+        true_mach_list.append(true_mach)
+        true_mach_std_list.append(true_mach_std)
 
         yerr_mean = np.abs(PL_exp_err.T).mean(axis=0)
         fitdat = cfp.fit(lin_func, flow_types_nums, PL_exp_list, yerr=yerr_mean)
@@ -998,12 +1035,13 @@ def plot_fig_I(turb_data, machs=[0.1, 1, 10], fit_params=None):
         a1_perr_list.append(fitdat.perr[1])
 
         color = mach_colors[mach_nums.index(mach)]
-        cfp.plot(x=mach, y=fitdat.popt[0], yerr=np.array([np.abs(fitdat.perr[0])]).T, ax=axes[0, 0],
+        cfp.plot(x=true_mach, y=fitdat.popt[0], xerr=true_mach_std, yerr=np.array([np.abs(fitdat.perr[0])]).T, ax=axes[0, 0],
                  color=color, marker='o', linestyle='none')
-        cfp.plot(x=mach, y=fitdat.popt[1], yerr=np.array([np.abs(fitdat.perr[1])]).T, ax=axes[1, 0],
+        cfp.plot(x=true_mach, y=fitdat.popt[1], xerr=true_mach_std, yerr=np.array([np.abs(fitdat.perr[1])]).T, ax=axes[1, 0],
                  color=color, marker='o', linestyle='none')
 
-    machs_arr = np.array(machs)
+    machs_arr = np.array(true_mach_list)
+    machs_std_arr = np.array(true_mach_std_list)
     a0_list = np.array(a0_list)
     a0_perr_list = np.array(a0_perr_list)
     a1_list = np.array(a1_list)
@@ -1018,23 +1056,47 @@ def plot_fig_I(turb_data, machs=[0.1, 1, 10], fit_params=None):
         'b': [-100, 0.1, 100],
     }
 
-    # FIT BOTH PANELS AT ONCE
+
     panels = [
         (axes[0, 0], a0_list, a0_perr_list, r'\alpha_0'),
         (axes[1, 0], a1_list, a1_perr_list, r'\alpha_1'),
     ]
+
+
+    x_of_alpha1_line2 = 0.20
+    y_of_alpha1_line2 = 0.82
+
     for ax, y_list, y_perr_list, sym in panels:
         ax.plot(machs_arr[order], y_list[order], linestyle=':', color='k', linewidth=1.0, zorder=2)
 
         yerr_mean = np.abs(y_perr_list).mean(axis=1)
-        fitdat = cfp.fit(log_func, machs_arr, y_list, yerr=yerr_mean, params=log_fit_params)
-        label = (r'$' + sym + r' = (' + val_with_err_str(fitdat.popt[0], fitdat.perr[0], sym=True)
-                 + r')\ln\mathcal{M} + (' + val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=True) + r')$')
+        fitdat = cfp.fit(log_func, machs_arr, y_list, xerr=machs_std_arr, yerr=yerr_mean, params=log_fit_params)
+
+        a_str = val_with_err_str(fitdat.popt[0], fitdat.perr[0], sym=True)
+        b_str = val_with_err_str(fitdat.popt[1], fitdat.perr[1], sym=True)
+
+        start = r'$' + sym + r' = (' + a_str + r')\ln' + mach_label(machs_std_arr)
+        end = r'+ (' + b_str + r')$'
+
+        if sym == r'\alpha_1':
+            label = start + r'$'
+        else:
+            label = start + ' ' + end
+
         cfp.plot(x=xfit, y=log_func(xfit, *fitdat.popt), ax=ax, linewidth=1.0, color='k', label=label,
                  legend_formatter=cfp.legend_formatter().add(pos=(0.02, 0.90)))
+
+        # this is to break up the label on multiple lines
+        if sym == r'\alpha_1':
+            ax.text(x_of_alpha1_line2, y_of_alpha1_line2, r'$+ (' + b_str + r')$',
+                    transform=ax.transAxes, ha='left', va='center')
+
+
         cfp.plot(xlog=True, ylog=False, ax=ax, xlabel=r'$\mathcal{M}$')
         ax.set_ylabel(r'$' + sym + r'$')
 
+    axes[0, 0].set_xlabel('')
+    axes[0, 0].tick_params(axis='x', labelbottom=False)
     fig.tight_layout()
     if min(machs) < 1:
         save = figpath + 'main/all_machs/fig_I_alpha_fit_params_vs_mach.pdf'
@@ -1191,7 +1253,7 @@ if __name__ == "__main__":
                 print("----------------- FIGURE E -----------------------")
                 plot_z_proj_grid_with_noise(turb_data[res],
                                             flow_types=['s', 'c'],
-                                            machs=[1, 5],
+                                            machs=[1, 10],
                                             snrs=[0.3, 1, 3],
                                             symlog=False,
                                             log=False)

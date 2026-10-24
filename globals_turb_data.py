@@ -55,16 +55,6 @@ min_time = 30                                               # Files correponding
 max_time = 100                                              # Likewise, after this will be discarded
 SNR_list_uniform = [1e6, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 100000] # Signal to Noise Ratios
 
-# Test case:
-"""
-resolutions = [256]                         # simulation resolution (default first)
-flow_types = ['s']                          # Soluniodal, Mixed, Compressive
-mach_nums = [0.1]                           # Mach numbers
-project_path = "/scratch/ek9/ag9727/asc/"   # Path to folder
-min_time = 30                               # Files correponding to times before this will be discarded
-max_time = 31                               # Likewise, after this will be discarded
-"""
-
 flow_colors = {
     's':'magenta', 'c':'blue', 'm':'green',
 }
@@ -81,6 +71,86 @@ flow_to_num['c'] = 0
 
 zeta_colours = plt.cm.magma(np.linspace(0, 0.9, len(flow_types)))
 mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
+
+# When the simulations are run, the desired objective mach isn't actually the exact Mach value that
+# ends up being generated. This dict stores the true data.
+mach_errors = {
+    'N256sM0p1'         : {'true_mach': 0.0998, 'std': 0.0043},
+    'N256sM0p2'         : {'true_mach': 0.199, 'std': 0.0096},
+    'N256sM0p5'         : {'true_mach': 0.498, 'std': 0.025},
+    'N256sM1'           : {'true_mach': 1.007, 'std': 0.035},
+    'N256sM2'           : {'true_mach': 2.03, 'std': 0.066},
+    'N256sM5'           : {'true_mach': 5.08, 'std': 0.18},
+    'N256sM10'          : {'true_mach': 10.16, 'std': 0.44},
+    'N256mM0p1'         : {'true_mach': 0.1006, 'std': 0.0049},
+    'N256mM0p2'         : {'true_mach': 0.1998, 'std': 0.0097},
+    'N256mM0p5'         : {'true_mach': 0.499, 'std': 0.029},
+    'N256mM1'           : {'true_mach': 0.999, 'std': 0.033},
+    'N256mM2'           : {'true_mach': 2.033, 'std': 0.092},
+    'N256mM5'           : {'true_mach': 5.05, 'std': 0.24},
+    'N256mM10'          : {'true_mach': 10.15, 'std': 0.45},
+    'N256cM0p1'         : {'true_mach': 0.1113, 'std': 0.0094},
+    'N256cM0p2'         : {'true_mach': 0.257, 'std': 0.06},
+    'N256cM0p5'         : {'true_mach': 0.613, 'std': 0.08},
+    'N256cM1'           : {'true_mach': 0.998, 'std': 0.051},
+    'N256cM2'           : {'true_mach': 2.02, 'std': 0.096},
+    'N256cM5'           : {'true_mach': 5.02, 'std': 0.27},
+    'N256cM10'          : {'true_mach': 10.12, 'std': 0.7},
+    'N256z0p1M0p1'      : {'true_mach': 0.0996, 'std': 0.0054},
+    'N256z0p1M0p2'      : {'true_mach': 0.2013, 'std': 0.0088},
+    'N256z0p1M0p5'      : {'true_mach': 0.516, 'std': 0.021},
+    'N256z0p1M1'        : {'true_mach': 1.003, 'std': 0.044},
+    'N256z0p1M2'        : {'true_mach': 2.03, 'std': 0.11},
+    'N256z0p1M5'        : {'true_mach': 5.07, 'std': 0.26},
+    'N256z0p1M10'       : {'true_mach': 10.03, 'std': 0.49},
+    'N256z0p2M0p1'      : {'true_mach': 0.0994, 'std': 0.0049},
+    'N256z0p2M0p2'      : {'true_mach': 0.1999, 'std': 0.0077},
+    'N256z0p2M0p5'      : {'true_mach': 0.498, 'std': 0.022},
+    'N256z0p2M1'        : {'true_mach': 1.014, 'std': 0.04},
+    'N256z0p2M2'        : {'true_mach': 2.018, 'std': 0.076},
+    'N256z0p2M5'        : {'true_mach': 5.06, 'std': 0.29},
+    'N256z0p2M10'       : {'true_mach': 10.21, 'std': 0.45},
+    'N256z0p3M0p1'      : {'true_mach': 0.0996, 'std': 0.0051},
+    'N256z0p3M0p2'      : {'true_mach': 0.1997, 'std': 0.0085},
+    'N256z0p3M0p5'      : {'true_mach': 0.498, 'std': 0.021},
+    'N256z0p3M1'        : {'true_mach': 1.008, 'std': 0.038},
+    'N256z0p3M2'        : {'true_mach': 2.015, 'std': 0.07},
+    'N256z0p3M5'        : {'true_mach': 5.05, 'std': 0.25},
+    'N256z0p3M10'       : {'true_mach': 10.11, 'std': 0.41},
+    'N256z0p4M0p1'      : {'true_mach': 0.0997, 'std': 0.0051},
+    'N256z0p4M0p2'      : {'true_mach': 0.199, 'std': 0.013},
+    'N256z0p4M0p5'      : {'true_mach': 0.497, 'std': 0.021},
+    'N256z0p4M1'        : {'true_mach': 1.003, 'std': 0.03},
+    'N256z0p4M2'        : {'true_mach': 2.021, 'std': 0.078},
+    'N256z0p4M5'        : {'true_mach': 5.04, 'std': 0.17},
+    'N256z0p4M10'       : {'true_mach': 10.15, 'std': 0.46},
+    'N256z0p75M0p1'     : {'true_mach': 0.0999, 'std': 0.0054},
+    'N256z0p75M0p2'     : {'true_mach': 0.1998, 'std': 0.0076},
+    'N256z0p75M0p5'     : {'true_mach': 0.501, 'std': 0.019},
+    'N256z0p75M1'       : {'true_mach': 1.004, 'std': 0.031},
+    'N256z0p75M2'       : {'true_mach': 2.028, 'std': 0.079},
+    'N256z0p75M5'       : {'true_mach': 5.08, 'std': 0.23},
+    'N256z0p75M10'      : {'true_mach': 10.16, 'std': 0.45},
+}
+
+def get_true_mach(flow_type, target_machs, res=256, mach_errors=mach_errors):
+    true_mach, true_mach_std = [], []
+    for m in target_machs:
+        key = make_model_name_params(res, flow_type, m)
+        true_mach.append(mach_errors[key]['true_mach'])
+        true_mach_std.append(mach_errors[key]['std'])
+    return np.array(true_mach), np.array(true_mach_std)
+
+
+def get_true_mach_agg_over_flows(flow_types, target_mach, res=256, mach_errors=mach_errors):
+    # For a single mach, aggergate the true mach and true std over all flow types
+    vals, stds = [], []
+    for ft in flow_types:
+        key = make_model_name_params(res, ft, target_mach)
+        vals.append(mach_errors[key]['true_mach'])
+        stds.append(mach_errors[key]['std'])
+    vals, stds = np.array(vals), np.array(stds)
+    return vals.mean(), np.sqrt(np.mean(stds**2))
 
 
 # ========== global functions ============
