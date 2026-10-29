@@ -66,7 +66,7 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
         upper_vmin, upper_vmax = 1/dist, dist
     else:
         dist = 2.5
-        lower_vmin, lower_vmax = 1-dist, 1+dist
+        lower_vmin, lower_vmax = 0, 3.5
         dist = 65
         upper_vmin, upper_vmax = 1/dist, dist
 
@@ -128,10 +128,10 @@ def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.
         lower_save = figpath+f'main/supersonic_machs/fig_A_cbar_lower_machs.pdf'
 
     plt.figure(figsize=(panel_w, panel_h))
-    cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, log=log_scales["upper_machs"], cmap=cmap, label=r'Column density ($\Sigma / \langle \Sigma \rangle$)',
+    cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, log=log_scales["upper_machs"], cmap=cmap, label=r'Column density ($N / N_0$)',
                        panels=len(upper_machs), orientation="vertical", save=higher_save)
     plt.figure(figsize=(panel_w, panel_h))
-    cfp.plot_colorbar(vmin=lower_vmin, vmax=lower_vmax, log=log_scales["lower_machs"], cmap=cmap, label=r'Column density ($\Sigma / \langle \Sigma \rangle$)',
+    cfp.plot_colorbar(vmin=lower_vmin, vmax=lower_vmax, log=log_scales["lower_machs"], cmap=cmap, label=r'Column density ($N / N_0$)',
                        panels=len(lower_machs), orientation="vertical", save=lower_save)
 
 
@@ -583,11 +583,11 @@ def plot_z_proj_grid_with_noise(turb_data, flow_types=['s', 'c'], machs=[0.1, 10
 
     plt.figure(figsize=(panel_w, panel_h))
     cfp.plot_colorbar(vmin=upper_vmin, vmax=upper_vmax, log=log, symlog=symlog, cmap=cmap, symlog_linthresh=symlog_linthresh,
-                        label=r'Column density ($\Sigma / \langle \Sigma \rangle$)',
+                        label=r'Column density ($N / N_0$)',
                         panels=2, orientation="vertical", save=save_upper)
     plt.figure(figsize=(panel_w, panel_h))
     cfp.plot_colorbar(vmin=lower_vmin, vmax=lower_vmax,log=log,  symlog=symlog, cmap=cmap, symlog_linthresh=symlog_linthresh,
-                        label=r'Column density ($\Sigma / \langle \Sigma \rangle$)',
+                        label=r'Column density ($N / N_0$)',
                         panels=2, orientation="vertical", save=save_lower)
 
     load_default_plotstyle()
