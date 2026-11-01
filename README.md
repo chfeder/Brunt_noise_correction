@@ -9,3 +9,21 @@
 ## Explaination of Other Files
     - `models_driving.txt`:     Specifies the simulations to be run.
     - `globals_turb_data.py`:   Specifies global variables and functions for both projects.
+
+
+## TODO:
+
+In `plot_turb_data_uniform.py`, I've renamed many of the modelling variables in the labels but haven't
+updated the code to reflect that changes, which may be confusing to read. Here's a table showing old
+vs new paramater names
+
+# Variable Renaming
+
+| Old | New | Role |
+|---|---|---|
+| $\mathrm{SNR_{crit}}$ | $\mathrm{SNR_{crit}}$ | unchanged |
+| $\eta$ | $a$ | input to $\mathrm{SNR_{crit}}$ |
+| $\lambda_{\text{old}}$ | $b$ | input to $\mathrm{SNR_{crit}}$ |
+| $PL_EXP = \alpha$ | $\lambda$ | steepness (the exponent) |
+| $\alpha_0$ | $c$ | input to $\lambda$ |
+| $\alpha_1$ | $d$ | input to $\lambda$ |
