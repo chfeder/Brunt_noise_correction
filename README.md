@@ -11,13 +11,12 @@
     - `globals_turb_data.py`:   Specifies global variables and functions for both projects.
 
 
-## TODO:
+# Variable Renaming
+
 
 In `plot_turb_data_uniform.py`, I've renamed many of the modelling variables in the labels but haven't
 updated the code to reflect that changes, which may be confusing to read. Here's a table showing old
 vs new paramater names
-
-# Variable Renaming
 
 | Old | New | Role |
 |---|---|---|

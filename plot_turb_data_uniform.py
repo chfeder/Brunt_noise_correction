@@ -58,29 +58,6 @@ def val_with_err_str(fitdat, i: int, sym=False, prec=2) -> str:
         return fmt(val) + r'^{+' + fmt(hi) + r'}_{-' + fmt(lo) + r'}'
 
 
-# Generates strings such as "value +/- error" for symmetrics labels, or "value^{+...}_{-...}" for
-# asymetric errors
-# def val_with_err_str(val, perr, pstd, sym=True, prec=2) -> str:
-
-#     if UNIVERSAL_ASYM_ERR:
-#         sym = False
-
-#     # the error term has the same place value as the main term
-#     if val == 0:
-#         d = prec - 1
-#     else:
-#         d = max(prec - 1 - int(np.floor(np.log10(np.abs(val)))), 0)
-
-#     fmt = lambda x: f"{x:.{d}f}" # precision formatting
-
-#     if sym:
-#         return fmt(val) + r'\pm' + fmt(pstd)
-#     else:
-#         lo, hi = np.abs(perr[0]), np.abs(perr[1])
-#         return fmt(val) + r'^{+' + fmt(hi) + r'}_{-' + fmt(lo) + r'}'
-
-
-
 # ============================= FIGURE A ========================================
 def plot_z_proj_grid(turb_data, res, isnr=0, flow_types=['s','m','c'], machs=[0.1, 0.5, 2, 10], timestep=50,
                         grid_size=(9, 12), log_scales={"upper_machs": True, "lower_machs": False}, label_info=""):
@@ -535,7 +512,6 @@ def plot_z_proj_grid_with_noise(turb_data, flow_types=['s', 'c'], machs=[0.1, 10
                                 res=256, isnr=0,  timestep=50, log=True,
                                 grid_size=(9, 12), symlog=False, label_info=""):
     """
-    Warning: Note that any log=/=True path is now deprecated, and likely won't work.
 
     plots the following grid:
                                 | SNRS
@@ -776,7 +752,7 @@ def plot_fit_params_grid_zeta(turb_data, machs=[0.1, 1, 10], fit_params=None):
     2-panel graph as follows:
 
 
-    | SNR_crit |   PL_exp = lambda   | (NOW HORIZONTAL)
+    | SNR_crit |   PL_exp = lambda   |
     ---------------------------------
            Zeta            Zeta
 
