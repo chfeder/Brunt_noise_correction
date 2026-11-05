@@ -1,5 +1,21 @@
 #!/usr/bin/env python
 
+"""
+This file contains the code which creates the processed data files for the uniform project given the
+simulations as input.
+
+The data files are stored as .dill files, with the following structure:
+
+{"data": data, "stats": stats}
+
+Each data[iSNR][j] is a ret object, where each iSNR is a SNR, and each j is a projection.
+The ret object holds the data for all noise_samples iterations. Each ret object contains
+the data for that projection.
+
+Each stats[iSNR] is a list, [avg, std, p16, p64], where each entry is a ret object,
+containing the data aggregated over the associated statistical metric.
+"""
+
 from globals_turb_data import *
 from link_sims import *
 from itertools import product
@@ -23,8 +39,6 @@ def get_output_file_path(project_path, sim_name, noise_exp, res_resample):
         s += "_res_resample_"+str(res_resample)
     s += ".dill"
     return s
-
-# -----------------------------------------------------------
 
 # ===== the following applies in case we are running this in script mode =====
 if __name__ == "__main__":
@@ -121,18 +135,6 @@ if __name__ == "__main__":
                     dill.dump(turb_data, f)
                 print("Wrote '"+dillfile+"'.", color='magenta')
 
-                """
-                Dill file structure:
-
-                {"data": data, "stats": stats}
-
-                Each data[iSNR][j] is a ret object, where each iSNR is a SNR, and each j is a projection.
-                The ret object holds the data for all noise_samples iterations. Each ret object contains
-                the data for that projection.
-
-                Each stats[iSNR] is a list, [avg, std, p16, p64], where each entry is a ret object,
-                containing the data aggregated over the associated statistical metric.
-                """
 
     timer.report()
     print("End.")

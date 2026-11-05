@@ -1,3 +1,8 @@
+"""
+This file contains global variables and functions used throughout the repository for both the
+uniform and 5-box projects.
+"""
+
 import cfpack as cfp
 from cfpack import stop, print
 cfp.load_plot_style()
@@ -9,7 +14,10 @@ from collections import defaultdict
 from types import SimpleNamespace
 import dill
 
-# === global variables and functions ===
+
+# ==================================================================================================
+#                                      GLOBAL VARIABLES
+# ==================================================================================================
 
 # 3 different projections (LOS)
 LOS_list = [0, 1, 2] # x, y, z
@@ -17,7 +25,7 @@ LOS_list = [0, 1, 2] # x, y, z
 # figure output path
 figpath = '../figs/'
 
-# ---------------- 5 BOX SIMULATION ONLY ----------------
+# ---------------------------------- 5-BOX PROJECT ONLY --------------------------------------------
 
 # centre, left, right, back, front box
 BOX_list = ['c_box', 'l_box', 'r_box', 'b_box', 'f_box']
@@ -42,7 +50,7 @@ res_colors_magenta = cmap(np.linspace(0, 1, 5))
 res_colors_blue = plt.cm.Blues(np.linspace(0.3, 1.0, 5))
 res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
 
-# ------------------ UNIFORM SIMULATION ONLY ----------------
+# -------------------------------- UNIFORM PROJECT ONLY --------------------------------------------
 
 # Global settings
 resolutions = [256]                                         # Simulation resolution
@@ -73,7 +81,7 @@ zeta_colours = plt.cm.magma(np.linspace(0, 0.9, len(flow_types)))
 mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
 
 # When the simulations are run, the desired objective mach isn't actually the exact Mach value that
-# ends up being generated. This dict stores the true data.
+# ends up being generated. This dict maps the target Mach to the true Mach and error.
 mach_errors = {
     'N256sM0p1'         : {'true_mach': 0.0998, 'std': 0.0043},
     'N256sM0p2'         : {'true_mach': 0.199, 'std': 0.0096},
@@ -133,28 +141,11 @@ mach_errors = {
     'N256z0p75M10'      : {'true_mach': 10.16, 'std': 0.45},
 }
 
-def get_true_mach(flow_type, target_machs, res=256, mach_errors=mach_errors):
-    true_mach, true_mach_std = [], []
-    for m in target_machs:
-        key = make_model_name_params(res, flow_type, m)
-        true_mach.append(mach_errors[key]['true_mach'])
-        true_mach_std.append(mach_errors[key]['std'])
-    return np.array(true_mach), np.array(true_mach_std)
+# ==================================================================================================
+#                                      GLOBAL FUNCTIONS
+# ==================================================================================================
 
-
-def get_true_mach_agg_over_flows(flow_types, target_mach, res=256, mach_errors=mach_errors):
-    # For a single mach, aggergate the true mach and true std over all flow types
-    vals, stds = [], []
-    for ft in flow_types:
-        key = make_model_name_params(res, ft, target_mach)
-        vals.append(mach_errors[key]['true_mach'])
-        stds.append(mach_errors[key]['std'])
-    vals, stds = np.array(vals), np.array(stds)
-    return vals.mean(), np.sqrt(np.mean(stds**2))
-
-
-# ========== global functions ============
-
+# ===================================================================
 # function to get simulation and dill filename(s)
 def get_filename(res, void_size, noise_exp=1.0, res_resample=1.0, dill=False):
     simpath = '../turb_foam_gamma_5_3_3d_'+str(res)+'_'+str(void_size)+'_bubbles/'
@@ -371,6 +362,7 @@ def make_mach_str(mach: float) -> str:
         mach_str = 'M' + str(mach).replace('.', 'p')
     return mach_str
 
+# ===================================================================
 def make_flow_str(flow: str | float | int) -> str:
     if flow in ['s', 'm', 'c']:
         return flow
@@ -382,6 +374,7 @@ def make_flow_str(flow: str | float | int) -> str:
         else:
             return 'z' + str(zeta).replace('.', 'p')
 
+# ===================================================================
 # ---- generates the model as a string for a given simulation, ie, "N256cM0p2", given the below params
 def make_model_name_params(res, flow_type: str | float | int, mach) -> str:
     res = str(res)
@@ -393,3 +386,24 @@ def make_model_name_params(res, flow_type: str | float | int, mach) -> str:
 
     return 'N' + res + flow_str + mach_str
 
+# -------------------------------- UNIFORM PROJECT ONLY --------------------------------------------
+
+# ===================================================================
+def get_true_mach(flow_type, target_machs, res=256, mach_errors=mach_errors):
+    true_mach, true_mach_std = [], []
+    for m in target_machs:
+        key = make_model_name_params(res, flow_type, m)
+        true_mach.append(mach_errors[key]['true_mach'])
+        true_mach_std.append(mach_errors[key]['std'])
+    return np.array(true_mach), np.array(true_mach_std)
+
+# ===================================================================
+def get_true_mach_agg_over_flows(flow_types, target_mach, res=256, mach_errors=mach_errors):
+    # For a single mach, aggergate the true mach and true std over all flow types
+    vals, stds = [], []
+    for ft in flow_types:
+        key = make_model_name_params(res, ft, target_mach)
+        vals.append(mach_errors[key]['true_mach'])
+        stds.append(mach_errors[key]['std'])
+    vals, stds = np.array(vals), np.array(stds)
+    return vals.mean(), np.sqrt(np.mean(stds**2))
