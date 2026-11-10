@@ -1,3 +1,8 @@
+"""
+This file contains global variables and functions used throughout the repository for both the
+uniform and 5-box projects.
+"""
+
 import cfpack as cfp
 from cfpack import stop, print
 cfp.load_plot_style()
@@ -9,13 +14,21 @@ from collections import defaultdict
 from types import SimpleNamespace
 import dill
 
-# === global variables and functions ===
 
-# centre, left, right, back, front box
-BOX_list = ['c_box', 'l_box', 'r_box', 'b_box', 'f_box']
+# ==================================================================================================
+#                                      GLOBAL VARIABLES
+# ==================================================================================================
 
 # 3 different projections (LOS)
 LOS_list = [0, 1, 2] # x, y, z
+
+# figure output path
+figpath = '../figs/'
+
+# ---------------------------------- 5-BOX PROJECT ONLY --------------------------------------------
+
+# centre, left, right, back, front box
+BOX_list = ['c_box', 'l_box', 'r_box', 'b_box', 'f_box']
 
 # SNR list (8 values, with the 0th index holding near infinite SNR)
 SNR_list = [1e6, 0.01, 0.1, 1, 3, 5, 10, 100]
@@ -37,7 +50,102 @@ res_colors_magenta = cmap(np.linspace(0, 1, 5))
 res_colors_blue = plt.cm.Blues(np.linspace(0.3, 1.0, 5))
 res_colors_green = plt.cm.Greens(np.linspace(0.3, 1.0, 5))
 
+# -------------------------------- UNIFORM PROJECT ONLY --------------------------------------------
 
+# Global settings
+resolutions = [256]                                         # Simulation resolution
+flow_types = ['c', 0.1, 0.2, 0.3, 0.4, 'm', 0.75, 's']      # s=Soluniodal (zeta=1), m=Mixed (zeta=0.5), c=Compressive (zeta=0)
+flow_types_nums = np.array([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1])
+mach_nums = [0.1, 0.2, 0.5, 1, 2, 5, 10]                    # Mach numbers
+supersonic_mach_nums = [x for x in mach_nums if x >= 1]
+project_path = "/scratch/ek9/ag9727/asc/"                   # Path to folder
+min_time = 30                                               # Files correponding to times before this will be discarded
+max_time = 100                                              # Likewise, after this will be discarded
+SNR_list_uniform = [1e6, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 100000] # Signal to Noise Ratios
+
+flow_colors = {
+    's':'magenta', 'c':'blue', 'm':'green',
+}
+flow_labels = {
+    's':'Solenoidal', 'c':'Compressive', 'm':'Mixed',
+}
+
+flow_to_num = dict()
+for x in flow_types_nums:
+    flow_to_num[x] = x
+flow_to_num['s'] = 1
+flow_to_num['m'] = 0.5
+flow_to_num['c'] = 0
+
+zeta_colours = plt.cm.magma(np.linspace(0, 0.9, len(flow_types)))
+mach_colors = plt.cm.viridis(np.linspace(0, 0.9, len(mach_nums)))
+
+# When the simulations are run, the desired objective mach isn't actually the exact Mach value that
+# ends up being generated. This dict maps the target Mach to the true Mach and error.
+mach_errors = {
+    'N256sM0p1'         : {'true_mach': 0.0998, 'std': 0.0043},
+    'N256sM0p2'         : {'true_mach': 0.199, 'std': 0.0096},
+    'N256sM0p5'         : {'true_mach': 0.498, 'std': 0.025},
+    'N256sM1'           : {'true_mach': 1.007, 'std': 0.035},
+    'N256sM2'           : {'true_mach': 2.03, 'std': 0.066},
+    'N256sM5'           : {'true_mach': 5.08, 'std': 0.18},
+    'N256sM10'          : {'true_mach': 10.16, 'std': 0.44},
+    'N256mM0p1'         : {'true_mach': 0.1006, 'std': 0.0049},
+    'N256mM0p2'         : {'true_mach': 0.1998, 'std': 0.0097},
+    'N256mM0p5'         : {'true_mach': 0.499, 'std': 0.029},
+    'N256mM1'           : {'true_mach': 0.999, 'std': 0.033},
+    'N256mM2'           : {'true_mach': 2.033, 'std': 0.092},
+    'N256mM5'           : {'true_mach': 5.05, 'std': 0.24},
+    'N256mM10'          : {'true_mach': 10.15, 'std': 0.45},
+    'N256cM0p1'         : {'true_mach': 0.1113, 'std': 0.0094},
+    'N256cM0p2'         : {'true_mach': 0.257, 'std': 0.06},
+    'N256cM0p5'         : {'true_mach': 0.613, 'std': 0.08},
+    'N256cM1'           : {'true_mach': 0.998, 'std': 0.051},
+    'N256cM2'           : {'true_mach': 2.02, 'std': 0.096},
+    'N256cM5'           : {'true_mach': 5.02, 'std': 0.27},
+    'N256cM10'          : {'true_mach': 10.12, 'std': 0.7},
+    'N256z0p1M0p1'      : {'true_mach': 0.0996, 'std': 0.0054},
+    'N256z0p1M0p2'      : {'true_mach': 0.2013, 'std': 0.0088},
+    'N256z0p1M0p5'      : {'true_mach': 0.516, 'std': 0.021},
+    'N256z0p1M1'        : {'true_mach': 1.003, 'std': 0.044},
+    'N256z0p1M2'        : {'true_mach': 2.03, 'std': 0.11},
+    'N256z0p1M5'        : {'true_mach': 5.07, 'std': 0.26},
+    'N256z0p1M10'       : {'true_mach': 10.03, 'std': 0.49},
+    'N256z0p2M0p1'      : {'true_mach': 0.0994, 'std': 0.0049},
+    'N256z0p2M0p2'      : {'true_mach': 0.1999, 'std': 0.0077},
+    'N256z0p2M0p5'      : {'true_mach': 0.498, 'std': 0.022},
+    'N256z0p2M1'        : {'true_mach': 1.014, 'std': 0.04},
+    'N256z0p2M2'        : {'true_mach': 2.018, 'std': 0.076},
+    'N256z0p2M5'        : {'true_mach': 5.06, 'std': 0.29},
+    'N256z0p2M10'       : {'true_mach': 10.21, 'std': 0.45},
+    'N256z0p3M0p1'      : {'true_mach': 0.0996, 'std': 0.0051},
+    'N256z0p3M0p2'      : {'true_mach': 0.1997, 'std': 0.0085},
+    'N256z0p3M0p5'      : {'true_mach': 0.498, 'std': 0.021},
+    'N256z0p3M1'        : {'true_mach': 1.008, 'std': 0.038},
+    'N256z0p3M2'        : {'true_mach': 2.015, 'std': 0.07},
+    'N256z0p3M5'        : {'true_mach': 5.05, 'std': 0.25},
+    'N256z0p3M10'       : {'true_mach': 10.11, 'std': 0.41},
+    'N256z0p4M0p1'      : {'true_mach': 0.0997, 'std': 0.0051},
+    'N256z0p4M0p2'      : {'true_mach': 0.199, 'std': 0.013},
+    'N256z0p4M0p5'      : {'true_mach': 0.497, 'std': 0.021},
+    'N256z0p4M1'        : {'true_mach': 1.003, 'std': 0.03},
+    'N256z0p4M2'        : {'true_mach': 2.021, 'std': 0.078},
+    'N256z0p4M5'        : {'true_mach': 5.04, 'std': 0.17},
+    'N256z0p4M10'       : {'true_mach': 10.15, 'std': 0.46},
+    'N256z0p75M0p1'     : {'true_mach': 0.0999, 'std': 0.0054},
+    'N256z0p75M0p2'     : {'true_mach': 0.1998, 'std': 0.0076},
+    'N256z0p75M0p5'     : {'true_mach': 0.501, 'std': 0.019},
+    'N256z0p75M1'       : {'true_mach': 1.004, 'std': 0.031},
+    'N256z0p75M2'       : {'true_mach': 2.028, 'std': 0.079},
+    'N256z0p75M5'       : {'true_mach': 5.08, 'std': 0.23},
+    'N256z0p75M10'      : {'true_mach': 10.16, 'std': 0.45},
+}
+
+# ==================================================================================================
+#                                      GLOBAL FUNCTIONS
+# ==================================================================================================
+
+# ===================================================================
 # function to get simulation and dill filename(s)
 def get_filename(res, void_size, noise_exp=1.0, res_resample=1.0, dill=False):
     simpath = '../turb_foam_gamma_5_3_3d_'+str(res)+'_'+str(void_size)+'_bubbles/'
@@ -52,5 +160,250 @@ def get_filename(res, void_size, noise_exp=1.0, res_resample=1.0, dill=False):
         filename += "_turb_data"+noise_str+res_resample_str+".dill"
     return filename
 
-# figure output path
-figpath = '../figs/'
+# ===================================================================
+# Given a side length N and noise_exp, return the noise values over an N x N grid
+# The noise values are normalised to have a mean of 0 and std of 1
+def get_noise(N, noise_exp=1.0, kmin=None, kmax=None, std=1.0, random_phases=True, random_amplitudes=True, random_seed=None):
+    # noise_exp = 1 creates a white-noise spectrum. The noise_exp is called 'alpha' in the paper (cf. Sec. 4.1).
+    # Note that alpha = beta + 1, and hence, beta = alpha - 1. With alpha = 1, we have beta = 0, which is white noise.
+    # The 1D azimuthally-integrated spectrum scales as k^noise_exp for 2D fields, and since we plot it as such,
+    # we use alpha=noise_exp to denote the noise exponent in the paper.
+    isovec = [1,1,1]
+    kI = np.fft.fftfreq(N)
+    kx, ky = np.meshgrid(kI, kI, indexing='ij') # 2D
+    rrr = np.sqrt(isovec[0]*kx**2+isovec[1]*ky**2) # 2D
+    Ahat = np.zeros_like(rrr*1j)
+    k = np.unique(np.abs(kx))
+    if kmin is None:
+        kmin = 0
+    if kmax is None:
+        kmax = N//2
+    rmin = k[kmin]
+    rmax = k[kmax]
+    ok = (rrr>rmin) & (rrr<=rmax)
+
+    beta = noise_exp - 1.0 # beta in Eq. (10) in Sec. 4.1
+    betaprime = beta / 2
+    Ahat[ok] = rrr[ok]**betaprime
+    if random_seed:
+        print('Setting random seed ', random_seed)
+        np.random.seed(random_seed)
+    if random_amplitudes:
+        rn = np.random.random(Ahat.size)
+        rn.shape = Ahat.shape
+        Ahat *= rn
+    Ahat[0,0] = 0 # mean amplitude, 2D
+    if random_phases:
+        phi = (np.random.random(Ahat.size)-0.5)*np.pi*2
+        phi.shape = Ahat.shape
+        Ahatmag = np.abs(Ahat)
+        Ahat = Ahatmag*np.cos(phi)+Ahatmag*np.sin(phi)*1j
+        Ahat[0,0] = np.abs(Ahat[0,0]) # 2D
+    noise = np.fft.irfftn(Ahat, s=Ahat.shape)
+    noise -= noise.mean() # correct tiny deviations from 0 mean
+    noise /= noise.std() # normalise to target STD
+    noise *= std # normalise to target STD
+    return noise
+
+# ===================================================================
+# Given a signal (N x N array), add noise to it according to the desired SNR
+def add_noise(signal, SNR, noise_exp=1.0):
+    N = signal.shape[0]
+    noise = get_noise(N, noise_exp) # return noise with 0 mean and std of 1
+    scale = np.std(signal) / SNR
+    noise *= scale
+    noisy_data = signal + noise
+    return noisy_data, noise
+
+# ===================================================================
+def get_Brunt_data(k, P, k_noise=np.inf): # k_noise achieves denoising
+    ind = (k > 0) & (k <= k_noise)
+    P2D = P[ind].sum()
+    P3D = (2*k[ind]*P[ind]).sum()
+    Brunt_R_to_half = np.sqrt(P2D/P3D)
+    Brunt_sigma_2D = np.sqrt(P2D/P[0]) # normalised by the mean (np.sqrt(P[0]))
+    Brunt_sigma_3D = Brunt_sigma_2D / Brunt_R_to_half
+    return Brunt_sigma_3D, Brunt_R_to_half
+
+# ===================================================================
+# Given a signal (N x N array), and an SNR, add noise to it for a specified number of trials
+# Return the resulting data in the form of a ret class, defined below
+def noise_iterations(iterations, signal, SNR, noise_exp=1.0):
+    # prepare output lists
+    sigma_2D_list = []
+    PS_SpN_list = [] # PS = Power Spectrum, SpN = Signal plus Noise
+    PS_N_list = []
+    k_noise_list = []
+    PS_S_at_k_noise_list = []
+    Brunt_sigma_3D_list = []
+    Brunt_R_to_half_list = []
+    Brunt_sigma_3D_denoised_list = []
+    Brunt_R_to_half_denoised_list = []
+    # signal spectrum
+    spect_S = cfp.get_spectrum(signal, verbose=0)
+    k = spect_S['k']
+    PS_S = spect_S['P_tot']
+    # loop over noise iterations
+    for iteration in range(iterations):
+        # add noise
+        noisy_data, noise = add_noise(signal, SNR, noise_exp)
+        # noisy sigma_2D
+        sigma_2D = (noisy_data/noisy_data.mean()).std()
+        sigma_2D_list.append(sigma_2D)
+        # compute spectra
+        PS_SpN = cfp.get_spectrum(noisy_data, verbose=0)['P_tot']
+        PS_SpN_list.append(PS_SpN)
+        PS_N = cfp.get_spectrum(noise, verbose=0)['P_tot']
+        PS_N_list.append(PS_N)
+        # k_noise and PS_S value at k_noise
+
+
+        if not all(PS_S[1:] > PS_N[1:]):
+            # Just this on its own (without the if) can cause k_noise to
+            # be set to a local min should there be an uptick in the far right
+            k_noise_ind = np.argmin(np.abs(np.log10(PS_S[1:]/PS_N[1:])))
+        else:
+            k_noise_ind = len(k[1:]) - 1
+
+        k_noise = k[1:][k_noise_ind]
+        k_noise_list.append(k_noise)
+        PS_S_at_k_noise_list.append(PS_S[1:][k_noise_ind])
+        # Brunt sigma_3D and R^(1/2) without noise correction
+        Brunt_sigma_3D, Brunt_R_to_half = get_Brunt_data(k, PS_SpN, k_noise=np.inf)
+        Brunt_sigma_3D_list.append(Brunt_sigma_3D)
+        Brunt_R_to_half_list.append(Brunt_R_to_half)
+        # Brunt sigma_3D and R^(1/2) denoised
+        Brunt_sigma_3D_denoised, Brunt_R_to_half_denoised = get_Brunt_data(k, PS_SpN, k_noise)
+        Brunt_sigma_3D_denoised_list.append(Brunt_sigma_3D_denoised)
+        Brunt_R_to_half_denoised_list.append(Brunt_R_to_half_denoised)
+    class ret:
+        def __init__(self, SNR_, noise_exp_, signal_, noise_, noisy_data_, sigma_2D_,
+                        k_, PS_S_, PS_N_, PS_SpN_, k_noise_, PS_S_at_k_noise_,
+                        Brunt_sigma_3D_, Brunt_R_to_half_,
+                        Brunt_sigma_3D_denoised_, Brunt_R_to_half_denoised_):
+            self.SNR = np.array([SNR_]) # add extra ghost dim to allow simple stats function below
+            self.noise_exp = np.array([noise_exp_])
+            self.signal = np.array([signal_])
+            self.noise = np.array([noise_])
+            self.noisy_data = np.array([noisy_data_])
+            self.sigma_2D = np.array(sigma_2D_)
+            self.k = np.array([k_])
+            self.PS_S = np.array([PS_S_]) # add extra ghost dim to allow simple stats function below
+            self.PS_N = np.array(PS_N_)
+            self.PS_SpN = np.array(PS_SpN_)
+            self.k_noise = np.array(k_noise_)
+            self.PS_S_at_k_noise = np.array(PS_S_at_k_noise_)
+            self.Brunt_sigma_3D = np.array(Brunt_sigma_3D_)
+            self.R_to_half = np.array(Brunt_R_to_half_)
+            self.Brunt_sigma_3D_denoised = np.array(Brunt_sigma_3D_denoised_)
+            self.R_to_half_denoised = np.array(Brunt_R_to_half_denoised_)
+    return ret(SNR, noise_exp, signal, noise, noisy_data, sigma_2D_list,
+                k, PS_S, PS_N_list, PS_SpN_list, k_noise_list, PS_S_at_k_noise_list,
+                Brunt_sigma_3D_list, Brunt_R_to_half_list,
+                Brunt_sigma_3D_denoised_list, Brunt_R_to_half_denoised_list)
+
+# ===================================================================
+# --- function that computes statistics over the noise samples ---
+# Given a list of ret objects (where the list is all ret objects for a particular SNR,
+# and each ret corresponds to a single projection) return the list [avg, std, p16, p84],
+# where each entry is a ret object, containing all the data for that statiscal value.
+def get_stats_object(objs):
+    # -----------------------------------------------------------
+    # Given an array containing all the data for a single attribute (across all ret objects),
+    # return the array [avg, std, 16th, 84th] for it. Some may not be scalars.
+    def get_stats(arr, log_stats=True):
+        if log_stats:
+            arr[arr==0] = 1e-99 # fix 0 values in log statistics
+            data_arr = np.log10(arr) # log statistics
+        else:
+            data_arr = arr # linear statistics
+        stats = [np.nan, np.nan, np.nan, np.nan] # avg, std, 16th, 84th
+        # statistics over axes 0 and 1 = boxes and noise realisations
+        stats[0] = np.mean      (data_arr,     axis=(0, 1)) # avg
+        stats[1] = np.std       (data_arr,     axis=(0, 1)) # std
+        stats[2] = np.percentile(data_arr, 16, axis=(0, 1)) # 16th
+        stats[3] = np.percentile(data_arr, 84, axis=(0, 1)) # 84th
+        if log_stats: # log statistics
+            for i in range(len(stats)):
+                stats[i] = 10**stats[i]
+        return stats
+    # -----------------------------------------------------------
+
+    # Make a list of 4 new ret objects to return, the avg, std, p16, p84
+    cls = type(objs[0])
+    ret_stats_data = [cls.__new__(cls) for _ in range(4)]  # avg, std, p16, p84
+
+    # For each (attribute name, attribute data) in the ret object...
+    for k, v in vars(objs[0]).items():
+        # print('Computing statistics on '+k)
+
+        # Get every value for the single attribute k for every ret object in a single list
+        vals = [getattr(o, k) for o in objs]
+        arr = np.asarray(vals)
+
+        # Get all the statistics (the list [avg, std, p16, p84]) for the attribute
+        if k in ['noise_exp', 'noise', 'noisy_data', 'k']:
+            log_stats = False
+        else:
+            log_stats = True
+        stats = get_stats(arr, log_stats)
+
+        # Store all the results into the ret_stats_data
+        for i in range(len(stats)):
+            setattr(ret_stats_data[i], k, stats[i])
+
+    return ret_stats_data
+
+# ===================================================================
+def make_mach_str(mach: float) -> str:
+    if mach == int(mach):
+        mach_str = 'M' + str(int(mach))
+    else:
+        mach_str = 'M' + str(mach).replace('.', 'p')
+    return mach_str
+
+# ===================================================================
+def make_flow_str(flow: str | float | int) -> str:
+    if flow in ['s', 'm', 'c']:
+        return flow
+    else:
+        # zeta (which is in [0,1]) refers to a blend of sol and comp
+        zeta = float(flow)
+        if zeta == int(zeta):
+            return 'z' + str(int(zeta))
+        else:
+            return 'z' + str(zeta).replace('.', 'p')
+
+# ===================================================================
+# ---- generates the model as a string for a given simulation, ie, "N256cM0p2", given the below params
+def make_model_name_params(res, flow_type: str | float | int, mach) -> str:
+    res = str(res)
+
+    flow_str = make_flow_str(flow_type)
+
+    mach = float(mach)
+    mach_str = make_mach_str(mach)
+
+    return 'N' + res + flow_str + mach_str
+
+# -------------------------------- UNIFORM PROJECT ONLY --------------------------------------------
+
+# ===================================================================
+def get_true_mach(flow_type, target_machs, res=256, mach_errors=mach_errors):
+    true_mach, true_mach_std = [], []
+    for m in target_machs:
+        key = make_model_name_params(res, flow_type, m)
+        true_mach.append(mach_errors[key]['true_mach'])
+        true_mach_std.append(mach_errors[key]['std'])
+    return np.array(true_mach), np.array(true_mach_std)
+
+# ===================================================================
+def get_true_mach_agg_over_flows(flow_types, target_mach, res=256, mach_errors=mach_errors):
+    # For a single mach, aggergate the true mach and true std over all flow types
+    vals, stds = [], []
+    for ft in flow_types:
+        key = make_model_name_params(res, ft, target_mach)
+        vals.append(mach_errors[key]['true_mach'])
+        stds.append(mach_errors[key]['std'])
+    vals, stds = np.array(vals), np.array(stds)
+    return vals.mean(), np.sqrt(np.mean(stds**2))
