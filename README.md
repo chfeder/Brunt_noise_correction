@@ -3,7 +3,7 @@
 This repository contains code for two related projects investigating noise correction in the Brunt Method:
 
 1. **5-Box Project:** Refers to the work described in the paper [*From 2D to 3D: Recovering Turbulent Density Dispersions from Noisy Data*](https://doi.org/10.3847/1538-4357/ae875e).
-2. **Uniform Project:** A related investigation using a uniform grid.
+2. **Uniform Project:** A related investigation using a uniform grid [*The effects of Mach number and driving mode on noise-corrected 3D turbulent density reconstruction*](...).
 
 ## Citation
 
